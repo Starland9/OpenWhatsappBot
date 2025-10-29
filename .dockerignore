@@ -1,0 +1,13 @@
+node_modules
+sessions/*
+!sessions/.gitkeep
+logs/*
+!logs/.gitkeep
+database.db
+.git
+.github
+.env
+config.env
+*.log
+.DS_Store
+Thumbs.db

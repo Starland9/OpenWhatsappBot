@@ -1,31 +1,42 @@
-const { bot, gemini, lang } = require('../lib')
+const { GoogleGenerativeAI } = require('@google/generative-ai')
+const config = require('../config')
 
-bot(
-  {
-    pattern: 'gemini ?(.*)',
-    desc: lang.plugins.gemini.desc,
-    type: 'ai',
+/**
+ * Gemini command - AI chat using Google Gemini
+ */
+module.exports = {
+  command: {
+    pattern: 'gemini|gem',
+    desc: 'Chat with Google Gemini AI',
+    type: 'ai'
   },
-  async (message, match, ctx) => {
-    if (!ctx.GEMINI_API_KEY) {
-      return await message.send(lang.plugins.gemini.Key)
+  
+  async execute(message, query) {
+    if (!config.GEMINI_API_KEY) {
+      return await message.reply('❌ Gemini API key not configured. Set GEMINI_API_KEY in config.env')
     }
-
-    if (!match) {
-      return await message.send(lang.plugins.gemini.example)
+    
+    if (!query) {
+      return await message.reply('❌ Please provide a question\n\nExample: .gemini Explain quantum computing')
     }
-
-    let image = null
-
-    if (message.reply_message && message.reply_message.image) {
-      image = {
-        image: await message.reply_message.downloadMediaMessage(),
-        mimetype: message.reply_message.mimetype,
-      }
+    
+    try {
+      await message.react('⏳')
+      
+      const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY)
+      const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+      
+      const result = await model.generateContent(query)
+      const response = await result.response
+      const text = response.text()
+      
+      await message.react('✅')
+      await message.reply(`🌟 *Gemini AI*\n\n${text}`)
+      
+    } catch (error) {
+      await message.react('❌')
+      console.error('Gemini error:', error)
+      await message.reply(`❌ Error: ${error.message}`)
     }
-
-    const res = await gemini(match || 'Describe this image.', message.id, image)
-
-    await message.send(res.data, { quoted: message.data })
   }
-)
+}

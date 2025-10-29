@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: levanter-bot
+    restart: unless-stopped
+    env_file:
+      - config.env
+    volumes:
+      - ./sessions:/app/sessions
+      - ./logs:/app/logs
+      - ./database.db:/app/database.db
+    depends_on:
+      - postgres
+    networks:
+      - levanter-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: levanter-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: levanter
+      POSTGRES_PASSWORD: levanter_password
+      POSTGRES_DB: levanter
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - levanter-network
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
+
+networks:
+  levanter-network:
+    driver: bridge

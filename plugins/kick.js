@@ -1,29 +1,31 @@
+const { getLang } = require("../lib/utils/language");
+
 /**
  * Kick command - Remove member from group
  */
 module.exports = {
   command: {
     pattern: "kick",
-    desc: "Remove member from group",
+    desc: getLang("plugins.kick.desc"),
     type: "group",
     onlyGroup: true,
   },
 
   async execute(message) {
     if (!message.isGroup) {
-      return await message.reply("❌ This command can only be used in groups");
+      return await message.reply(getLang("extra.group_cmd"));
     }
 
     // Check if sender is admin
     const isSenderAdmin = await message.isSenderAdmin();
     if (!isSenderAdmin && !message.isSudo()) {
-      return await message.reply("❌ Only group admins can use this command");
+      return await message.reply(getLang("plugins.common.not_admin"));
     }
 
     // Check if bot is admin
     const isBotAdmin = await message.isBotAdmin();
     if (!isBotAdmin) {
-      return await message.reply("❌ Bot must be admin to kick members");
+      return await message.reply(getLang("plugins.kick.not_admin"));
     }
 
     // Get target user from mentions or quoted message
@@ -34,9 +36,7 @@ module.exports = {
     } else if (message.quoted) {
       target = message.quoted.sender;
     } else {
-      return await message.reply(
-        "❌ Please mention a user or reply to their message"
-      );
+      return await message.reply(getLang("plugins.kick.mention_user"));
     }
 
     try {

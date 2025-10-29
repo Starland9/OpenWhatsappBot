@@ -1,3 +1,4 @@
+const { getLang } = require("../lib/utils/language");
 const { Innertube } = require("youtubei.js");
 
 /**
@@ -6,7 +7,7 @@ const { Innertube } = require("youtubei.js");
 module.exports = {
   command: {
     pattern: "ytdl|ytv|yta",
-    desc: "Download YouTube video or audio",
+    desc: getLang("plugins.video.desc"),
     type: "download",
   },
 

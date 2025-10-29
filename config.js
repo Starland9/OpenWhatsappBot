@@ -44,6 +44,8 @@ module.exports = {
   AUTO_READ: toBool(process.env.AUTO_READ),
   AUTO_STATUS_VIEW: toBool(process.env.AUTO_STATUS_VIEW),
   ANTI_DELETE: toBool(process.env.ANTI_DELETE),
+  // Message reactions (enable/disable message reaction feature)
+  ENABLE_MESSAGE_REACTIONS: toBool(process.env.ENABLE_MESSAGE_REACTIONS),
 
   // Sticker Config
   STICKER_PACKNAME: process.env.STICKER_PACKNAME || "Made with",

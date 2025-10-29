@@ -1,52 +1,63 @@
-const { getCommands } = require("../lib/plugins/registry");
+const { getCommandByPattern } = require("../lib/plugins/registry");
 const config = require("../config");
 
 /**
- * Help command - Display available commands
+ * Help command - Display detailed help for a specific command
  */
 module.exports = {
   command: {
-    pattern: "help|menu",
-    desc: "Display available commands",
+    pattern: "help",
+    desc: "Display detailed help for a specific command",
     type: "general",
   },
 
   async execute(message, args) {
-    const commands = getCommands();
-
-    // Group commands by type
-    const grouped = commands.reduce((acc, cmd) => {
-      if (!acc[cmd.type]) acc[cmd.type] = []
-      acc[cmd.type].push(cmd)
-      return acc
-    }, {})
-    
-    let helpText = `╭━━━『 *OPEN WHATSAPP BOT* 』━━━
-│
-│ *Version:* ${config.VERSION}
-│ *Prefix:* ${config.PREFIX}
-│ *Commands:* ${commands.length}
-│
-╰━━━━━━━━━━━━━━━━━━━
-
-`;
-
-    // Display commands by category
-    for (const [type, cmds] of Object.entries(grouped)) {
-      helpText += `╭━━━『 *${type.toUpperCase()}* 』━━━\n`;
-
-      for (const cmd of cmds) {
-        const prefix = config.PREFIX;
-        helpText += `│ *${prefix}${cmd.pattern}*\n`;
-        if (cmd.desc) {
-          helpText += `│   └ ${cmd.desc}\n`;
-        }
-      }
-
-      helpText += `╰━━━━━━━━━━━━━━━━━━━\n\n`;
+    // If no command specified, show usage
+    if (!args || args.trim() === "") {
+      await message.reply(
+        `*Usage:* ${config.PREFIX}help <command>\n\n` +
+          `*Example:* ${config.PREFIX}help ping\n\n` +
+          `_Type ${config.PREFIX}menu to see all available commands_`
+      );
+      return;
     }
 
-    helpText += `_Type ${config.PREFIX}<command> to use a command_`;
+    // Get the command name from args
+    const commandName = args.trim().toLowerCase();
+
+    // Find the command
+    const command = getCommandByPattern(commandName);
+
+    if (!command) {
+      await message.reply(
+        `❌ Command *${commandName}* not found.\n\n` +
+          `_Type ${config.PREFIX}menu to see all available commands_`
+      );
+      return;
+    }
+
+    // Build detailed help text
+    let helpText = `╭━━━『 *COMMAND HELP* 』━━━
+│
+│ *Command:* ${config.PREFIX}${command.pattern}
+│ *Type:* ${command.type}
+│ *Description:* ${command.desc || "No description available"}
+│`;
+
+    if (command.fromMe) {
+      helpText += `\n│ *Sudo Only:* Yes`;
+    }
+
+    if (command.onlyGroup) {
+      helpText += `\n│ *Group Only:* Yes`;
+    }
+
+    if (command.onlyPm) {
+      helpText += `\n│ *PM Only:* Yes`;
+    }
+
+    helpText += `\n│
+╰━━━━━━━━━━━━━━━━━━━`;
 
     await message.reply(helpText);
   },

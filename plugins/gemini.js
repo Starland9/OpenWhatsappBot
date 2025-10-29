@@ -1,5 +1,4 @@
-const { getLang } = require("../lib/utils/language");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 const config = require("../config");
 
 /**
@@ -8,31 +7,38 @@ const config = require("../config");
 module.exports = {
   command: {
     pattern: "gemini|gem",
-    desc: getLang("plugins.gemini.desc"),
+    desc: "Chat with Google Gemini 1.5 Flash",
     type: "ai",
   },
 
   async execute(message, query) {
     if (!config.GEMINI_API_KEY) {
-      return await message.reply(getLang("plugins.gemini.Key"));
+      return await message.reply(
+        "❌ Gemini API key not configured. Set GEMINI_API_KEY in config.env"
+      );
     }
 
     if (!query) {
-      return await message.reply(getLang("plugins.gemini.example"));
+      return await message.reply(
+        "❌ Please provide a question\n\nExample: .gemini Explain quantum computing"
+      );
     }
 
     try {
       await message.react("⏳");
 
-      const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const genAI = new GoogleGenAI({
+        apiKey: config.GEMINI_API_KEY,
+      });
+      const response = await genAI.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: query,
+      });
 
-      const result = await model.generateContent(query);
-      const response = await result.response;
-      const text = response.text();
+      const text = response.text;
 
       await message.react("✅");
-      await message.reply(`🌟 *Gemini AI*\n\n${text}`);
+      await message.reply(`🌟\n${text}`);
     } catch (error) {
       await message.react("❌");
       console.error("Gemini error:", error);

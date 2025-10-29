@@ -111,4 +111,12 @@ module.exports = {
   AUTO_RESPONDER_ENABLED: toBool(process.env.AUTO_RESPONDER_ENABLED),
   AUTO_RESPONDER_IGNORE_NUMBERS: process.env.AUTO_RESPONDER_IGNORE_NUMBERS || "",
   AUTO_RESPONDER_PERSONALITY: process.env.AUTO_RESPONDER_PERSONALITY || "You are a helpful and friendly assistant. Respond naturally and conversationally.",
+  
+  // Anti-ban measures for auto responder
+  AUTO_RESPONDER_MIN_DELAY: parseInt(process.env.AUTO_RESPONDER_MIN_DELAY) || 1000, // Min delay before response (ms)
+  AUTO_RESPONDER_MAX_DELAY: parseInt(process.env.AUTO_RESPONDER_MAX_DELAY) || 3000, // Max delay before response (ms)
+  AUTO_RESPONDER_TYPING_SPEED: parseInt(process.env.AUTO_RESPONDER_TYPING_SPEED) || 50, // Characters per second
+  AUTO_RESPONDER_MAX_TYPING_TIME: parseInt(process.env.AUTO_RESPONDER_MAX_TYPING_TIME) || 10000, // Max typing indicator duration (ms)
+  AUTO_RESPONDER_RATE_LIMIT: parseInt(process.env.AUTO_RESPONDER_RATE_LIMIT) || 5, // Max responses per time window
+  AUTO_RESPONDER_RATE_WINDOW: parseInt(process.env.AUTO_RESPONDER_RATE_WINDOW) || 60000, // Time window for rate limit (ms)
 };

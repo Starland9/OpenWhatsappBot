@@ -53,10 +53,10 @@ async function start() {
         const message = new Message(client, msg);
 
         // Skip messages from self (unless sudo)
-        if (message.fromMe && !message.isSudo()) continue;
-
-        // Execute commands
-        await executeCommand(message);
+        if (message.fromMe || !message.isSudo()) {
+          // Execute commands
+          await executeCommand(message);
+        }
       }
     });
 

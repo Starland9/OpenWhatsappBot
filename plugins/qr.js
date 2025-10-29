@@ -1,17 +1,38 @@
-const { bot, lang } = require('../lib/')
-const jimp = require('jimp')
-const QRReader = require('qrcode-reader')
+const QRCode = require('qrcode')
 
-bot({ pattern: 'qr ?(.*)', desc: lang.plugins.qr.desc, type: 'misc' }, async (message, match) => {
-  if (match)
-    return await message.sendFromUrl(
-      `https://levanter.onrender.com/gqr?text=${encodeURIComponent(match)}`
-    )
-  if (!message.reply_message || !message.reply_message.image)
-    return await message.send(lang.plugins.qr.usage)
-
-  const { bitmap } = await jimp.read(await message.reply_message.downloadMediaMessage())
-  const qr = new QRReader()
-  qr.callback = (err, value) => message.send(err ?? value.result, { quoted: message.data })
-  qr.decode(bitmap)
-})
+/**
+ * QR Code command - Generate QR codes
+ */
+module.exports = {
+  command: {
+    pattern: 'qr',
+    desc: 'Generate QR code from text',
+    type: 'utils'
+  },
+  
+  async execute(message, text) {
+    if (!text) {
+      return await message.reply('❌ Please provide text to encode\n\nExample: .qr Hello World')
+    }
+    
+    try {
+      await message.react('⏳')
+      
+      // Generate QR code
+      const qrBuffer = await QRCode.toBuffer(text, {
+        errorCorrectionLevel: 'H',
+        type: 'png',
+        width: 512,
+        margin: 2
+      })
+      
+      await message.sendImage(qrBuffer, `*QR Code*\n\n${text}`)
+      await message.react('✅')
+      
+    } catch (error) {
+      await message.react('❌')
+      console.error('QR code error:', error)
+      await message.reply(`❌ Error: ${error.message}`)
+    }
+  }
+}

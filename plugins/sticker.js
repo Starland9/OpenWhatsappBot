@@ -1,3 +1,4 @@
+const { getLang } = require("../lib/utils/language");
 const sharp = require("sharp");
 const { exec } = require("child_process");
 const { promisify } = require("util");
@@ -13,7 +14,7 @@ const execAsync = promisify(exec);
 module.exports = {
   command: {
     pattern: "sticker|s",
-    desc: "Create sticker from image/video",
+    desc: getLang("plugins.sticker.desc"),
     type: "media",
   },
 
@@ -28,7 +29,7 @@ module.exports = {
         const quotedType = Object.keys(quotedMsg)[0];
 
         if (!["imageMessage", "videoMessage"].includes(quotedType)) {
-          return await message.reply("❌ Please reply to an image or video");
+          return await message.reply(getLang("plugins.sticker.reply_required"));
         }
 
         buffer = await message.client
@@ -37,9 +38,7 @@ module.exports = {
       } else if (message.hasMedia) {
         buffer = await message.downloadMedia();
       } else {
-        return await message.reply(
-          "❌ Reply to an image/video or send one with caption"
-        );
+        return await message.reply(getLang("plugins.sticker.reply_required"));
       }
 
       if (!buffer) {

@@ -1,3 +1,4 @@
+const { getLang } = require("../lib/utils/language");
 const OpenAI = require("openai");
 const config = require("../config");
 
@@ -7,7 +8,7 @@ const config = require("../config");
 module.exports = {
   command: {
     pattern: "gpt|ai|chatgpt",
-    desc: "Chat with ChatGPT",
+    desc: getLang("plugins.groq.desc"),
     type: "ai",
   },
 

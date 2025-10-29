@@ -1,3 +1,4 @@
+const { getLang } = require("../lib/utils/language");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const config = require("../config");
 
@@ -7,21 +8,17 @@ const config = require("../config");
 module.exports = {
   command: {
     pattern: "gemini|gem",
-    desc: "Chat with Google Gemini AI",
+    desc: getLang("plugins.gemini.desc"),
     type: "ai",
   },
 
   async execute(message, query) {
     if (!config.GEMINI_API_KEY) {
-      return await message.reply(
-        "❌ Gemini API key not configured. Set GEMINI_API_KEY in config.env"
-      );
+      return await message.reply(getLang("plugins.gemini.Key"));
     }
 
     if (!query) {
-      return await message.reply(
-        "❌ Please provide a question\n\nExample: .gemini Explain quantum computing"
-      );
+      return await message.reply(getLang("plugins.gemini.example"));
     }
 
     try {

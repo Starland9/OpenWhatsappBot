@@ -1,3 +1,4 @@
+const { getLang } = require("../lib/utils/language");
 const config = require("../config");
 const os = require("os");
 
@@ -7,7 +8,7 @@ const os = require("os");
 module.exports = {
   command: {
     pattern: "alive",
-    desc: "Check if bot is alive",
+    desc: getLang("plugins.alive.desc"),
     type: "general",
   },
 

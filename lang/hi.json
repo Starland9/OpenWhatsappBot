@@ -781,6 +781,24 @@
       "desc": "Set keyword notifications",
       "usage": "Usage: .notify add/list/remove",
       "error": "Notification error"
+    },
+    "autorespond": {
+      "desc": "स्वचालित उत्तरदाता सेटिंग्स प्रबंधित करें (Gemini AI)",
+      "status": "*स्वचालित उत्तरदाता स्थिति*\n\n*स्थिति:* {0}\n*उपेक्षित नंबर:* {1}\n*व्यक्तित्व:* {2}",
+      "enabled": "✅ स्वचालित उत्तरदाता सक्षम किया गया। बॉट स्वचालित रूप से निजी संदेशों का उत्तर देगा।",
+      "disabled": "❌ स्वचालित उत्तरदाता अक्षम किया गया।",
+      "no_api_key": "❌ Gemini API कुंजी कॉन्फ़िगर नहीं की गई। config.env में GEMINI_API_KEY सेट करें",
+      "usage": "*स्वचालित उत्तरदाता उपयोग:*\n\n*.ar status* - वर्तमान सेटिंग्स दिखाएं\n*.ar on* - स्वचालित उत्तरदाता सक्षम करें\n*.ar off* - स्वचालित उत्तरदाता अक्षम करें\n*.ar ignore add <नंबर>* - उपेक्षा सूची में नंबर जोड़ें\n*.ar ignore remove <नंबर>* - सूची से नंबर हटाएं\n*.ar ignore list* - उपेक्षित नंबर दिखाएं\n*.ar ignore clear* - उपेक्षा सूची साफ़ करें\n*.ar personality <पाठ>* - AI व्यक्तित्व सेट करें",
+      "ignore_usage": "*उपेक्षा कमांड उपयोग:*\n\n*.ar ignore add <नंबर>* - नंबर जोड़ें\n*.ar ignore remove <नंबर>* - नंबर हटाएं\n*.ar ignore list* - सभी सूचीबद्ध करें\n*.ar ignore clear* - सभी साफ़ करें",
+      "number_ignored": "✅ नंबर {0} उपेक्षा सूची में जोड़ा गया",
+      "number_unignored": "✅ नंबर {0} उपेक्षा सूची से हटाया गया",
+      "already_ignored": "यह नंबर पहले से उपेक्षा सूची में है",
+      "not_ignored": "यह नंबर उपेक्षा सूची में नहीं है",
+      "no_ignored": "उपेक्षा सूची में कोई नंबर नहीं",
+      "ignored_list": "*उपेक्षित नंबर:*",
+      "ignore_cleared": "✅ उपेक्षा सूची साफ़ की गई",
+      "current_personality": "*वर्तमान AI व्यक्तित्व:*",
+      "personality_updated": "✅ AI व्यक्तित्व सफलतापूर्वक अपडेट किया गया"
     }
   }
 }

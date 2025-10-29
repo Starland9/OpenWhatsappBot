@@ -917,6 +917,24 @@
       "chat": "Chat",
       "private": "Chat privé",
       "error": "Erreur de notification"
+    },
+    "autorespond": {
+      "desc": "Gérer les paramètres de réponse automatique (IA Gemini)",
+      "status": "*Statut du Répondeur Automatique*\n\n*Statut:* {0}\n*Numéros Ignorés:* {1}\n*Personnalité:* {2}",
+      "enabled": "✅ Répondeur automatique activé. Le bot répondra automatiquement aux messages privés.",
+      "disabled": "❌ Répondeur automatique désactivé.",
+      "no_api_key": "❌ Clé API Gemini non configurée. Définissez GEMINI_API_KEY dans config.env",
+      "usage": "*Utilisation du Répondeur Automatique:*\n\n*.ar status* - Afficher les paramètres actuels\n*.ar on* - Activer le répondeur automatique\n*.ar off* - Désactiver le répondeur automatique\n*.ar ignore add <numéro>* - Ajouter un numéro à la liste d'ignorés\n*.ar ignore remove <numéro>* - Retirer un numéro de la liste\n*.ar ignore list* - Afficher les numéros ignorés\n*.ar ignore clear* - Vider la liste d'ignorés\n*.ar personality <texte>* - Définir la personnalité de l'IA",
+      "ignore_usage": "*Utilisation de la Commande Ignorer:*\n\n*.ar ignore add <numéro>* - Ajouter un numéro\n*.ar ignore remove <numéro>* - Retirer un numéro\n*.ar ignore list* - Lister tous\n*.ar ignore clear* - Tout effacer",
+      "number_ignored": "✅ Numéro {0} ajouté à la liste d'ignorés",
+      "number_unignored": "✅ Numéro {0} retiré de la liste d'ignorés",
+      "already_ignored": "Ce numéro est déjà dans la liste d'ignorés",
+      "not_ignored": "Ce numéro n'est pas dans la liste d'ignorés",
+      "no_ignored": "Aucun numéro dans la liste d'ignorés",
+      "ignored_list": "*Numéros Ignorés:*",
+      "ignore_cleared": "✅ Liste d'ignorés vidée",
+      "current_personality": "*Personnalité IA Actuelle:*",
+      "personality_updated": "✅ Personnalité de l'IA mise à jour avec succès"
     }
   }
 }

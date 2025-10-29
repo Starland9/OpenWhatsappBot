@@ -721,6 +721,66 @@
       "filter": "تم تحديث معرفات JID التي سيتم تجاهلها لمنع الإشارة إلى المجموعة.",
       "enabled": "تم تمكين منع الإشارة إلى المجموعة.",
       "disabled": "تم تعطيل منع الإشارة إلى المجموعة."
+    },
+    "translate": {
+      "desc": "Translate text to any language",
+      "usage": "Usage: .translate <text>",
+      "error": "Translation failed"
+    },
+    "task": {
+      "desc": "Manage tasks and reminders",
+      "usage": "Usage: .task add/list/done/delete",
+      "error": "Task error"
+    },
+    "weather": {
+      "desc": "Get weather information",
+      "usage": "Usage: .weather <city>",
+      "error": "Weather error"
+    },
+    "quiz": {
+      "desc": "Play quiz and games",
+      "usage": "Usage: .quiz start/stop/hint",
+      "error": "Game error"
+    },
+    "imagesearch": {
+      "desc": "Search images and GIFs",
+      "usage": "Usage: .image <term>",
+      "error": "Search error"
+    },
+    "poll": {
+      "desc": "Create polls",
+      "usage": "Usage: .poll Question? Opt1, Opt2",
+      "error": "Poll error"
+    },
+    "stats": {
+      "desc": "View group statistics",
+      "usage": "Usage: .stats",
+      "error": "Stats error"
+    },
+    "news": {
+      "desc": "Get news, crypto, stock prices",
+      "usage": "Usage: .news / .crypto / .stock",
+      "error": "News error"
+    },
+    "voice": {
+      "desc": "Voice to text or text to speech",
+      "usage": "Usage: .transcribe / .tts <text>",
+      "error": "Voice error"
+    },
+    "convert": {
+      "desc": "Convert files between formats",
+      "usage": "Usage: .convert <format>",
+      "error": "Conversion error"
+    },
+    "music": {
+      "desc": "Search music and lyrics",
+      "usage": "Usage: .music / .lyrics",
+      "error": "Music error"
+    },
+    "notify": {
+      "desc": "Set keyword notifications",
+      "usage": "Usage: .notify add/list/remove",
+      "error": "Notification error"
     }
   }
 }

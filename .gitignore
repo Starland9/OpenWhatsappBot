@@ -16,3 +16,10 @@ word.txt
 config.json
 credentials.json
 token.json
+sessions/*
+!sessions/.gitkeep
+logs/*
+!logs/.gitkeep
+database.db
+.DS_Store
+Thumbs.db

@@ -148,7 +148,7 @@ Stores auto-responder settings:
 
 ### Example 1: Basic Setup
 
-1. Get Gemini API key from https://makersuite.google.com/app/apikey
+1. Get Gemini API key from https://aistudio.google.com/app/apikey
 2. Add to `config.env`:
    ```env
    GEMINI_API_KEY=your_api_key

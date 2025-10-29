@@ -12,9 +12,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "@hapi/boom": "^10.0.1",
     "@whiskeysockets/baileys": "^6.7.9",
-    "@google/generative-ai": "^0.21.0",
     "audio-decode": "^2.2.2",
     "axios": "^1.7.9",
     "browser-id3-writer": "^4.4.0",
@@ -41,6 +41,7 @@
     "pino": "^9.4.0",
     "pino-pretty": "^9.1.1",
     "pm2": "^6.0.8",
+    "qrcode": "^1.5.4",
     "qrcode-reader": "^1.0.4",
     "qrcode-terminal": "^0.12.0",
     "sequelize": "^6.37.4",

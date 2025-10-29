@@ -2,7 +2,8 @@ const { WhatsAppClient } = require('./lib/baileys/client')
 const { Message } = require('./lib/classes/Message')
 const PluginLoader = require('./lib/plugins/loader')
 const { executeCommand } = require('./lib/plugins/registry')
-const { DATABASE, VERSION } = require('./config')
+const { DATABASE, sync } = require('./lib/database')
+const { VERSION } = require('./config')
 const pino = require('pino')
 
 const logger = pino({ 
@@ -29,7 +30,7 @@ async function start() {
     logger.info('✅ Database connected')
     
     // Sync database models
-    await DATABASE.sync()
+    await sync()
     logger.info('✅ Database synced')
     
     // Load all plugins

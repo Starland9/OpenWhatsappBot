@@ -35,7 +35,7 @@ module.exports = {
       const text = response.text;
 
       await message.react("✅");
-      await message.reply(`🌟\n${text}`);
+      await message.reply(`${text}`);
     } catch (error) {
       await message.react("❌");
       console.error("Gemini error:", error);

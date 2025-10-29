@@ -24,15 +24,18 @@ module.exports = {
     try {
       await message.react("⏳");
 
-      const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const genAI = new GoogleGenAI({
+        apiKey: config.GEMINI_API_KEY,
+      });
+      const response = await genAI.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents: query,
+      });
 
-      const result = await model.generateContent(query);
-      const response = await result.response;
-      const text = response.text();
+      const text = response.text;
 
       await message.react("✅");
-      await message.reply(`🌟 *Gemini AI*\n\n${text}`);
+      await message.reply(`🌟\n${text}`);
     } catch (error) {
       await message.react("❌");
       console.error("Gemini error:", error);

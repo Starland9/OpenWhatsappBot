@@ -781,6 +781,24 @@
       "desc": "Set keyword notifications",
       "usage": "Usage: .notify add/list/remove",
       "error": "Notification error"
+    },
+    "autorespond": {
+      "desc": "Otomatik yanıtlayıcı ayarlarını yönet (Gemini AI)",
+      "status": "*Otomatik Yanıtlayıcı Durumu*\n\n*Durum:* {0}\n*Yoksayılan Numaralar:* {1}\n*Kişilik:* {2}",
+      "enabled": "✅ Otomatik yanıtlayıcı etkinleştirildi. Bot özel mesajlara otomatik olarak yanıt verecek.",
+      "disabled": "❌ Otomatik yanıtlayıcı devre dışı bırakıldı.",
+      "no_api_key": "❌ Gemini API anahtarı yapılandırılmamış. config.env'de GEMINI_API_KEY ayarlayın",
+      "usage": "*Otomatik Yanıtlayıcı Kullanımı:*\n\n*.ar status* - Mevcut ayarları göster\n*.ar on* - Otomatik yanıtlayıcıyı etkinleştir\n*.ar off* - Otomatik yanıtlayıcıyı devre dışı bırak\n*.ar ignore add <numara>* - Yoksayma listesine numara ekle\n*.ar ignore remove <numara>* - Listeden numara kaldır\n*.ar ignore list* - Yoksayılan numaraları göster\n*.ar ignore clear* - Yoksayma listesini temizle\n*.ar personality <metin>* - AI kişiliğini ayarla",
+      "ignore_usage": "*Yoksayma Komutu Kullanımı:*\n\n*.ar ignore add <numara>* - Numara ekle\n*.ar ignore remove <numara>* - Numara kaldır\n*.ar ignore list* - Tümünü listele\n*.ar ignore clear* - Tümünü temizle",
+      "number_ignored": "✅ {0} numarası yoksayma listesine eklendi",
+      "number_unignored": "✅ {0} numarası yoksayma listesinden kaldırıldı",
+      "already_ignored": "Bu numara zaten yoksayma listesinde",
+      "not_ignored": "Bu numara yoksayma listesinde değil",
+      "no_ignored": "Yoksayma listesinde numara yok",
+      "ignored_list": "*Yoksayılan Numaralar:*",
+      "ignore_cleared": "✅ Yoksayma listesi temizlendi",
+      "current_personality": "*Mevcut AI Kişiliği:*",
+      "personality_updated": "✅ AI kişiliği başarıyla güncellendi"
     }
   }
 }

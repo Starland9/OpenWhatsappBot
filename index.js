@@ -4,6 +4,7 @@ const PluginLoader = require("./lib/plugins/loader");
 const { executeCommand } = require("./lib/plugins/registry");
 const { DATABASE, sync } = require("./lib/database");
 const { VERSION } = require("./config");
+const autoResponderHandler = require("./lib/utils/autoResponderHandler");
 const pino = require("pino");
 
 const logger = pino({
@@ -51,6 +52,16 @@ async function start() {
 
         // Create Message instance
         const message = new Message(client, msg);
+
+        // Try auto-responder first (only for non-command messages)
+        const isCommand = message.body.startsWith(require("./config").PREFIX);
+        
+        if (!isCommand && !message.fromMe) {
+          const autoResponded = await autoResponderHandler.handleMessage(message);
+          if (autoResponded) {
+            continue; // Skip command execution if auto-responded
+          }
+        }
 
         // Skip messages from self (unless sudo)
         if (message.fromMe || !message.isSudo()) {

@@ -102,4 +102,13 @@ module.exports = {
   MAX_UPLOAD: parseInt(process.env.MAX_UPLOAD) || 230,
   VPS: toBool(process.env.VPS),
   BRANCH: "master",
+
+  // Auto Status Viewer
+  AUTO_STATUS_REACT: toBool(process.env.AUTO_STATUS_REACT),
+  STATUS_EMOJIS: process.env.STATUS_EMOJIS || "😀,👍,❤️,🔥,💯,✨,🎉,👏,💪,🙌",
+
+  // Auto Responder
+  AUTO_RESPONDER_ENABLED: toBool(process.env.AUTO_RESPONDER_ENABLED),
+  AUTO_RESPONDER_IGNORE_NUMBERS: process.env.AUTO_RESPONDER_IGNORE_NUMBERS || "",
+  AUTO_RESPONDER_PERSONALITY: process.env.AUTO_RESPONDER_PERSONALITY || "You are a helpful and friendly assistant. Respond naturally and conversationally.",
 };

@@ -8,6 +8,8 @@ A powerful and modern open-source community WhatsApp bot built with **@whiskeyso
 - 🧩 **Modular Plugins** - Easy-to-add plugin system with auto-loading
 - 🗄️ **Database Support** - SQLite for development, PostgreSQL for production
 - 🤖 **AI Integration** - ChatGPT, Google Gemini support
+- 🤖 **AI Auto-Responder** - Gemini-powered automatic responses with context awareness
+- 👁️ **Auto Status Viewer** - Automatically view and react to WhatsApp statuses
 - 📥 **Media Downloads** - YouTube, Instagram, TikTok, and more
 - 👥 **Group Management** - Complete admin tools for groups
 - 🎨 **Media Processing** - Stickers, image editing, and more
@@ -171,6 +173,49 @@ await message.isSenderAdmin()
 // Get group info
 const metadata = await message.getGroupMetadata()
 ```
+
+## 🆕 New Features
+
+### Auto Status Viewer
+
+Automatically view and react to WhatsApp statuses with random emojis.
+
+**Configuration:**
+```env
+AUTO_STATUS_REACT=true
+STATUS_EMOJIS=😀,👍,❤️,🔥,💯,✨,🎉,👏,💪,🙌
+```
+
+### AI Auto-Responder (Gemini)
+
+Intelligent auto-responder that uses Google Gemini AI with conversation context management.
+
+**Configuration:**
+```env
+AUTO_RESPONDER_ENABLED=true
+AUTO_RESPONDER_IGNORE_NUMBERS=1234567890,0987654321
+AUTO_RESPONDER_PERSONALITY=You are a helpful and friendly assistant.
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+**Commands:**
+- `.ar status` - View current settings
+- `.ar on/off` - Enable/disable auto-responder
+- `.ar ignore add <number>` - Add number to ignore list
+- `.ar ignore remove <number>` - Remove number from ignore list
+- `.ar ignore list` - Show ignored numbers
+- `.ar ignore clear` - Clear ignore list
+- `.ar personality <text>` - Set AI personality
+
+**Features:**
+- Context-aware conversations (remembers last 10 messages)
+- 30-minute context timeout
+- Customizable AI personality
+- Ignore list management
+- Private messages only
+- Typing indicator
+
+See [AUTO_RESPONDER_GUIDE.md](AUTO_RESPONDER_GUIDE.md) for detailed documentation.
 
 ## ☁️ Deployment
 

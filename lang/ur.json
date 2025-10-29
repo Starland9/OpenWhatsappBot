@@ -781,6 +781,24 @@
       "desc": "Set keyword notifications",
       "usage": "Usage: .notify add/list/remove",
       "error": "Notification error"
+    },
+    "autorespond": {
+      "desc": "خودکار جواب دہندہ کی ترتیبات کا انتظام کریں (Gemini AI)",
+      "status": "*خودکار جواب دہندہ کی حیثیت*\n\n*حیثیت:* {0}\n*نظرانداز شدہ نمبرز:* {1}\n*شخصیت:* {2}",
+      "enabled": "✅ خودکار جواب دہندہ فعال ہو گیا۔ بوٹ خودکار طور پر نجی پیغامات کا جواب دے گا۔",
+      "disabled": "❌ خودکار جواب دہندہ غیر فعال ہو گیا۔",
+      "no_api_key": "❌ Gemini API کلید کنفیگر نہیں ہے۔ config.env میں GEMINI_API_KEY سیٹ کریں",
+      "usage": "*خودکار جواب دہندہ کا استعمال:*\n\n*.ar status* - موجودہ ترتیبات دکھائیں\n*.ar on* - خودکار جواب دہندہ فعال کریں\n*.ar off* - خودکار جواب دہندہ غیر فعال کریں\n*.ar ignore add <نمبر>* - نظرانداز فہرست میں نمبر شامل کریں\n*.ar ignore remove <نمبر>* - فہرست سے نمبر ہٹائیں\n*.ar ignore list* - نظرانداز شدہ نمبرز دکھائیں\n*.ar ignore clear* - نظرانداز فہرست صاف کریں\n*.ar personality <متن>* - AI شخصیت سیٹ کریں",
+      "ignore_usage": "*نظرانداز کمانڈ کا استعمال:*\n\n*.ar ignore add <نمبر>* - نمبر شامل کریں\n*.ar ignore remove <نمبر>* - نمبر ہٹائیں\n*.ar ignore list* - سب کی فہرست بنائیں\n*.ar ignore clear* - سب صاف کریں",
+      "number_ignored": "✅ نمبر {0} نظرانداز فہرست میں شامل کیا گیا",
+      "number_unignored": "✅ نمبر {0} نظرانداز فہرست سے ہٹایا گیا",
+      "already_ignored": "یہ نمبر پہلے سے نظرانداز فہرست میں ہے",
+      "not_ignored": "یہ نمبر نظرانداز فہرست میں نہیں ہے",
+      "no_ignored": "نظرانداز فہرست میں کوئی نمبر نہیں",
+      "ignored_list": "*نظرانداز شدہ نمبرز:*",
+      "ignore_cleared": "✅ نظرانداز فہرست صاف کی گئی",
+      "current_personality": "*موجودہ AI شخصیت:*",
+      "personality_updated": "✅ AI شخصیت کامیابی سے اپ ڈیٹ ہو گئی"
     }
   }
 }

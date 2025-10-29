@@ -1,5 +1,5 @@
 const { getLang } = require("../lib/utils/language");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/generative-ai");
 const config = require("../config");
 
 /**

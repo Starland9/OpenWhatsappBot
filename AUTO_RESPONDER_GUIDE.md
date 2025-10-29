@@ -39,6 +39,14 @@ AUTO_RESPONDER_ENABLED=true
 AUTO_RESPONDER_IGNORE_NUMBERS=1234567890,0987654321
 AUTO_RESPONDER_PERSONALITY=You are a helpful and friendly assistant. Respond naturally and conversationally.
 
+# Anti-ban measures for auto responder
+AUTO_RESPONDER_MIN_DELAY=1000
+AUTO_RESPONDER_MAX_DELAY=3000
+AUTO_RESPONDER_TYPING_SPEED=50
+AUTO_RESPONDER_MAX_TYPING_TIME=10000
+AUTO_RESPONDER_RATE_LIMIT=5
+AUTO_RESPONDER_RATE_WINDOW=60000
+
 # Required: Gemini API Key
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
@@ -51,6 +59,11 @@ GEMINI_API_KEY=your_gemini_api_key_here
 - **Ignore List**: Manage numbers that should not receive auto-responses
 - **Private Only**: Only responds to private messages (not groups)
 - **Typing Indicator**: Shows "typing..." while generating response
+- **Anti-Ban Protection**: Built-in measures to prevent WhatsApp bans:
+  - **Random Delays**: Configurable delays before responding (simulate reading time)
+  - **Human-Like Typing**: Typing speed simulation based on message length
+  - **Rate Limiting**: Prevents too many responses in a short time window
+  - **Natural Behavior**: Combines delays and typing indicators for realistic interaction
 
 #### Commands
 
@@ -115,6 +128,38 @@ Sets the AI's personality. The personality prompt guides how the AI responds.
 
 ## Technical Details
 
+### Anti-Ban Configuration
+
+The bot includes several configurable anti-ban measures to make responses appear more human-like:
+
+#### Delay Settings
+- **AUTO_RESPONDER_MIN_DELAY** (default: 1000ms): Minimum delay before responding
+- **AUTO_RESPONDER_MAX_DELAY** (default: 3000ms): Maximum delay before responding
+- The bot waits a random time between these values before starting to type
+
+#### Typing Simulation
+- **AUTO_RESPONDER_TYPING_SPEED** (default: 50): Characters per second typing speed
+- **AUTO_RESPONDER_MAX_TYPING_TIME** (default: 10000ms): Maximum typing indicator duration
+- The bot calculates typing time based on response length, capped at max time
+- Adds ±20% randomness to typing duration for natural variation
+
+#### Rate Limiting
+- **AUTO_RESPONDER_RATE_LIMIT** (default: 5): Maximum responses within time window
+- **AUTO_RESPONDER_RATE_WINDOW** (default: 60000ms): Time window for rate limiting (60 seconds)
+- Prevents the bot from responding too frequently
+- Automatically cleans up old entries from rate limit history
+
+#### How Anti-Ban Works
+
+1. **User sends message** → Bot waits random delay (1-3 seconds)
+2. **Show typing indicator** → Bot appears to be "typing"
+3. **Generate AI response** → Process happens in background
+4. **Simulate typing time** → Based on response length (50 chars/sec)
+5. **Send response** → After realistic typing simulation
+6. **Clear typing** → Mark as "available" again
+
+This makes the bot's responses indistinguishable from a human typing on their phone.
+
 ### Database Models
 
 #### Conversation Model
@@ -143,6 +188,9 @@ Stores auto-responder settings:
 - Requires sudo access for management commands
 - Doesn't respond to own messages
 - Prevents duplicate processing with message tracking
+- **Rate limiting** to prevent spam detection
+- **Natural delays** to avoid automation detection
+- **Typing simulation** for human-like behavior
 
 ## Usage Examples
 
@@ -209,6 +257,25 @@ Stores auto-responder settings:
 3. Each chat has separate context
 4. Maximum 10 messages per context
 
+### Rate limit triggering too often
+
+1. Increase **AUTO_RESPONDER_RATE_LIMIT** (e.g., from 5 to 10)
+2. Increase **AUTO_RESPONDER_RATE_WINDOW** (e.g., from 60000 to 120000 for 2 minutes)
+3. Check logs to see rate limit messages
+
+### Responses are too slow
+
+1. Decrease **AUTO_RESPONDER_MIN_DELAY** (e.g., from 1000 to 500)
+2. Decrease **AUTO_RESPONDER_MAX_DELAY** (e.g., from 3000 to 1500)
+3. Increase **AUTO_RESPONDER_TYPING_SPEED** (e.g., from 50 to 100)
+
+### Responses are too fast (risk of ban)
+
+1. Increase **AUTO_RESPONDER_MIN_DELAY** (e.g., from 1000 to 2000)
+2. Increase **AUTO_RESPONDER_MAX_DELAY** (e.g., from 3000 to 5000)
+3. Decrease **AUTO_RESPONDER_TYPING_SPEED** (e.g., from 50 to 30)
+4. Decrease **AUTO_RESPONDER_RATE_LIMIT** (e.g., from 5 to 3)
+
 ## Multilingual Support
 
 All auto-responder commands and messages support these languages:
@@ -234,6 +301,40 @@ LANG=en
 - Conversation context is stored in database
 - Context is cached in memory during conversation
 - Old contexts are auto-cleaned to save space
+
+### Recommended Anti-Ban Settings
+
+**Conservative (Safest - Slowest):**
+```env
+AUTO_RESPONDER_MIN_DELAY=2000        # 2-5 seconds before typing
+AUTO_RESPONDER_MAX_DELAY=5000
+AUTO_RESPONDER_TYPING_SPEED=30       # Slow typing (30 chars/sec)
+AUTO_RESPONDER_MAX_TYPING_TIME=15000 # Up to 15 seconds typing
+AUTO_RESPONDER_RATE_LIMIT=3          # Max 3 messages per minute
+AUTO_RESPONDER_RATE_WINDOW=60000
+```
+
+**Balanced (Default - Recommended):**
+```env
+AUTO_RESPONDER_MIN_DELAY=1000        # 1-3 seconds before typing
+AUTO_RESPONDER_MAX_DELAY=3000
+AUTO_RESPONDER_TYPING_SPEED=50       # Normal typing (50 chars/sec)
+AUTO_RESPONDER_MAX_TYPING_TIME=10000 # Up to 10 seconds typing
+AUTO_RESPONDER_RATE_LIMIT=5          # Max 5 messages per minute
+AUTO_RESPONDER_RATE_WINDOW=60000
+```
+
+**Aggressive (Faster - Higher Risk):**
+```env
+AUTO_RESPONDER_MIN_DELAY=500         # 0.5-1.5 seconds before typing
+AUTO_RESPONDER_MAX_DELAY=1500
+AUTO_RESPONDER_TYPING_SPEED=80       # Fast typing (80 chars/sec)
+AUTO_RESPONDER_MAX_TYPING_TIME=8000  # Up to 8 seconds typing
+AUTO_RESPONDER_RATE_LIMIT=10         # Max 10 messages per minute
+AUTO_RESPONDER_RATE_WINDOW=60000
+```
+
+**Note:** Start with Conservative or Balanced settings. Only increase speed after monitoring for several days without issues.
 
 ## Privacy & Security
 

@@ -1,6 +1,6 @@
-# Levanter - WhatsApp Bot
+# Open Whatsapp Bot
 
-A powerful and modern WhatsApp bot built with **@whiskeysockets/baileys v6.7.9+** featuring clean architecture, modular plugins, and production-ready deployment options.
+A powerful and modern open-source community WhatsApp bot built with **@whiskeysockets/baileys v6.7.9+** featuring clean architecture, modular plugins, and production-ready deployment options.
 
 ## ✨ Features
 
@@ -25,8 +25,8 @@ A powerful and modern WhatsApp bot built with **@whiskeysockets/baileys v6.7.9+*
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Starland9/levanter
-cd levanter
+git clone https://github.com/Starland9/OpenWhatsappBot
+cd OpenWhatsappBot
 ```
 
 ### 2. Install Dependencies
@@ -89,7 +89,7 @@ Scan the QR code with WhatsApp to authenticate.
 ## 🏗️ Architecture
 
 ```
-levanter/
+open-whatsapp-bot/
 ├── config.js                 # Configuration management
 ├── index.js                  # Entry point
 ├── ecosystem.config.js       # PM2 configuration
@@ -178,15 +178,15 @@ const metadata = await message.getGroupMetadata()
 
 ```bash
 pm2 start ecosystem.config.js
-pm2 logs levanter
-pm2 stop levanter
+pm2 logs open-whatsapp-bot
+pm2 stop open-whatsapp-bot
 ```
 
 ### Docker
 
 ```bash
-docker build -t levanter .
-docker run -d --env-file config.env levanter
+docker build -t open-whatsapp-bot .
+docker run -d --env-file config.env open-whatsapp-bot
 ```
 
 ### Heroku
@@ -212,8 +212,8 @@ sudo apt install nodejs ffmpeg -y
 npm install -g yarn pm2
 
 # Clone and setup
-git clone https://github.com/Starland9/levanter
-cd levanter
+git clone https://github.com/Starland9/OpenWhatsappBot
+cd OpenWhatsappBot
 yarn install
 
 # Configure
@@ -282,12 +282,12 @@ MIT License - see LICENSE file
 ## 🙏 Credits
 
 - [WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) - WhatsApp Web API
-- [lyfe00011](https://github.com/lyfe00011) - Original Levanter inspiration
+- [lyfe00011](https://github.com/lyfe00011) - Original inspiration
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/Starland9/levanter/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Starland9/levanter/discussions)
+- **Issues**: [GitHub Issues](https://github.com/Starland9/OpenWhatsappBot/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Starland9/OpenWhatsappBot/discussions)
 
 ---
 

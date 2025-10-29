@@ -56,6 +56,15 @@ module.exports = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
   GROQ_API_KEY: process.env.GROQ_API_KEY || "",
   RMBG_KEY: process.env.RMBG_KEY || "",
+  
+  // New Plugin API Keys
+  WEATHER_API_KEY: process.env.WEATHER_API_KEY || "",
+  UNSPLASH_API_KEY: process.env.UNSPLASH_API_KEY || "",
+  GIPHY_API_KEY: process.env.GIPHY_API_KEY || "",
+  NEWS_API_KEY: process.env.NEWS_API_KEY || "",
+  ALPHA_VANTAGE_KEY: process.env.ALPHA_VANTAGE_KEY || "",
+  SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || "",
+  SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || "",
 
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || "info",

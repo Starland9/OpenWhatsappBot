@@ -1,15 +1,24 @@
-const { bot, lang } = require('../lib/')
-
-bot(
-  {
-    pattern: 'ping ?(.*)',
-    desc: lang.plugins.ping.desc,
-    type: 'misc',
+/**
+ * Ping command - Check bot latency
+ */
+module.exports = {
+  command: {
+    pattern: 'ping',
+    desc: 'Check bot latency',
+    type: 'general'
   },
-  async (message, match) => {
-    const start = new Date().getTime()
-    await message.send(lang.plugins.ping.ping_sent)
-    const end = new Date().getTime()
-    return await message.send(lang.plugins.ping.pong.format(end - start))
+  
+  async execute(message) {
+    const start = Date.now()
+    const sent = await message.reply('Pinging...')
+    const latency = Date.now() - start
+    
+    await message.client.getSocket().sendMessage(
+      message.jid,
+      { 
+        text: `🏓 Pong!\nLatency: ${latency}ms`,
+        edit: sent.key
+      }
+    )
   }
-)
+}

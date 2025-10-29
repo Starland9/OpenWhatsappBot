@@ -1,116 +1,87 @@
-const {
-  sticker,
-  webpToMp4,
-  addExif,
-  bot,
-  addAudioMetaData,
-  circleSticker,
-  lang,
-} = require('../lib/')
+const sharp = require('sharp')
+const { exec } = require('child_process')
+const { promisify } = require('util')
+const fs = require('fs').promises
+const path = require('path')
+const config = require('../config')
 
-bot(
-  {
-    pattern: 'sticker',
-    desc: lang.plugins.sticker.desc,
-    type: 'sticker',
+const execAsync = promisify(exec)
+
+/**
+ * Sticker command - Create stickers from images/videos
+ */
+module.exports = {
+  command: {
+    pattern: 'sticker|s',
+    desc: 'Create sticker from image/video',
+    type: 'media'
   },
-  async (message) => {
-    if (!message.reply_message || (!message.reply_message.video && !message.reply_message.image)) {
-      return await message.send(lang.plugins.sticker.reply_required)
+  
+  async execute(message) {
+    try {
+      // Check for media
+      let buffer
+      
+      if (message.quoted && message.quoted.message) {
+        // Get media from quoted message
+        const quotedMsg = message.quoted.message
+        const quotedType = Object.keys(quotedMsg)[0]
+        
+        if (!['imageMessage', 'videoMessage'].includes(quotedType)) {
+          return await message.reply('❌ Please reply to an image or video')
+        }
+        
+        buffer = await message.client.getSocket().downloadMediaMessage(message.quoted)
+      } else if (message.hasMedia) {
+        buffer = await message.downloadMedia()
+      } else {
+        return await message.reply('❌ Reply to an image/video or send one with caption')
+      }
+      
+      if (!buffer) {
+        return await message.reply('❌ Failed to download media')
+      }
+      
+      // Process based on type
+      let stickerBuffer
+      
+      if (message.type === 'videoMessage' || (message.quoted && message.quoted.message?.videoMessage)) {
+        // Convert video to webp
+        const tempInput = path.join('/tmp', `input_${Date.now()}.mp4`)
+        const tempOutput = path.join('/tmp', `output_${Date.now()}.webp`)
+        
+        await fs.writeFile(tempInput, buffer)
+        
+        // Use ffmpeg to convert video to animated webp sticker
+        await execAsync(
+          `ffmpeg -i ${tempInput} -vcodec libwebp -vf "scale=512:512:force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=white@0.0" -loop 0 -preset default -an -vsync 0 ${tempOutput}`
+        )
+        
+        stickerBuffer = await fs.readFile(tempOutput)
+        
+        // Cleanup
+        await fs.unlink(tempInput).catch(() => {})
+        await fs.unlink(tempOutput).catch(() => {})
+      } else {
+        // Convert image to webp
+        stickerBuffer = await sharp(buffer)
+          .resize(512, 512, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          })
+          .webp()
+          .toBuffer()
+      }
+      
+      // Send sticker
+      await message.sendSticker(stickerBuffer, {
+        packname: config.STICKER_PACKNAME,
+        author: config.STICKER_AUTHOR
+      })
+      
+    } catch (error) {
+      console.error('Sticker error:', error)
+      await message.reply(`❌ Failed to create sticker: ${error.message}`)
     }
-
-    const mediaPath = await message.reply_message.downloadAndSaveMediaMessage('sticker')
-    const type = message.reply_message.image ? 1 : 2
-    const stickerData = await sticker('str', mediaPath, type, message.id)
-
-    return await message.send(
-      stickerData,
-      { isAnimated: !!message.reply_message.video, quoted: message.quoted },
-      'sticker'
-    )
   }
-)
-
-bot(
-  {
-    pattern: 'circle',
-    desc: lang.plugins.circle.desc,
-    type: 'sticker',
-  },
-  async (message) => {
-    if (!message.reply_message || !message.reply_message.image) {
-      return await message.send(lang.plugins.circle.reply_required)
-    }
-
-    const mediaPath = await message.reply_message.downloadAndSaveMediaMessage('circleSticker')
-    const circleData = await circleSticker(mediaPath, message.reply_message.video, message.id)
-
-    return await message.send(circleData, { isAnimated: false, quoted: message.quoted }, 'sticker')
-  }
-)
-
-bot(
-  {
-    pattern: 'take ?(.*)',
-    desc: lang.plugins.take.desc,
-    type: 'sticker',
-  },
-  async (message, match) => {
-    if (
-      !message.reply_message ||
-      (!message.reply_message.sticker && !message.reply_message.audio)
-    ) {
-      return await message.send(lang.plugins.take.reply_required)
-    }
-
-    if (message.reply_message.sticker) {
-      const media = await message.reply_message.downloadMediaMessage('mp4')
-      return await message.send(
-        await addExif(media, match, message.id),
-        { quoted: message.quoted },
-        'sticker'
-      )
-    }
-
-    if (!match) {
-      return await message.send(lang.plugins.take.usage)
-    }
-
-    const [title, artists, url] = match.split(',')
-    const audioData = await addAudioMetaData(
-      await message.reply_message.downloadMediaMessage(),
-      title,
-      artists,
-      '',
-      url
-    )
-
-    return await message.send(
-      audioData,
-      { quoted: message.quoted, mimetype: 'audio/mpeg' },
-      'audio'
-    )
-  }
-)
-
-bot(
-  {
-    pattern: 'mp4',
-    desc: lang.plugins.mp4.desc,
-    type: 'sticker',
-  },
-  async (message) => {
-    if (
-      !message.reply_message ||
-      !message.reply_message.sticker ||
-      !message.reply_message.animated
-    ) {
-      return await message.send(lang.plugins.take.reply_required)
-    }
-
-    const mediaPath = await message.reply_message.downloadAndSaveMediaMessage('sticker')
-    const videoUrl = await webpToMp4(mediaPath)
-
-    return await message.sendFromUrl(videoUrl)
-  }
-)
+}

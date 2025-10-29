@@ -1,37 +1,55 @@
-const { bot, getGPTResponse, getDallEResponse } = require('../lib')
+const OpenAI = require('openai')
+const config = require('../config')
 
-bot(
-  {
-    pattern: 'gpt ?(.*)',
-    desc: 'ChatGPT fun',
-    type: 'AI',
+/**
+ * ChatGPT command - AI chat using OpenAI
+ */
+module.exports = {
+  command: {
+    pattern: 'gpt|ai|chatgpt',
+    desc: 'Chat with ChatGPT',
+    type: 'ai'
   },
-  async (message, match) => {
-    if (!match)
-      return await message.send(
-        '>*Example :\n- gpt What is the capital of France?\n- gpt Whats in this image?(reply to a image)'
-      )
-    let image
-    if (message.reply_message && message.reply_message.image) {
-      image = await message.reply_message.downloadAndSaveMediaMessage('gpt')
+  
+  async execute(message, query) {
+    if (!config.OPENAI_API_KEY) {
+      return await message.reply('❌ OpenAI API key not configured. Set OPENAI_API_KEY in config.env')
     }
-    const res = await getGPTResponse(match, message.id, image)
-    await message.send(res, { quoted: message.data })
+    
+    if (!query) {
+      return await message.reply('❌ Please provide a question\n\nExample: .gpt What is Node.js?')
+    }
+    
+    try {
+      await message.react('⏳')
+      
+      const openai = new OpenAI({ apiKey: config.OPENAI_API_KEY })
+      
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant integrated into a WhatsApp bot. Keep responses concise and friendly.'
+          },
+          {
+            role: 'user',
+            content: query
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.7
+      })
+      
+      const response = completion.choices[0].message.content
+      
+      await message.react('✅')
+      await message.reply(`🤖 *ChatGPT*\n\n${response}`)
+      
+    } catch (error) {
+      await message.react('❌')
+      console.error('ChatGPT error:', error)
+      await message.reply(`❌ Error: ${error.message}`)
+    }
   }
-)
-
-bot(
-  {
-    pattern: 'dall ?(.*)',
-    desc: 'dall image generator',
-    type: 'AI',
-  },
-  async (message, match) => {
-    if (!match)
-      return await message.send(
-        '*Example : dall a close up, studio photographic portrait of a white siamese cat that looks curious, backlit ears*'
-      )
-    const res = await getDallEResponse(match, message.id)
-    await message.sendFromUrl(res)
-  }
-)
+}

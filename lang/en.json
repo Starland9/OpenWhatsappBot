@@ -917,6 +917,24 @@
       "chat": "Chat",
       "private": "Private Chat",
       "error": "Notification error"
+    },
+    "autorespond": {
+      "desc": "Manage auto-responder settings (Gemini AI)",
+      "status": "*Auto Responder Status*\n\n*Status:* {0}\n*Ignored Numbers:* {1}\n*Personality:* {2}",
+      "enabled": "✅ Auto responder enabled. Bot will respond automatically to private messages.",
+      "disabled": "❌ Auto responder disabled.",
+      "no_api_key": "❌ Gemini API key not configured. Set GEMINI_API_KEY in config.env",
+      "usage": "*Auto Responder Usage:*\n\n*.ar status* - Show current settings\n*.ar on* - Enable auto responder\n*.ar off* - Disable auto responder\n*.ar ignore add <number>* - Add number to ignore list\n*.ar ignore remove <number>* - Remove number from ignore list\n*.ar ignore list* - Show ignored numbers\n*.ar ignore clear* - Clear ignore list\n*.ar personality <text>* - Set AI personality",
+      "ignore_usage": "*Ignore Command Usage:*\n\n*.ar ignore add <number>* - Add number\n*.ar ignore remove <number>* - Remove number\n*.ar ignore list* - List all\n*.ar ignore clear* - Clear all",
+      "number_ignored": "✅ Number {0} added to ignore list",
+      "number_unignored": "✅ Number {0} removed from ignore list",
+      "already_ignored": "This number is already in the ignore list",
+      "not_ignored": "This number is not in the ignore list",
+      "no_ignored": "No numbers in ignore list",
+      "ignored_list": "*Ignored Numbers:*",
+      "ignore_cleared": "✅ Ignore list cleared",
+      "current_personality": "*Current AI Personality:*",
+      "personality_updated": "✅ AI personality updated successfully"
     }
   }
 }

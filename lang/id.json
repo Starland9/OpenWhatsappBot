@@ -781,6 +781,24 @@
       "desc": "Set keyword notifications",
       "usage": "Usage: .notify add/list/remove",
       "error": "Notification error"
+    },
+    "autorespond": {
+      "desc": "Kelola pengaturan penjawab otomatis (Gemini AI)",
+      "status": "*Status Penjawab Otomatis*\n\n*Status:* {0}\n*Nomor Diabaikan:* {1}\n*Kepribadian:* {2}",
+      "enabled": "✅ Penjawab otomatis diaktifkan. Bot akan merespons pesan pribadi secara otomatis.",
+      "disabled": "❌ Penjawab otomatis dinonaktifkan.",
+      "no_api_key": "❌ Kunci API Gemini tidak dikonfigurasi. Atur GEMINI_API_KEY di config.env",
+      "usage": "*Penggunaan Penjawab Otomatis:*\n\n*.ar status* - Tampilkan pengaturan saat ini\n*.ar on* - Aktifkan penjawab otomatis\n*.ar off* - Nonaktifkan penjawab otomatis\n*.ar ignore add <nomor>* - Tambah nomor ke daftar abaikan\n*.ar ignore remove <nomor>* - Hapus nomor dari daftar\n*.ar ignore list* - Tampilkan nomor diabaikan\n*.ar ignore clear* - Bersihkan daftar abaikan\n*.ar personality <teks>* - Atur kepribadian AI",
+      "ignore_usage": "*Penggunaan Perintah Abaikan:*\n\n*.ar ignore add <nomor>* - Tambah nomor\n*.ar ignore remove <nomor>* - Hapus nomor\n*.ar ignore list* - Daftar semua\n*.ar ignore clear* - Bersihkan semua",
+      "number_ignored": "✅ Nomor {0} ditambahkan ke daftar abaikan",
+      "number_unignored": "✅ Nomor {0} dihapus dari daftar abaikan",
+      "already_ignored": "Nomor ini sudah ada dalam daftar abaikan",
+      "not_ignored": "Nomor ini tidak ada dalam daftar abaikan",
+      "no_ignored": "Tidak ada nomor dalam daftar abaikan",
+      "ignored_list": "*Nomor Diabaikan:*",
+      "ignore_cleared": "✅ Daftar abaikan dibersihkan",
+      "current_personality": "*Kepribadian AI Saat Ini:*",
+      "personality_updated": "✅ Kepribadian AI berhasil diperbarui"
     }
   }
 }

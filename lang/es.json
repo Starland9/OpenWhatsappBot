@@ -781,6 +781,24 @@
       "desc": "Set keyword notifications",
       "usage": "Usage: .notify add/list/remove",
       "error": "Notification error"
+    },
+    "autorespond": {
+      "desc": "Administrar configuración de respuesta automática (IA Gemini)",
+      "status": "*Estado del Respondedor Automático*\n\n*Estado:* {0}\n*Números Ignorados:* {1}\n*Personalidad:* {2}",
+      "enabled": "✅ Respondedor automático activado. El bot responderá automáticamente a mensajes privados.",
+      "disabled": "❌ Respondedor automático desactivado.",
+      "no_api_key": "❌ Clave API de Gemini no configurada. Configure GEMINI_API_KEY en config.env",
+      "usage": "*Uso del Respondedor Automático:*\n\n*.ar status* - Mostrar configuración actual\n*.ar on* - Activar respondedor automático\n*.ar off* - Desactivar respondedor automático\n*.ar ignore add <número>* - Agregar número a lista de ignorados\n*.ar ignore remove <número>* - Quitar número de la lista\n*.ar ignore list* - Mostrar números ignorados\n*.ar ignore clear* - Limpiar lista de ignorados\n*.ar personality <texto>* - Establecer personalidad de IA",
+      "ignore_usage": "*Uso del Comando Ignorar:*\n\n*.ar ignore add <número>* - Agregar número\n*.ar ignore remove <número>* - Quitar número\n*.ar ignore list* - Listar todos\n*.ar ignore clear* - Limpiar todos",
+      "number_ignored": "✅ Número {0} agregado a la lista de ignorados",
+      "number_unignored": "✅ Número {0} quitado de la lista de ignorados",
+      "already_ignored": "Este número ya está en la lista de ignorados",
+      "not_ignored": "Este número no está en la lista de ignorados",
+      "no_ignored": "No hay números en la lista de ignorados",
+      "ignored_list": "*Números Ignorados:*",
+      "ignore_cleared": "✅ Lista de ignorados limpiada",
+      "current_personality": "*Personalidad IA Actual:*",
+      "personality_updated": "✅ Personalidad de IA actualizada exitosamente"
     }
   }
 }

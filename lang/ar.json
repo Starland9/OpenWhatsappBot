@@ -781,6 +781,24 @@
       "desc": "Set keyword notifications",
       "usage": "Usage: .notify add/list/remove",
       "error": "Notification error"
+    },
+    "autorespond": {
+      "desc": "إدارة إعدادات الرد التلقائي (الذكاء الاصطناعي Gemini)",
+      "status": "*حالة المجيب التلقائي*\n\n*الحالة:* {0}\n*الأرقام المتجاهلة:* {1}\n*الشخصية:* {2}",
+      "enabled": "✅ تم تفعيل المجيب التلقائي. سيرد البوت تلقائيًا على الرسائل الخاصة.",
+      "disabled": "❌ تم تعطيل المجيب التلقائي.",
+      "no_api_key": "❌ مفتاح API لـ Gemini غير مُكوّن. قم بتعيين GEMINI_API_KEY في config.env",
+      "usage": "*استخدام المجيب التلقائي:*\n\n*.ar status* - إظهار الإعدادات الحالية\n*.ar on* - تفعيل المجيب التلقائي\n*.ar off* - تعطيل المجيب التلقائي\n*.ar ignore add <رقم>* - إضافة رقم لقائمة المتجاهلين\n*.ar ignore remove <رقم>* - إزالة رقم من القائمة\n*.ar ignore list* - عرض الأرقام المتجاهلة\n*.ar ignore clear* - مسح قائمة المتجاهلين\n*.ar personality <نص>* - تعيين شخصية الذكاء الاصطناعي",
+      "ignore_usage": "*استخدام أمر التجاهل:*\n\n*.ar ignore add <رقم>* - إضافة رقم\n*.ar ignore remove <رقم>* - إزالة رقم\n*.ar ignore list* - عرض الكل\n*.ar ignore clear* - مسح الكل",
+      "number_ignored": "✅ تمت إضافة الرقم {0} لقائمة المتجاهلين",
+      "number_unignored": "✅ تمت إزالة الرقم {0} من قائمة المتجاهلين",
+      "already_ignored": "هذا الرقم موجود بالفعل في قائمة المتجاهلين",
+      "not_ignored": "هذا الرقم ليس في قائمة المتجاهلين",
+      "no_ignored": "لا توجد أرقام في قائمة المتجاهلين",
+      "ignored_list": "*الأرقام المتجاهلة:*",
+      "ignore_cleared": "✅ تم مسح قائمة المتجاهلين",
+      "current_personality": "*شخصية الذكاء الاصطناعي الحالية:*",
+      "personality_updated": "✅ تم تحديث شخصية الذكاء الاصطناعي بنجاح"
     }
   }
 }

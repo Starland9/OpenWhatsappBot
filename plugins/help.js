@@ -21,7 +21,7 @@ module.exports = {
       return acc
     }, {})
     
-    let helpText = `╭━━━『 *LEVANTER BOT* 』━━━
+    let helpText = `╭━━━『 *OPEN WHATSAPP BOT* 』━━━
 │
 │ *Version:* ${config.VERSION}
 │ *Prefix:* ${config.PREFIX}

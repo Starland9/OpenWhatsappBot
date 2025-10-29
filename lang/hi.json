@@ -31,7 +31,7 @@
     },
     "menu": {
       "help": "```╭────────────────╮\n      ʟᴇᴠᴀɴᴛᴇʀ\n╰────────────────╯\n\n╭────────────────\n│ Prefix : {0}\n│ User : {1}\n│ Time : {2}\n│ Day : {3}\n│ Date : {4}\n│ Version : {5}\n│ Plugins : {6}\n│ Ram : {7}\n│ Uptime : {8}\n│ Platform : {9}\n╰────────────────```",
-      "menu": "```╭═══ LEVANTER ═══⊷\n┃❃╭──────────────\n┃❃│ Prefix : {0}\n┃❃│ User : {1}\n┃❃│ Time : {2}\n┃❃│ Day : {3}\n┃❃│ Date : {4}\n┃❃│ Version : {5}\n┃❃│ Plugins : {6}\n┃❃│ Ram : {7}\n┃❃│ Uptime : {8}\n┃❃│ Platform : {9}\n┃❃╰───────────────\n╰═════════════════⊷```"
+      "menu": "```╭═══ OPEN WHATSAPP BOT ═══⊷\n┃❃╭──────────────\n┃❃│ Prefix : {0}\n┃❃│ User : {1}\n┃❃│ Time : {2}\n┃❃│ Day : {3}\n┃❃│ Date : {4}\n┃❃│ Version : {5}\n┃❃│ Plugins : {6}\n┃❃│ Ram : {7}\n┃❃│ Uptime : {8}\n┃❃│ Platform : {9}\n┃❃╰───────────────\n╰═════════════════⊷```"
     },
     "afk": {
       "example": "> *AFK Ka Istemal:*\n- AFK set karo: *afk [reason]*\n- Example: *afk Mein busy hoon* Last seen #lastseen pehle\n- Message bhejne se AFK status khud hi hat jayega\n- AFK band karo: *afk off*",
@@ -158,12 +158,12 @@
     },
     "greetings": {
       "welcome_desc": "New members ko welcome message bhejo",
-      "welcome_example": "Welcome abhi {0} hai\n\nZyada details ke liye, yahan jayein: https://levanter-delta.vercel.app/",
+      "welcome_example": "Welcome abhi {0} hai\n\nZyada details ke liye, yahan jayein: https://github.com/Starland9/OpenWhatsappBot/",
       "welcome_enable": "_Welcome ab enable ho gaya_",
       "welcome_disable": "_Welcome ab disable ho gaya_",
       "welcome_delete": "_Welcome message delete ho gaya_",
       "goodbye_desc": "Members ko goodbye message bhejo",
-      "goodbye_example": "Goodbye abhi {0} hai\n\nZyada details ke liye, yahan jayein: https://levanter-delta.vercel.app/",
+      "goodbye_example": "Goodbye abhi {0} hai\n\nZyada details ke liye, yahan jayein: https://github.com/Starland9/OpenWhatsappBot/",
       "goodbye_enable": "_Goodbye ab enable ho gaya_",
       "goodbye_disable": "_Goodbye ab disable ho gaya_",
       "goodbye_delete": "_Goodbye message delete ho gaya_"
@@ -358,7 +358,7 @@
       "usage": "Example: mention on | off | get\n(Kisi message ko reply karke specific user ko target karo.)",
       "desc": "Automated replies ke liye mention feature ko configure aur manage karo.",
       "not_activated": "Reply-to mention activate nahi hai.",
-      "current_status": "Mention {0} hai. Details ke liye, yahaan jaayein: https://levanter-delta.vercel.app/",
+      "current_status": "Mention {0} hai. Details ke liye, yahaan jaayein: https://github.com/Starland9/OpenWhatsappBot/",
       "activated": "Reply-to mention activate ho gaya.",
       "deactivated": "Reply-to mention deactivate ho gaya.",
       "updated": "Mention settings update ho gayi."

@@ -1,8 +1,8 @@
-# Levanter WhatsApp Bot - Complete Rewrite Implementation Summary
+# Open Whatsapp Bot - Complete Rewrite Implementation Summary
 
 ## ✅ Project Status: COMPLETE & PRODUCTION READY
 
-This document summarizes the complete rewrite of the Levanter WhatsApp bot using **@whiskeysockets/baileys v6.7.9+**.
+This document summarizes the complete rewrite of the Open Whatsapp Bot using **@whiskeysockets/baileys v6.7.9+**.
 
 ---
 
@@ -24,7 +24,7 @@ This document summarizes the complete rewrite of the Levanter WhatsApp bot using
 
 ### Directory Structure
 ```
-levanter/
+open-whatsapp-bot/
 ├── config.js                 # Environment configuration
 ├── index.js                  # Application entry point
 ├── ecosystem.config.js       # PM2 configuration

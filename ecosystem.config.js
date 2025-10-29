@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'levanter',
+    name: 'open-whatsapp-bot',
     script: 'index.js',
     instances: 1,
     autorestart: true,

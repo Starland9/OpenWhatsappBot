@@ -23,3 +23,6 @@ logs/*
 database.db
 .DS_Store
 Thumbs.db
+
+ideas
+AGENT_PLUGIN.md

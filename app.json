@@ -1,6 +1,6 @@
 {
-  "name": "Levanter",
-  "description": "",
+  "name": "Open Whatsapp Bot",
+  "description": "Open Source Community WhatsApp Bot",
   "keywords": ["noedjs"],
   "success_url": "/",
   "stack": "container",

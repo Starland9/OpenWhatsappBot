@@ -16,12 +16,12 @@ module.exports = {
 
     // Group commands by type
     const grouped = commands.reduce((acc, cmd) => {
-      if (!acc[cmd.type]) acc[cmd.type] = [];
-      acc[cmd.type].push(cmd);
-      return acc;
-    }, {});
-
-    let helpText = `╭━━━『 *LEVANTER BOT* 』━━━
+      if (!acc[cmd.type]) acc[cmd.type] = []
+      acc[cmd.type].push(cmd)
+      return acc
+    }, {})
+    
+    let helpText = `╭━━━『 *OPEN WHATSAPP BOT* 』━━━
 │
 │ *Version:* ${config.VERSION}
 │ *Prefix:* ${config.PREFIX}

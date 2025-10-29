@@ -1,13 +1,13 @@
 {
-  "name": "levanter",
+  "name": "open-whatsapp-bot",
   "version": "5.0.0",
-  "description": "Professional WhatsApp Bot with Baileys",
+  "description": "Open Source Community WhatsApp Bot with Baileys",
   "main": "index.js",
   "scripts": {
-    "start": "pm2 start . --attach --name levanter",
+    "start": "pm2 start . --attach --name open-whatsapp-bot",
     "dev": "node index.js",
-    "docker": "pm2-runtime start . --name levanter",
-    "stop": "pm2 stop levanter",
+    "docker": "pm2-runtime start . --name open-whatsapp-bot",
+    "stop": "pm2 stop open-whatsapp-bot",
     "postinstall": "node -e \"try { require('sharp') } catch (e) { process.exit(1); }\" || yarn add --ignore-engines sharp@0.33.5"
   },
   "author": "",

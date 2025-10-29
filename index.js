@@ -22,7 +22,7 @@ const logger = pino({
  * Start the WhatsApp bot
  */
 async function start() {
-  logger.info(`🤖 Levanter v${VERSION}`);
+  logger.info(`🤖 Open Whatsapp Bot v${VERSION}`);
 
   try {
     // Test database connection

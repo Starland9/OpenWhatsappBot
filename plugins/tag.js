@@ -1,23 +1,25 @@
+const { getLang } = require("../lib/utils/language");
+
 /**
  * Tag command - Tag all group members
  */
 module.exports = {
   command: {
     pattern: "tag|tagall",
-    desc: "Tag all group members",
+    desc: getLang("plugins.tag.desc"),
     type: "group",
     onlyGroup: true,
   },
 
   async execute(message, text) {
     if (!message.isGroup) {
-      return await message.reply("❌ This command can only be used in groups");
+      return await message.reply(getLang("extra.group_cmd"));
     }
 
     // Check if sender is admin
     const isSenderAdmin = await message.isSenderAdmin();
     if (!isSenderAdmin && !message.isSudo()) {
-      return await message.reply("❌ Only group admins can use this command");
+      return await message.reply(getLang("plugins.common.not_admin"));
     }
 
     try {

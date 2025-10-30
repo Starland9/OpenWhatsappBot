@@ -1,5 +1,5 @@
 const { getLang } = require("../lib/utils/language");
-const translate = require("translate-google-api");
+const translate = require("@vitalets/google-translate-api");
 
 /**
  * Translation Plugin - Automatic message translation
@@ -13,17 +13,24 @@ module.exports = {
 
   async execute(message, query) {
     try {
+      await message.react("⏳");
+
       // Check if replying to a message
-      let textToTranslate = query;
+      let textToTranslate = "";
       let targetLang = "en";
 
-      if (message.quoted && message.quoted.message) {
+      if (message.quoted) {
+        // Extract text from quoted message
         const quotedMsg = message.quoted.message;
         const quotedType = Object.keys(quotedMsg)[0];
         const quotedContent = quotedMsg[quotedType];
-        
-        textToTranslate = quotedContent.text || quotedContent.caption || quotedContent.conversation || "";
-        
+
+        textToTranslate =
+          quotedContent?.text ||
+          quotedContent?.caption ||
+          quotedContent?.conversation ||
+          "";
+
         // If query is provided when replying, it's the target language
         if (query) {
           targetLang = query.toLowerCase();
@@ -39,26 +46,25 @@ module.exports = {
         }
       }
 
-      if (!textToTranslate) {
+      if (!textToTranslate || textToTranslate.trim() === "") {
+        await message.react("❌");
         return await message.reply(getLang("plugins.translate.usage"));
       }
 
-      await message.react("⏳");
+      const result = await translate.translate(textToTranslate, {
+        to: targetLang,
+      });
 
-      const result = await translate(textToTranslate, { to: targetLang });
-      
-      const response = `🌐 *Translation*\n\n` +
-        `*From:* ${result.from.language.iso || 'auto'}\n` +
-        `*To:* ${targetLang}\n\n` +
-        `*Original:*\n${textToTranslate}\n\n` +
-        `*Translation:*\n${result[0]}`;
+      const response = result.text;
 
       await message.react("✅");
       await message.reply(response);
     } catch (error) {
       await message.react("❌");
       console.error("Translation error:", error);
-      await message.reply(`❌ ${getLang("plugins.translate.error")}: ${error.message}`);
+      await message.reply(
+        `❌ ${getLang("plugins.translate.error")}: ${error.message}`
+      );
     }
   },
 };

@@ -7,7 +7,7 @@ const config = require("../config");
  */
 module.exports = {
   command: {
-    pattern: "weather|meteo|clima",
+    pattern: "weather|meteo",
     desc: getLang("plugins.weather.desc"),
     type: "info",
   },
@@ -40,48 +40,70 @@ module.exports = {
       );
 
       const data = response.data;
-      
+
       const weatherIcons = {
-        "Clear": "☀️",
-        "Sunny": "☀️",
+        Clear: "☀️",
+        Sunny: "☀️",
         "Partly cloudy": "⛅",
-        "Cloudy": "☁️",
-        "Overcast": "☁️",
-        "Mist": "🌫️",
-        "Fog": "🌫️",
-        "Rain": "🌧️",
+        Cloudy: "☁️",
+        Overcast: "☁️",
+        Mist: "🌫️",
+        Fog: "🌫️",
+        Rain: "🌧️",
         "Light rain": "🌦️",
         "Heavy rain": "⛈️",
-        "Snow": "❄️",
-        "Thunderstorm": "⛈️",
+        Snow: "❄️",
+        Thunderstorm: "⛈️",
       };
 
       const conditionText = data.current.condition.text;
       const icon = weatherIcons[conditionText] || "🌤️";
 
-      const result = `${icon} *${getLang("plugins.weather.title")} - ${data.location.name}*\n\n` +
-        `📍 *${getLang("plugins.weather.location")}:* ${data.location.name}, ${data.location.region}, ${data.location.country}\n` +
-        `🌡️ *${getLang("plugins.weather.temperature")}:* ${data.current.temp_c}°C (${data.current.temp_f}°F)\n` +
-        `🌡️ *${getLang("plugins.weather.feels_like")}:* ${data.current.feelslike_c}°C (${data.current.feelslike_f}°F)\n` +
+      const result =
+        `${icon} *${getLang("plugins.weather.title")} - ${
+          data.location.name
+        }*\n\n` +
+        `📍 *${getLang("plugins.weather.location")}:* ${data.location.name}, ${
+          data.location.region
+        }, ${data.location.country}\n` +
+        `🌡️ *${getLang("plugins.weather.temperature")}:* ${
+          data.current.temp_c
+        }°C (${data.current.temp_f}°F)\n` +
+        `🌡️ *${getLang("plugins.weather.feels_like")}:* ${
+          data.current.feelslike_c
+        }°C (${data.current.feelslike_f}°F)\n` +
         `☁️ *${getLang("plugins.weather.condition")}:* ${conditionText}\n` +
-        `💨 *${getLang("plugins.weather.wind")}:* ${data.current.wind_kph} km/h (${data.current.wind_mph} mph) ${data.current.wind_dir}\n` +
-        `💧 *${getLang("plugins.weather.humidity")}:* ${data.current.humidity}%\n` +
-        `🌡️ *${getLang("plugins.weather.pressure")}:* ${data.current.pressure_mb} mb\n` +
-        `👁️ *${getLang("plugins.weather.visibility")}:* ${data.current.vis_km} km\n` +
+        `💨 *${getLang("plugins.weather.wind")}:* ${
+          data.current.wind_kph
+        } km/h (${data.current.wind_mph} mph) ${data.current.wind_dir}\n` +
+        `💧 *${getLang("plugins.weather.humidity")}:* ${
+          data.current.humidity
+        }%\n` +
+        `🌡️ *${getLang("plugins.weather.pressure")}:* ${
+          data.current.pressure_mb
+        } mb\n` +
+        `👁️ *${getLang("plugins.weather.visibility")}:* ${
+          data.current.vis_km
+        } km\n` +
         `☀️ *${getLang("plugins.weather.uv_index")}:* ${data.current.uv}\n\n` +
-        `🕐 *${getLang("plugins.weather.last_update")}:* ${data.current.last_updated}`;
+        `🕐 *${getLang("plugins.weather.last_update")}:* ${
+          data.current.last_updated
+        }`;
 
       await message.react("✅");
       await message.reply(result);
-
     } catch (error) {
       await message.react("❌");
       console.error("Weather error:", error);
-      
+
       if (error.response && error.response.status === 400) {
-        await message.reply(`❌ ${getLang("plugins.weather.location_not_found")}`);
+        await message.reply(
+          `❌ ${getLang("plugins.weather.location_not_found")}`
+        );
       } else {
-        await message.reply(`❌ ${getLang("plugins.weather.error")}: ${error.message}`);
+        await message.reply(
+          `❌ ${getLang("plugins.weather.error")}: ${error.message}`
+        );
       }
     }
   },

@@ -16,6 +16,7 @@
     "@google/genai": "^1.27.0",
     "@google/generative-ai": "^0.21.0",
     "@hapi/boom": "^10.0.1",
+    "@vitalets/google-translate-api": "^9.2.1",
     "@whiskeysockets/baileys": "^6.7.9",
     "audio-decode": "^2.2.2",
     "axios": "^1.7.9",

@@ -735,6 +735,11 @@
     "translate": {
       "desc": "Traduire du texte dans n'importe quelle langue",
       "usage": "Utilisation:\n- .translate <texte> - Traduction automatique vers l'anglais\n- .translate <langue> <texte> - Traduire vers une langue spécifique\n- Répondre au message: .translate <langue>",
+      "title": "Traduction",
+      "from": "De",
+      "to": "Vers",
+      "original": "Original",
+      "translation": "Traduction",
       "error": "Échec de la traduction"
     },
     "task": {

@@ -956,7 +956,14 @@
       "personality_updated": "✅ AI personality updated successfully"
     },
     "viewonce": {
-      "desc": "Manage automatic view-once message forwarding",
+      "desc": "View and download view once messages (ephemeral photos/videos)",
+      "reply_required": "❌ Reply to a view once message to view it.",
+      "no_message": "❌ No message found.",
+      "not_viewonce": "❌ This is not a view once message.",
+      "unsupported_type": "❌ Unsupported media type.",
+      "download_failed": "❌ Failed to download media.",
+      "forwarded": "📸 View once message forwarded",
+      "error": "❌ Error processing",
       "setvv_desc": "Configure view-once message destination",
       "getvv_desc": "Check current view-once settings",
       "usage": "*View Once Management:*\n\n*.setvv g* - Send view-once messages to the same group/chat\n*.setvv p* - Send to your private chat (sudo)\n*.setvv <jid>* - Send to specific JID\n*.setvv null* - Disable auto view-once forwarding\n\n*.getvv* - Check current settings",

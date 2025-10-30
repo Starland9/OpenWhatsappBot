@@ -45,7 +45,6 @@ async function start() {
 
     // Handle incoming messages
     client.on("messages", async (messages) => {
-      console.log(messages);
 
       for (const msg of messages) {
         // Skip broadcast messages

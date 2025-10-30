@@ -850,6 +850,20 @@
       "ignore_cleared": "✅ Lista de ignorados limpiada",
       "current_personality": "*Personalidad IA Actual:*",
       "personality_updated": "✅ Personalidad de IA actualizada exitosamente"
+    },
+    "viewonce": {
+      "desc": "Administrar reenvío automático de mensajes de vista única",
+      "setvv_desc": "Configurar destino de mensajes de vista única",
+      "getvv_desc": "Verificar configuración actual de vista única",
+      "usage": "*Gestión de Mensajes de Vista Única:*\n\n*.setvv g* - Enviar mensajes de vista única al mismo grupo/chat\n*.setvv p* - Enviar a tu chat privado (sudo)\n*.setvv <jid>* - Enviar a JID específico\n*.setvv null* - Desactivar reenvío automático\n\n*.getvv* - Verificar configuración actual",
+      "updated": "✅ Reenvío de vista única actualizado a: *{0}*\n\n_Los mensajes de vista única ahora se reenviarán automáticamente._",
+      "disabled": "❌ El reenvío automático de vista única ha sido desactivado.",
+      "not_set": "El reenvío de vista única no está configurado.\n\nUsa *.setvv* para configurarlo.",
+      "status": "*Configuración de Vista Única:*\n\n*Estado:* {0}\n*Destino:* {1}",
+      "mode_group": "Mismo grupo/chat",
+      "mode_private": "Tu chat privado",
+      "mode_jid": "JID personalizado: {0}",
+      "mode_disabled": "Desactivado"
     }
   }
 }

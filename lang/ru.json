@@ -783,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "Поиск музыки и текстов песен",
+      "usage": "Использование:\n- .music <название песни> - Поиск музыки\n- .play <название песни> - Скачать и воспроизвести музыку\n- .spotify <название песни> - Поиск в Spotify\n- .lyrics <исполнитель - песня> - Получить текст песни",
+      "no_results": "Результатов не найдено",
+      "search_results": "Результаты поиска",
+      "no_spotify_api": "Учетные данные Spotify API не настроены",
+      "lyrics_format": "Формат: .lyrics Имя исполнителя - Название песни",
+      "no_lyrics": "Текст песни не найден",
+      "lyrics_title": "Текст песни",
+      "artist": "Исполнитель",
+      "song": "Песня",
+      "lyrics_truncated": "Текст песни сокращен из-за длины",
+      "error": "Ошибка поиска музыки",
+      "no_preview": "Аудио превью недоступно для этой песни",
+      "downloading": "⏬ Загрузка..."
     },
     "notify": {
       "desc": "Set keyword notifications",

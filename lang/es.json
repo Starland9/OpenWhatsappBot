@@ -783,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "Buscar música y letras",
+      "usage": "Uso:\n- .music <nombre de canción> - Buscar música\n- .play <nombre de canción> - Descargar y reproducir música\n- .spotify <nombre de canción> - Buscar en Spotify\n- .lyrics <artista - canción> - Obtener letras",
+      "no_results": "No se encontraron resultados",
+      "search_results": "Resultados de búsqueda",
+      "no_spotify_api": "Credenciales de API de Spotify no configuradas",
+      "lyrics_format": "Formato: .lyrics Nombre del Artista - Título de la Canción",
+      "no_lyrics": "Letras no encontradas",
+      "lyrics_title": "Letras",
+      "artist": "Artista",
+      "song": "Canción",
+      "lyrics_truncated": "Letras truncadas debido a la longitud",
+      "error": "Error de búsqueda de música",
+      "no_preview": "No hay vista previa de audio disponible para esta canción",
+      "downloading": "⏬ Descargando..."
     },
     "notify": {
       "desc": "Set keyword notifications",

@@ -1,13 +1,18 @@
 const { getLang } = require("../lib/utils/language");
 const axios = require("axios");
 const config = require("../config");
+const fs = require("fs");
+const path = require("path");
+const { promisify } = require("util");
+const stream = require("stream");
+const pipeline = promisify(stream.pipeline);
 
 /**
  * Music Search Plugin - Search music on Spotify/YouTube
  */
 module.exports = {
   command: {
-    pattern: "music|song|spotify|lyrics",
+    pattern: "music|song|spotify|lyrics|play",
     desc: getLang("plugins.music.desc"),
     type: "media",
   },
@@ -29,6 +34,8 @@ module.exports = {
         await handleSpotify(message, query);
       } else if (command === "lyrics") {
         await handleLyrics(message, query);
+      } else if (command === "play") {
+        await handlePlay(message, query);
       } else {
         // Default to music search
         await handleMusicSearch(message, query);
@@ -178,4 +185,75 @@ async function handleLyrics(message, query) {
 
   await message.react("✅");
   await message.reply(lyricsText);
+}
+
+async function handlePlay(message, query) {
+  // Search using iTunes API
+  const response = await axios.get("https://itunes.apple.com/search", {
+    params: {
+      term: query,
+      media: "music",
+      entity: "song",
+      limit: 1,
+    },
+    timeout: 10000,
+  });
+
+  if (!response.data.results || response.data.results.length === 0) {
+    await message.react("❌");
+    return await message.reply(`❌ ${getLang("plugins.music.no_results")}`);
+  }
+
+  const track = response.data.results[0];
+
+  if (!track.previewUrl) {
+    await message.react("❌");
+    return await message.reply(`❌ ${getLang("plugins.music.no_preview")}`);
+  }
+
+  await message.reply(
+    `🎵 ${getLang("plugins.music.downloading")}\n\n` +
+      `🎤 *${track.artistName}*\n` +
+      `🎵 *${track.trackName}*\n` +
+      `💿 ${track.collectionName}`
+  );
+
+  // Download the preview
+  const tempDir = path.join(__dirname, "..", "media", "temp");
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  const fileName = `${Date.now()}_${track.trackName
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .substring(0, 50)}.m4a`;
+  const filePath = path.join(tempDir, fileName);
+
+  // Download audio
+  const audioResponse = await axios.get(track.previewUrl, {
+    responseType: "stream",
+    timeout: 30000,
+  });
+
+  await pipeline(audioResponse.data, fs.createWriteStream(filePath));
+
+  // Read file as buffer
+  const audioBuffer = fs.readFileSync(filePath);
+
+  // Send as audio
+  await message.sendAudio(audioBuffer, {
+    caption:
+      `🎵 *${track.trackName}*\n` +
+      `🎤 ${track.artistName}\n` +
+      `💿 ${track.collectionName}`,
+  });
+
+  // Clean up
+  try {
+    fs.unlinkSync(filePath);
+  } catch (err) {
+    console.error("Error deleting temp file:", err);
+  }
+
+  await message.react("✅");
 }

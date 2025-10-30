@@ -889,7 +889,7 @@
     },
     "music": {
       "desc": "Search for music and lyrics",
-      "usage": "Usage:\n- .music <song name> - Search music\n- .spotify <song name> - Search on Spotify\n- .lyrics <artist - song> - Get lyrics",
+      "usage": "Usage:\n- .music <song name> - Search music\n- .play <song name> - Download and play music\n- .spotify <song name> - Search on Spotify\n- .lyrics <artist - song> - Get lyrics",
       "no_results": "No results found",
       "search_results": "Search Results",
       "no_spotify_api": "Spotify API credentials not configured",
@@ -899,7 +899,9 @@
       "artist": "Artist",
       "song": "Song",
       "lyrics_truncated": "Lyrics truncated due to length",
-      "error": "Music search error"
+      "error": "Music search error",
+      "no_preview": "No audio preview available for this song",
+      "downloading": "⏬ Downloading..."
     },
     "notify": {
       "desc": "Set keyword-based notifications",

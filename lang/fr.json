@@ -784,6 +784,8 @@
       "question": "Question",
       "hint_info": "Tapez 'quiz hint' pour un indice",
       "answer_info": "Tapez votre réponse pour répondre",
+      "reply_to_answer": "Répondez à ce message avec votre réponse",
+      "reply_to_guess": "Répondez à ce message avec votre supposition (1-100)",
       "no_game": "Aucun jeu actif. Démarrez avec: quiz start",
       "stopped": "Jeu arrêté",
       "correct_answer": "Réponse correcte",

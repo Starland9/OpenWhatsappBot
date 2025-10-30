@@ -121,6 +121,16 @@
       "example": "> *Ejemplo :*\n- gemini hola\n- Gemini explicame esta imagen (citando una imagen)",
       "Key": "> Para usar Gemini debes añadir tu API Key!\nCopia tu ApiKey de Aqui: https://aistudio.google.com/app/apikey\n\n*Agregalo al bot con:*\nsetvar GEMINI_API_KEY = TuApiKey"
     },
+    "imagen": {
+      "desc": "Generar imágenes con Google Imagen AI",
+      "example": "> *Ejemplo:*\n- imagine una hermosa puesta de sol sobre el océano\n- imagen un gato lindo jugando",
+      "no_key": "❌ Clave API de Gemini no configurada. Establezca GEMINI_API_KEY en config.env",
+      "no_query": "❌ Por favor proporcione una descripción\n\nEjemplo: .imagine una hermosa puesta de sol sobre el océano",
+      "no_image": "❌ No se generó ninguna imagen. Intente con una descripción diferente.",
+      "quota": "❌ Cuota de API excedida. Intente nuevamente más tarde o actualice su plan de API.",
+      "safety": "❌ Su descripción fue bloqueada por los filtros de seguridad. Intente con una descripción diferente.",
+      "error": "❌ Error: {0}"
+    },
     "gstop": {
       "desc": "Detiene las respuestas Automaticas a Palabras en TODOS los grupos",
       "example": "> *Como Usar:*\n- gstop <filter>\n- gstop Hola",

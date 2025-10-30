@@ -121,6 +121,16 @@
       "example": "> *Example :*\n- gemini hi\n- gemini ye picture mein kya hai (kisi image ka reply karte hue)",
       "Key": "> Gemini API Key nahi mila!\nYahan se lein: https://aistudio.google.com/app/apikey\n\n*Set karo using:*\nsetvar GEMINI_API_KEY = your_api_key"
     },
+    "imagen": {
+      "desc": "Google Imagen AI se images banao",
+      "example": "> *Udaharan:*\n- imagine samundar ke upar ek sundar sunset\n- imagen ek pyari billi khel rahi hai",
+      "no_key": "❌ Gemini API key configure nahi hai. config.env mein GEMINI_API_KEY set karo",
+      "no_query": "❌ Kripya ek description do\n\nUdaharan: .imagine samundar ke upar ek sundar sunset",
+      "no_image": "❌ Koi image nahi bani. Koi aur description try karo.",
+      "quota": "❌ API quota khatam ho gaya. Baad mein try karo ya apna API plan upgrade karo.",
+      "safety": "❌ Aapki description safety filters ne block kar di. Koi aur description try karo.",
+      "error": "❌ Error: {0}"
+    },
     "gstop": {
       "desc": "Sabhi groups ke gfilters ko delete karo",
       "example": "> *Istemal Ka Tarika:*\n- gstop <filter>\n- gstop hi",

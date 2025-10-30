@@ -121,6 +121,16 @@
       "example": "> *مثال :*\n- gemini hi\n- gemini what is in the picture(أثناء الرد على صورة)",
       "Key": "> مفتاح API لـ Gemini مفقود!\nاحصل عليه من: https://aistudio.google.com/app/apikey\n\n*عيّنه باستخدام:*\nsetvar GEMINI_API_KEY = مفتاح_ال_API_الخاص_بك"
     },
+    "imagen": {
+      "desc": "إنشاء صور باستخدام Google Imagen AI",
+      "example": "> *مثال:*\n- imagine غروب جميل فوق المحيط\n- imagen قطة لطيفة تلعب",
+      "no_key": "❌ مفتاح API لـ Gemini غير مكوّن. قم بتعيين GEMINI_API_KEY في config.env",
+      "no_query": "❌ يرجى تقديم وصف\n\nمثال: .imagine غروب جميل فوق المحيط",
+      "no_image": "❌ لم يتم إنشاء صورة. جرب وصفًا مختلفًا.",
+      "quota": "❌ تم تجاوز حصة API. يرجى المحاولة لاحقًا أو ترقية خطة API الخاصة بك.",
+      "safety": "❌ تم حظر الوصف الخاص بك بواسطة مرشحات الأمان. جرب وصفًا مختلفًا.",
+      "error": "❌ خطأ: {0}"
+    },
     "gstop": {
       "desc": "حذف الفلاتر العامة في جميع المجموعات",
       "example": "> *الاستخدام:*\n- gstop <فلتر>\n- gstop hi",

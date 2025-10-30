@@ -121,6 +121,16 @@
       "example": "> *Example :*\n- gemini hi\n- gemini photo ky endar kiya hai(photo ka reply dety howy)",
       "Key": "> Missing Gemini API Key!\nyanh se lain: https://aistudio.google.com/app/apikey\n\n*Isay use karte hue set karein:*\nsetvar GEMINI_API_KEY = your_api_key"
     },
+    "imagen": {
+      "desc": "_Google Imagen AI se tasweerain banayein_",
+      "example": "> *Misal:*\n- imagine samundar par khubsurat ghuroob aftab\n- imagen khelta hua pyara billi",
+      "no_key": "❌ Gemini API key configure nahi hai. config.env mein GEMINI_API_KEY set karein",
+      "no_query": "❌ Mehrbani karke tafseel fara ham karein\n\nMisal: .imagine samundar par khubsurat ghuroob aftab",
+      "no_image": "❌ Koi tasveer nahi bani. Mukhtalif tafseel try karein.",
+      "quota": "❌ API quota khatam ho gaya. Bad mein try karein ya apna API plan upgrade karein.",
+      "safety": "❌ Aapki tafseel safety filters ne block kar di. Mukhtalif tafseel try karein.",
+      "error": "❌ Khata: {0}"
+    },
     "gstop": {
       "desc": "_sary groups mein gfilters delete karein._",
       "example": "> *Usage:*\n- gstop <filter>\n- gstop hi",

@@ -1,0 +1,432 @@
+# Configuration
+
+This guide covers all configuration options for OpenWhatsappBot.
+
+## Configuration File
+
+OpenWhatsappBot uses environment variables for configuration. All settings are stored in the `config.env` file.
+
+### Creating Your Configuration
+
+```bash
+# Copy the example configuration
+cp config.env.example config.env
+
+# Edit with your preferred editor
+nano config.env
+# or
+vim config.env
+```
+
+## Essential Settings
+
+These are the minimum required settings to run the bot:
+
+### SESSION_ID
+
+Your WhatsApp session authentication data.
+
+```env
+SESSION_ID=
+```
+
+**How to get SESSION_ID:**
+1. Leave it empty for the first run
+2. The bot will generate a QR code
+3. Scan the QR code with WhatsApp
+4. The session will be saved automatically in the `sessions/` directory
+
+### PREFIX
+
+Command prefix for bot commands.
+
+```env
+PREFIX=.
+```
+
+**Examples:**
+- `.` - Commands like `.ping`, `.help`
+- `!` - Commands like `!ping`, `!help`
+- `/` - Commands like `/ping`, `/help`
+
+### SUDO
+
+Comma-separated list of phone numbers with admin privileges.
+
+```env
+SUDO=1234567890,9876543210
+```
+
+**Format:** Country code + number (without + or -)
+
+**Example:**
+- US number: `12125551234`
+- UK number: `442071234567`
+
+## AI Configuration
+
+### ChatGPT (OpenAI)
+
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4
+OPENAI_MAX_TOKENS=2000
+```
+
+**Getting an API Key:**
+1. Visit [platform.openai.com](https://platform.openai.com)
+2. Create an account
+3. Go to API Keys section
+4. Create a new secret key
+
+**Supported Models:**
+- `gpt-4` - Most capable, slower
+- `gpt-3.5-turbo` - Fast and efficient
+
+### Google Gemini
+
+```env
+GEMINI_API_KEY=AIza...
+GEMINI_MODEL=gemini-pro
+```
+
+**Getting an API Key:**
+1. Visit [makersuite.google.com](https://makersuite.google.com)
+2. Create an API key
+3. Copy and paste it
+
+**Supported Models:**
+- `gemini-pro` - Text generation
+- `gemini-pro-vision` - Image understanding
+
+## Auto-Responder Configuration
+
+Enable AI-powered automatic responses:
+
+```env
+AUTO_RESPONDER_ENABLED=true
+AUTO_RESPONDER_IGNORE_NUMBERS=1234567890,0987654321
+AUTO_RESPONDER_PERSONALITY=You are a helpful and friendly assistant.
+```
+
+**Settings:**
+- `AUTO_RESPONDER_ENABLED` - Enable/disable auto-responder
+- `AUTO_RESPONDER_IGNORE_NUMBERS` - Numbers to ignore (comma-separated)
+- `AUTO_RESPONDER_PERSONALITY` - AI personality prompt
+
+See [Auto-Responder Guide](/guides/auto-responder) for detailed information.
+
+## Status & Presence Settings
+
+### Always Online
+
+Keep bot status as "online":
+
+```env
+ALWAYS_ONLINE=false
+```
+
+**Options:**
+- `true` - Always show as online
+- `false` - Show actual status
+
+### Auto Read
+
+Automatically mark messages as read:
+
+```env
+AUTO_READ=true
+```
+
+### Auto Status View
+
+Automatically view WhatsApp statuses:
+
+```env
+AUTO_STATUS_VIEW=true
+AUTO_STATUS_REACT=true
+STATUS_EMOJIS=😀,👍,❤️,🔥,💯,✨,🎉,👏,💪,🙌
+```
+
+**Settings:**
+- `AUTO_STATUS_VIEW` - View statuses automatically
+- `AUTO_STATUS_REACT` - React to statuses
+- `STATUS_EMOJIS` - Comma-separated emoji list for random reactions
+
+## Database Configuration
+
+### SQLite (Default)
+
+No configuration needed. The bot creates `database.db` automatically.
+
+```env
+# SQLite is used when DATABASE_URL is not set
+```
+
+### PostgreSQL (Production)
+
+For production deployments:
+
+```env
+DATABASE_URL=postgresql://username:password@host:port/database
+```
+
+**Format:**
+```
+postgresql://[user]:[password]@[host]:[port]/[database]
+```
+
+**Examples:**
+
+**Local PostgreSQL:**
+```env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/whatsappbot
+```
+
+**Heroku PostgreSQL:**
+```env
+# Automatically set by Heroku addon
+DATABASE_URL=postgres://...
+```
+
+**Railway/Render:**
+```env
+# Provided by the platform
+DATABASE_URL=postgresql://...
+```
+
+## Language Settings
+
+Set the bot's language:
+
+```env
+LANG=en
+```
+
+**Available Languages:**
+- `en` - English (default)
+- `fr` - French
+- `id` - Indonesian
+- `ar` - Arabic
+- `es` - Spanish
+- `tr` - Turkish
+- `ru` - Russian
+- `bn` - Bengali
+- `hi` - Hindi
+- `ur` - Urdu
+
+See [Language System](/guides/language-system) for more details.
+
+## Logging Configuration
+
+Control logging verbosity:
+
+```env
+LOG_LEVEL=info
+```
+
+**Levels:**
+- `error` - Only errors
+- `warn` - Warnings and errors
+- `info` - General information (recommended)
+- `debug` - Detailed debugging information
+- `trace` - Very detailed tracing
+
+## Advanced Settings
+
+### Mode
+
+Bot operation mode:
+
+```env
+MODE=public
+```
+
+**Options:**
+- `public` - Anyone can use the bot
+- `private` - Only SUDO users can use commands
+- `self` - Only the bot owner can use commands
+
+### Work Type
+
+Where the bot responds:
+
+```env
+WORK_TYPE=both
+```
+
+**Options:**
+- `private` - Only in private chats
+- `group` - Only in groups
+- `both` - In both private and group chats
+
+### Sticker Settings
+
+```env
+STICKER_PACKNAME=OpenWhatsappBot
+STICKER_AUTHOR=Your Name
+```
+
+### Anti-Call
+
+Block incoming calls:
+
+```env
+ANTI_CALL=false
+```
+
+**Options:**
+- `true` - Auto-reject calls and send message
+- `false` - Allow calls
+
+### Timezone
+
+```env
+TZ=America/New_York
+```
+
+**Examples:**
+- `America/New_York`
+- `Europe/London`
+- `Asia/Tokyo`
+- `Africa/Lagos`
+
+## Media Settings
+
+### Download Limits
+
+```env
+MAX_VIDEO_SIZE=100
+MAX_AUDIO_SIZE=50
+```
+
+**Units:** Megabytes (MB)
+
+### Media Quality
+
+```env
+VIDEO_QUALITY=720
+AUDIO_QUALITY=128
+```
+
+**Video Quality:** 360, 480, 720, 1080
+**Audio Quality:** 64, 128, 192, 256, 320 (kbps)
+
+## Rate Limiting
+
+Prevent spam and abuse:
+
+```env
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_MAX_REQUESTS=10
+RATE_LIMIT_WINDOW=60
+```
+
+**Settings:**
+- `RATE_LIMIT_ENABLED` - Enable rate limiting
+- `RATE_LIMIT_MAX_REQUESTS` - Max requests per window
+- `RATE_LIMIT_WINDOW` - Time window in seconds
+
+## Complete Configuration Example
+
+```env
+# ============================================
+# OpenWhatsappBot Configuration
+# ============================================
+
+# Basic Settings
+SESSION_ID=
+PREFIX=.
+SUDO=1234567890
+
+# Bot Behavior
+MODE=public
+WORK_TYPE=both
+ALWAYS_ONLINE=false
+AUTO_READ=true
+AUTO_STATUS_VIEW=true
+
+# AI Configuration
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=AIza...
+
+# Auto-Responder
+AUTO_RESPONDER_ENABLED=true
+AUTO_RESPONDER_PERSONALITY=You are a helpful assistant.
+
+# Database (leave empty for SQLite)
+DATABASE_URL=
+
+# Language
+LANG=en
+
+# Logging
+LOG_LEVEL=info
+
+# Stickers
+STICKER_PACKNAME=OpenWhatsappBot
+STICKER_AUTHOR=MyName
+
+# Media Settings
+MAX_VIDEO_SIZE=100
+MAX_AUDIO_SIZE=50
+
+# Timezone
+TZ=America/New_York
+```
+
+## Environment-Specific Configuration
+
+### Development
+
+```env
+LOG_LEVEL=debug
+MODE=public
+DATABASE_URL=  # Use SQLite
+```
+
+### Production
+
+```env
+LOG_LEVEL=info
+MODE=public
+DATABASE_URL=postgresql://...
+ALWAYS_ONLINE=true
+```
+
+## Validation
+
+After configuring, validate your settings:
+
+```bash
+# Start the bot
+yarn dev
+
+# Check logs for configuration errors
+```
+
+The bot will warn you about:
+- Missing required settings
+- Invalid API keys
+- Database connection issues
+
+## Security Best Practices
+
+1. **Never commit config.env** - It's already in `.gitignore`
+2. **Use strong database passwords**
+3. **Rotate API keys regularly**
+4. **Limit SUDO users** - Only trusted numbers
+5. **Enable rate limiting** - Prevent abuse
+6. **Use environment variables** - For platform deployments
+
+## Next Steps
+
+After configuration:
+
+1. [First Steps](/getting-started/first-steps) - Start using your bot
+2. [Deployment](/getting-started/deployment) - Deploy to production
+3. [Plugin Configuration](/plugins) - Enable and configure plugins
+
+---
+
+Need help? Check our [FAQ](/guides/faq) or join the [community discussions](https://github.com/Starland9/OpenWhatsappBot/discussions).

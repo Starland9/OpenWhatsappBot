@@ -329,10 +329,40 @@ MIT License - see LICENSE file
 - [WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) - WhatsApp Web API
 - [lyfe00011](https://github.com/lyfe00011) - Original inspiration
 
+## 📖 Documentation
+
+Complete documentation is available in the `docs-platform/` directory:
+
+- **Installation Guide** - Step-by-step setup instructions
+- **Configuration Reference** - All environment variables and settings
+- **Plugin Documentation** - Complete guide to all 50+ plugins
+- **API Reference** - Developer documentation
+- **Deployment Guides** - Deploy to Heroku, VPS, Docker, and more
+
+### Running Documentation Locally
+
+```bash
+cd docs-platform
+npm install
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000)
+
+### Building Documentation
+
+```bash
+cd docs-platform
+npm run build
+```
+
+See [DOCS_DEPLOYMENT.md](./DOCS_DEPLOYMENT.md) for deployment instructions.
+
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/Starland9/OpenWhatsappBot/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Starland9/OpenWhatsappBot/discussions)
+- **Documentation**: [Full Docs](./docs-platform/)
 
 ---
 

@@ -1,0 +1,276 @@
+# Installation
+
+This guide will walk you through installing OpenWhatsappBot on your system.
+
+## Prerequisites
+
+Before installing OpenWhatsappBot, ensure you have the following installed:
+
+### Required
+
+- **Node.js**: Version 20.0.0 or higher
+  ```bash
+  node --version  # Should show v20.0.0 or higher
+  ```
+
+- **FFmpeg**: For media processing
+  ```bash
+  ffmpeg -version  # Should display FFmpeg version
+  ```
+
+### Optional
+
+- **PostgreSQL**: For production deployments (SQLite is used by default)
+- **PM2**: For process management (recommended for production)
+
+## Installation Methods
+
+Choose the installation method that works best for you:
+
+### Method 1: Quick Install (Recommended)
+
+The fastest way to get started:
+
+```bash
+# Clone the repository
+git clone https://github.com/Starland9/OpenWhatsappBot
+cd OpenWhatsappBot
+
+# Install dependencies
+yarn install
+
+# Copy environment configuration
+cp config.env.example config.env
+
+# Edit configuration (see Configuration section)
+nano config.env
+
+# Start the bot
+yarn dev
+```
+
+### Method 2: Docker Install
+
+Using Docker for containerized deployment:
+
+```bash
+# Clone the repository
+git clone https://github.com/Starland9/OpenWhatsappBot
+cd OpenWhatsappBot
+
+# Copy and configure environment
+cp config.env.example config.env
+nano config.env
+
+# Build and run with Docker
+docker build -t openwhatsappbot .
+docker run -d --env-file config.env openwhatsappbot
+```
+
+### Method 3: Docker Compose
+
+For easier multi-container setup:
+
+```bash
+# Clone the repository
+git clone https://github.com/Starland9/OpenWhatsappBot
+cd OpenWhatsappBot
+
+# Copy and configure environment
+cp config.env.example config.env
+nano config.env
+
+# Start with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+```
+
+## Installing Prerequisites
+
+### Ubuntu/Debian
+
+```bash
+# Update package list
+sudo apt update
+
+# Install Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install FFmpeg
+sudo apt install -y ffmpeg
+
+# Install Yarn
+npm install -g yarn
+
+# Install PM2 (optional, for production)
+npm install -g pm2
+```
+
+### macOS
+
+```bash
+# Install Homebrew if not already installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Node.js
+brew install node@20
+
+# Install FFmpeg
+brew install ffmpeg
+
+# Install Yarn
+npm install -g yarn
+
+# Install PM2 (optional)
+npm install -g pm2
+```
+
+### Windows
+
+1. **Install Node.js 20**:
+   - Download from [nodejs.org](https://nodejs.org/)
+   - Run the installer and follow the wizard
+
+2. **Install FFmpeg**:
+   - Download from [ffmpeg.org](https://ffmpeg.org/download.html)
+   - Extract to `C:\ffmpeg`
+   - Add `C:\ffmpeg\bin` to your PATH environment variable
+
+3. **Install Yarn**:
+   ```cmd
+   npm install -g yarn
+   ```
+
+4. **Install PM2** (optional):
+   ```cmd
+   npm install -g pm2
+   ```
+
+## Verifying Installation
+
+After installation, verify everything is set up correctly:
+
+```bash
+# Check Node.js version
+node --version
+
+# Check npm/yarn version
+yarn --version
+
+# Check FFmpeg
+ffmpeg -version
+
+# Check PM2 (if installed)
+pm2 --version
+```
+
+## First Run
+
+Once installed, you can start the bot:
+
+```bash
+# Development mode
+yarn dev
+```
+
+You should see:
+
+```
+[INFO] Starting OpenWhatsappBot...
+[INFO] Loading plugins...
+[INFO] 50+ plugins loaded successfully
+[INFO] Scan the QR code with WhatsApp:
+```
+
+A QR code will appear in your terminal. Scan it with WhatsApp to authenticate.
+
+## Troubleshooting
+
+### "sharp" Installation Issues
+
+If you encounter issues with the `sharp` package:
+
+```bash
+# Remove node_modules
+rm -rf node_modules
+
+# Clear npm cache
+npm cache clean --force
+
+# Reinstall
+yarn install
+```
+
+### FFmpeg Not Found
+
+If FFmpeg is not detected:
+
+**Linux/macOS:**
+```bash
+which ffmpeg  # Should show the path
+```
+
+**Windows:**
+```cmd
+where ffmpeg  # Should show the path
+```
+
+If not found, ensure FFmpeg is in your PATH environment variable.
+
+### Port Already in Use
+
+If you see "Port already in use" errors:
+
+```bash
+# Find the process using the port (Linux/macOS)
+lsof -i :3000
+
+# Kill the process
+kill -9 <PID>
+```
+
+### Permission Errors
+
+If you encounter permission errors:
+
+**Linux/macOS:**
+```bash
+# Don't use sudo with npm/yarn
+# Instead, fix npm permissions:
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+## Next Steps
+
+After successful installation:
+
+1. [Configure your bot](/getting-started/configuration) - Set up environment variables and API keys
+2. [First Steps](/getting-started/first-steps) - Learn basic bot operations
+3. [Deployment](/getting-started/deployment) - Deploy to production
+
+## Update Instructions
+
+To update to the latest version:
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Install new dependencies
+yarn install
+
+# Restart the bot
+pm2 restart openwhatsappbot  # If using PM2
+# or
+yarn dev  # If running in development
+```
+
+---
+
+Need help? Check our [troubleshooting guide](/guides/troubleshooting) or join the [community discussions](https://github.com/Starland9/OpenWhatsappBot/discussions).

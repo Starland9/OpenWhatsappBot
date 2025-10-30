@@ -20,6 +20,8 @@ module.exports = {
 
   async execute(message) {
     try {
+      await message.react("⏳");
+
       // Check for media
       let buffer;
 
@@ -38,10 +40,12 @@ module.exports = {
       } else if (message.hasMedia) {
         buffer = await message.downloadMedia();
       } else {
+        await message.react("❌");
         return await message.reply(getLang("plugins.sticker.reply_required"));
       }
 
       if (!buffer) {
+        await message.react("❌");
         return await message.reply("❌ Failed to download media");
       }
 
@@ -84,7 +88,10 @@ module.exports = {
         packname: config.STICKER_PACKNAME,
         author: config.STICKER_AUTHOR,
       });
+
+      await message.react("✅");
     } catch (error) {
+      await message.react("❌");
       console.error("Sticker error:", error);
       await message.reply(`❌ Failed to create sticker: ${error.message}`);
     }

@@ -783,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "موسیقی اور گیت تلاش کریں",
+      "usage": "استعمال:\n- .music <گانے کا نام> - موسیقی تلاش کریں\n- .play <گانے کا نام> - موسیقی ڈاؤن لوڈ اور چلائیں\n- .spotify <گانے کا نام> - Spotify پر تلاش کریں\n- .lyrics <فنکار - گانا> - گیت حاصل کریں",
+      "no_results": "کوئی نتیجہ نہیں ملا",
+      "search_results": "تلاش کے نتائج",
+      "no_spotify_api": "Spotify API کی اسناد ترتیب نہیں دی گئیں",
+      "lyrics_format": "فارمیٹ: .lyrics فنکار کا نام - گانے کا عنوان",
+      "no_lyrics": "گیت نہیں ملے",
+      "lyrics_title": "گیت",
+      "artist": "فنکار",
+      "song": "گانا",
+      "lyrics_truncated": "لمبائی کی وجہ سے گیت مختصر کیے گئے",
+      "error": "موسیقی کی تلاش میں خرابی",
+      "no_preview": "اس گانے کے لیے آڈیو پیش نظارہ دستیاب نہیں",
+      "downloading": "⏬ ڈاؤن لوڈ ہو رہا ہے..."
     },
     "notify": {
       "desc": "Set keyword notifications",

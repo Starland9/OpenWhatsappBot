@@ -783,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "Müzik ve şarkı sözü ara",
+      "usage": "Kullanım:\n- .music <şarkı adı> - Müzik ara\n- .play <şarkı adı> - Müzik indir ve çal\n- .spotify <şarkı adı> - Spotify'da ara\n- .lyrics <sanatçı - şarkı> - Şarkı sözlerini al",
+      "no_results": "Sonuç bulunamadı",
+      "search_results": "Arama Sonuçları",
+      "no_spotify_api": "Spotify API kimlik bilgileri yapılandırılmamış",
+      "lyrics_format": "Format: .lyrics Sanatçı Adı - Şarkı Başlığı",
+      "no_lyrics": "Şarkı sözleri bulunamadı",
+      "lyrics_title": "Şarkı Sözleri",
+      "artist": "Sanatçı",
+      "song": "Şarkı",
+      "lyrics_truncated": "Uzunluk nedeniyle şarkı sözleri kısaltıldı",
+      "error": "Müzik arama hatası",
+      "no_preview": "Bu şarkı için ses önizlemesi mevcut değil",
+      "downloading": "⏬ İndiriliyor..."
     },
     "notify": {
       "desc": "Set keyword notifications",

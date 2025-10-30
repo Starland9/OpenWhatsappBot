@@ -783,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "البحث عن الموسيقى وكلمات الأغاني",
+      "usage": "الاستخدام:\n- .music <اسم الأغنية> - البحث عن الموسيقى\n- .play <اسم الأغنية> - تحميل وتشغيل الموسيقى\n- .spotify <اسم الأغنية> - البحث في Spotify\n- .lyrics <الفنان - الأغنية> - الحصول على كلمات الأغاني",
+      "no_results": "لم يتم العثور على نتائج",
+      "search_results": "نتائج البحث",
+      "no_spotify_api": "بيانات اعتماد Spotify API غير مكوّنة",
+      "lyrics_format": "التنسيق: .lyrics اسم الفنان - عنوان الأغنية",
+      "no_lyrics": "كلمات الأغاني غير موجودة",
+      "lyrics_title": "كلمات الأغاني",
+      "artist": "الفنان",
+      "song": "الأغنية",
+      "lyrics_truncated": "تم اقتطاع كلمات الأغاني بسبب الطول",
+      "error": "خطأ في البحث عن الموسيقى",
+      "no_preview": "لا يوجد معاينة صوتية متاحة لهذه الأغنية",
+      "downloading": "⏬ جاري التحميل..."
     },
     "notify": {
       "desc": "Set keyword notifications",

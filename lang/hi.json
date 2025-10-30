@@ -783,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "संगीत और गीत खोजें",
+      "usage": "उपयोग:\n- .music <गाने का नाम> - संगीत खोजें\n- .play <गाने का नाम> - संगीत डाउनलोड करें और चलाएं\n- .spotify <गाने का नाम> - Spotify पर खोजें\n- .lyrics <कलाकार - गाना> - गीत प्राप्त करें",
+      "no_results": "कोई परिणाम नहीं मिला",
+      "search_results": "खोज परिणाम",
+      "no_spotify_api": "Spotify API क्रेडेंशियल्स कॉन्फ़िगर नहीं किए गए",
+      "lyrics_format": "प्रारूप: .lyrics कलाकार का नाम - गाने का शीर्षक",
+      "no_lyrics": "गीत नहीं मिले",
+      "lyrics_title": "गीत",
+      "artist": "कलाकार",
+      "song": "गाना",
+      "lyrics_truncated": "लंबाई के कारण गीत संक्षिप्त किए गए",
+      "error": "संगीत खोज त्रुटि",
+      "no_preview": "इस गाने के लिए कोई ऑडियो पूर्वावलोकन उपलब्ध नहीं है",
+      "downloading": "⏬ डाउनलोड हो रहा है..."
     },
     "notify": {
       "desc": "Set keyword notifications",

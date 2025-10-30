@@ -889,7 +889,7 @@
     },
     "music": {
       "desc": "Rechercher de la musique et des paroles",
-      "usage": "Utilisation:\n- .music <nom de chanson> - Rechercher de la musique\n- .spotify <nom de chanson> - Rechercher sur Spotify\n- .lyrics <artiste - chanson> - Obtenir les paroles",
+      "usage": "Utilisation:\n- .music <nom de chanson> - Rechercher de la musique\n- .play <nom de chanson> - Télécharger et jouer la musique\n- .spotify <nom de chanson> - Rechercher sur Spotify\n- .lyrics <artiste - chanson> - Obtenir les paroles",
       "no_results": "Aucun résultat trouvé",
       "search_results": "Résultats de recherche",
       "no_spotify_api": "Identifiants API Spotify non configurés",
@@ -899,7 +899,9 @@
       "artist": "Artiste",
       "song": "Chanson",
       "lyrics_truncated": "Paroles tronquées en raison de la longueur",
-      "error": "Erreur de recherche musicale"
+      "error": "Erreur de recherche musicale",
+      "no_preview": "Aucun extrait audio disponible pour cette chanson",
+      "downloading": "⏬ Téléchargement en cours..."
     },
     "notify": {
       "desc": "Définir des notifications basées sur des mots-clés",

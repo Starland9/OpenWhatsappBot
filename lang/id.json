@@ -783,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "Cari musik dan lirik",
+      "usage": "Penggunaan:\n- .music <nama lagu> - Cari musik\n- .play <nama lagu> - Unduh dan putar musik\n- .spotify <nama lagu> - Cari di Spotify\n- .lyrics <artis - lagu> - Dapatkan lirik",
+      "no_results": "Tidak ada hasil ditemukan",
+      "search_results": "Hasil Pencarian",
+      "no_spotify_api": "Kredensial API Spotify tidak dikonfigurasi",
+      "lyrics_format": "Format: .lyrics Nama Artis - Judul Lagu",
+      "no_lyrics": "Lirik tidak ditemukan",
+      "lyrics_title": "Lirik",
+      "artist": "Artis",
+      "song": "Lagu",
+      "lyrics_truncated": "Lirik dipotong karena panjang",
+      "error": "Kesalahan pencarian musik",
+      "no_preview": "Tidak ada pratinjau audio yang tersedia untuk lagu ini",
+      "downloading": "⏬ Mengunduh..."
     },
     "notify": {
       "desc": "Set keyword notifications",

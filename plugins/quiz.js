@@ -14,31 +14,35 @@ const quizQuestions = [
     question: "What is the capital of France?",
     answer: "Paris",
     hints: ["It's a city", "Known for the Eiffel Tower", "Starts with P"],
-    category: "Geography"
+    category: "Geography",
   },
   {
     question: "What is 15 × 8?",
     answer: "120",
     hints: ["It's a number", "Between 100 and 150", "Divisible by 10"],
-    category: "Math"
+    category: "Math",
   },
   {
     question: "Who painted the Mona Lisa?",
     answer: "Leonardo da Vinci",
-    hints: ["Italian artist", "Renaissance period", "Also invented flying machines"],
-    category: "Art"
+    hints: [
+      "Italian artist",
+      "Renaissance period",
+      "Also invented flying machines",
+    ],
+    category: "Art",
   },
   {
     question: "What is the largest planet in our solar system?",
     answer: "Jupiter",
     hints: ["Gas giant", "Named after Roman god", "Has the Great Red Spot"],
-    category: "Science"
+    category: "Science",
   },
   {
     question: "In which year did World War II end?",
     answer: "1945",
     hints: ["20th century", "Between 1940 and 1950", "After atomic bombs"],
-    category: "History"
+    category: "History",
   },
 ];
 
@@ -51,7 +55,9 @@ module.exports = {
 
   async execute(message, query) {
     const chatId = message.jid;
-    const command = message.body.split(" ")[0].replace(require("../config").PREFIX, "");
+    const command = message.body
+      .split(" ")[0]
+      .replace(require("../config").PREFIX, "");
 
     try {
       if (command === "quiz" || command === "trivia") {
@@ -62,7 +68,9 @@ module.exports = {
     } catch (error) {
       await message.react("❌");
       console.error("Quiz/Game error:", error);
-      await message.reply(`❌ ${getLang("plugins.quiz.error")}: ${error.message}`);
+      await message.reply(
+        `❌ ${getLang("plugins.quiz.error")}: ${error.message}`
+      );
     }
   },
 };
@@ -72,8 +80,9 @@ async function handleQuiz(message, query, chatId) {
 
   if (action === "start") {
     // Select random question
-    const question = quizQuestions[Math.floor(Math.random() * quizQuestions.length)];
-    
+    const question =
+      quizQuestions[Math.floor(Math.random() * quizQuestions.length)];
+
     quizGames.set(chatId, {
       question: question.question,
       answer: question.answer.toLowerCase(),
@@ -86,10 +95,10 @@ async function handleQuiz(message, query, chatId) {
 
     return await message.reply(
       `🎯 *${getLang("plugins.quiz.started")}*\n\n` +
-      `📚 *${getLang("plugins.quiz.category")}:* ${question.category}\n\n` +
-      `❓ *${getLang("plugins.quiz.question")}*\n${question.question}\n\n` +
-      `💡 _${getLang("plugins.quiz.hint_info")}_\n` +
-      `📝 _${getLang("plugins.quiz.answer_info")}_`
+        `📚 *${getLang("plugins.quiz.category")}:* ${question.category}\n\n` +
+        `❓ *${getLang("plugins.quiz.question")}*\n${question.question}\n\n` +
+        `💡 _${getLang("plugins.quiz.hint_info")}_\n` +
+        `📝 _${getLang("plugins.quiz.answer_info")}_`
     );
   }
 
@@ -102,7 +111,7 @@ async function handleQuiz(message, query, chatId) {
     quizGames.delete(chatId);
     return await message.reply(
       `🛑 ${getLang("plugins.quiz.stopped")}\n\n` +
-      `✅ ${getLang("plugins.quiz.correct_answer")}: *${game.answer}*`
+        `✅ ${getLang("plugins.quiz.correct_answer")}: *${game.answer}*`
     );
   }
 
@@ -119,22 +128,24 @@ async function handleQuiz(message, query, chatId) {
     const hint = game.hints[game.hintIndex];
     game.hintIndex++;
 
-    return await message.reply(`💡 *${getLang("plugins.quiz.hint")} ${game.hintIndex}:* ${hint}`);
+    return await message.reply(
+      `💡 *${getLang("plugins.quiz.hint")} ${game.hintIndex}:* ${hint}`
+    );
   }
 
   // Check if answering
   const game = quizGames.get(chatId);
   if (game && query) {
     game.attempts++;
-    
+
     if (query.toLowerCase() === game.answer) {
       quizGames.delete(chatId);
       await message.react("🎉");
       return await message.reply(
         `🎉 *${getLang("plugins.quiz.correct")}!*\n\n` +
-        `✅ ${getLang("plugins.quiz.answer")}: ${game.answer}\n` +
-        `🎯 ${getLang("plugins.quiz.attempts")}: ${game.attempts}\n\n` +
-        `_${getLang("plugins.quiz.new_game")}_`
+          `✅ ${getLang("plugins.quiz.answer")}: ${game.answer}\n` +
+          `🎯 ${getLang("plugins.quiz.attempts")}: ${game.attempts}\n\n` +
+          `_${getLang("plugins.quiz.new_game")}_`
       );
     }
 
@@ -143,14 +154,18 @@ async function handleQuiz(message, query, chatId) {
       quizGames.delete(chatId);
       return await message.reply(
         `❌ *${getLang("plugins.quiz.failed")}*\n\n` +
-        `✅ ${getLang("plugins.quiz.correct_answer")}: *${correctAnswer}*\n\n` +
-        `_${getLang("plugins.quiz.try_again")}_`
+          `✅ ${getLang(
+            "plugins.quiz.correct_answer"
+          )}: *${correctAnswer}*\n\n` +
+          `_${getLang("plugins.quiz.try_again")}_`
       );
     }
 
     return await message.reply(
       `❌ ${getLang("plugins.quiz.wrong")}\n` +
-      `📊 ${getLang("plugins.quiz.attempts_left")}: ${game.maxAttempts - game.attempts}`
+        `📊 ${getLang("plugins.quiz.attempts_left")}: ${
+          game.maxAttempts - game.attempts
+        }`
     );
   }
 
@@ -171,9 +186,9 @@ async function handleGuess(message, query, chatId) {
 
     return await message.reply(
       `🎮 *${getLang("plugins.quiz.guess_started")}*\n\n` +
-      `🔢 ${getLang("plugins.quiz.guess_info")}\n` +
-      `🎯 ${getLang("plugins.quiz.guess_attempts")}: 10\n\n` +
-      `_${getLang("plugins.quiz.guess_example")}_`
+        `🔢 ${getLang("plugins.quiz.guess_info")}\n` +
+        `🎯 ${getLang("plugins.quiz.guess_attempts")}: 10\n\n` +
+        `_${getLang("plugins.quiz.guess_example")}_`
     );
   }
 
@@ -186,7 +201,7 @@ async function handleGuess(message, query, chatId) {
     guessGames.delete(chatId);
     return await message.reply(
       `🛑 ${getLang("plugins.quiz.stopped")}\n` +
-      `🔢 ${getLang("plugins.quiz.number_was")}: *${game.number}*`
+        `🔢 ${getLang("plugins.quiz.number_was")}: *${game.number}*`
     );
   }
 
@@ -194,9 +209,11 @@ async function handleGuess(message, query, chatId) {
   const game = guessGames.get(chatId);
   if (game && query) {
     const guess = parseInt(query);
-    
+
     if (isNaN(guess) || guess < 1 || guess > 100) {
-      return await message.reply(`❌ ${getLang("plugins.quiz.invalid_number")}`);
+      return await message.reply(
+        `❌ ${getLang("plugins.quiz.invalid_number")}`
+      );
     }
 
     game.attempts++;
@@ -206,9 +223,9 @@ async function handleGuess(message, query, chatId) {
       await message.react("🎉");
       return await message.reply(
         `🎉 *${getLang("plugins.quiz.guess_correct")}!*\n\n` +
-        `🔢 ${getLang("plugins.quiz.number")}: ${game.number}\n` +
-        `🎯 ${getLang("plugins.quiz.attempts")}: ${game.attempts}\n\n` +
-        `_${getLang("plugins.quiz.new_game")}_`
+          `🔢 ${getLang("plugins.quiz.number")}: ${game.number}\n` +
+          `🎯 ${getLang("plugins.quiz.attempts")}: ${game.attempts}\n\n` +
+          `_${getLang("plugins.quiz.new_game")}_`
       );
     }
 
@@ -217,17 +234,19 @@ async function handleGuess(message, query, chatId) {
       guessGames.delete(chatId);
       return await message.reply(
         `😔 *${getLang("plugins.quiz.guess_failed")}*\n\n` +
-        `🔢 ${getLang("plugins.quiz.number_was")}: *${number}*\n\n` +
-        `_${getLang("plugins.quiz.try_again")}_`
+          `🔢 ${getLang("plugins.quiz.number_was")}: *${number}*\n\n` +
+          `_${getLang("plugins.quiz.try_again")}_`
       );
     }
 
-    const hint = guess < game.number ? "⬆️ " + getLang("plugins.quiz.higher") : "⬇️ " + getLang("plugins.quiz.lower");
+    const hint =
+      guess < game.number
+        ? "⬆️ " + getLang("plugins.quiz.higher")
+        : "⬇️ " + getLang("plugins.quiz.lower");
     const remaining = game.maxAttempts - game.attempts;
 
     return await message.reply(
-      `${hint}\n` +
-      `📊 ${getLang("plugins.quiz.attempts_left")}: ${remaining}`
+      `${hint}\n` + `📊 ${getLang("plugins.quiz.attempts_left")}: ${remaining}`
     );
   }
 

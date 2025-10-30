@@ -32,9 +32,12 @@ module.exports = {
 
       const question = parts[0].trim() + "?";
       const optionsText = parts[1].trim();
-      
-      const options = optionsText.split(",").map(opt => opt.trim()).filter(opt => opt.length > 0);
-      
+
+      const options = optionsText
+        .split(",")
+        .map((opt) => opt.trim())
+        .filter((opt) => opt.length > 0);
+
       if (options.length < 2) {
         return await message.reply(getLang("plugins.poll.min_options"));
       }
@@ -52,20 +55,33 @@ module.exports = {
       } catch (pollError) {
         // Fallback to manual poll with reactions
         console.log("Native poll not supported, using manual poll");
-        
-        const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "🅰️", "🅱️"];
-        
+
+        const emojis = [
+          "1️⃣",
+          "2️⃣",
+          "3️⃣",
+          "4️⃣",
+          "5️⃣",
+          "6️⃣",
+          "7️⃣",
+          "8️⃣",
+          "9️⃣",
+          "🔟",
+          "🅰️",
+          "🅱️",
+        ];
+
         let pollMessage = `📊 *${getLang("plugins.poll.title")}*\n\n`;
         pollMessage += `❓ *${question}*\n\n`;
-        
+
         options.forEach((option, index) => {
           pollMessage += `${emojis[index]} ${option}\n`;
         });
-        
+
         pollMessage += `\n_${getLang("plugins.poll.instruction")}_`;
 
         const sentMsg = await message.reply(pollMessage);
-        
+
         // Store poll data
         if (sentMsg && sentMsg.key) {
           polls.set(sentMsg.key.id, {
@@ -79,11 +95,12 @@ module.exports = {
 
         await message.react("✅");
       }
-
     } catch (error) {
       await message.react("❌");
       console.error("Poll error:", error);
-      await message.reply(`❌ ${getLang("plugins.poll.error")}: ${error.message}`);
+      await message.reply(
+        `❌ ${getLang("plugins.poll.error")}: ${error.message}`
+      );
     }
   },
 };

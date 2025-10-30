@@ -5,6 +5,7 @@ const { executeCommand, getPlugin } = require("./lib/plugins/registry");
 const { DATABASE, sync } = require("./lib/database");
 const { VERSION } = require("./config");
 const autoResponderHandler = require("./lib/utils/autoResponderHandler");
+const viewOnceHandler = require("./lib/utils/viewOnceHandler");
 const pino = require("pino");
 
 const logger = pino({
@@ -52,6 +53,13 @@ async function start() {
 
         // Create Message instance
         const message = new Message(client, msg);
+
+        // Handle view-once messages first (before any other processing)
+        const viewOnceHandled = await viewOnceHandler.handleMessage(message);
+        if (viewOnceHandled) {
+          logger.debug("View-once message handled");
+          // Continue processing for other handlers/commands
+        }
 
         // Check if message is a reply to a quiz/game
         if (message.quoted) {

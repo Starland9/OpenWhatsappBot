@@ -954,6 +954,20 @@
       "ignore_cleared": "✅ Ignore list cleared",
       "current_personality": "*Current AI Personality:*",
       "personality_updated": "✅ AI personality updated successfully"
+    },
+    "viewonce": {
+      "desc": "Manage automatic view-once message forwarding",
+      "setvv_desc": "Configure view-once message destination",
+      "getvv_desc": "Check current view-once settings",
+      "usage": "*View Once Management:*\n\n*.setvv g* - Send view-once messages to the same group/chat\n*.setvv p* - Send to your private chat (sudo)\n*.setvv <jid>* - Send to specific JID\n*.setvv null* - Disable auto view-once forwarding\n\n*.getvv* - Check current settings",
+      "updated": "✅ View-once forwarding updated to: *{0}*\n\n_View-once messages will now be automatically forwarded._",
+      "disabled": "❌ Auto view-once forwarding has been disabled.",
+      "not_set": "View-once forwarding is not configured.\n\nUse *.setvv* to configure it.",
+      "status": "*View-Once Settings:*\n\n*Status:* {0}\n*Destination:* {1}",
+      "mode_group": "Same group/chat",
+      "mode_private": "Your private chat",
+      "mode_jid": "Custom JID: {0}",
+      "mode_disabled": "Disabled"
     }
   }
 }

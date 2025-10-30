@@ -121,6 +121,16 @@
       "example": "> *Örnek :*\n- gemini merhaba\n- gemini resimde ne var(bir resme cevap verirken)",
       "Key": "> Gemini API Anahtarı Eksik!\nAlın: https://aistudio.google.com/app/apikey\n\n*Şöyle ayarlayın:*\nsetvar GEMINI_API_KEY = api_anahtarınız"
     },
+    "imagen": {
+      "desc": "Google Imagen AI ile resim oluşturun",
+      "example": "> *Örnek:*\n- imagine okyanus üzerinde güzel bir gün batımı\n- imagen oynayan sevimli bir kedi",
+      "no_key": "❌ Gemini API anahtarı yapılandırılmamış. config.env dosyasında GEMINI_API_KEY ayarlayın",
+      "no_query": "❌ Lütfen bir açıklama sağlayın\n\nÖrnek: .imagine okyanus üzerinde güzel bir gün batımı",
+      "no_image": "❌ Görsel oluşturulamadı. Farklı bir açıklama deneyin.",
+      "quota": "❌ API kotası aşıldı. Lütfen daha sonra tekrar deneyin veya API planınızı yükseltin.",
+      "safety": "❌ Açıklamanız güvenlik filtreleri tarafından engellendi. Farklı bir açıklama deneyin.",
+      "error": "❌ Hata: {0}"
+    },
     "gstop": {
       "desc": "Tüm gruplardaki gfiltreleri sil",
       "example": "> *Kullanım:*\n- gstop <filtre>\n- gstop merhaba",
@@ -773,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "Müzik ve şarkı sözü ara",
+      "usage": "Kullanım:\n- .music <şarkı adı> - Müzik ara\n- .play <şarkı adı> - Müzik indir ve çal\n- .spotify <şarkı adı> - Spotify'da ara\n- .lyrics <sanatçı - şarkı> - Şarkı sözlerini al",
+      "no_results": "Sonuç bulunamadı",
+      "search_results": "Arama Sonuçları",
+      "no_spotify_api": "Spotify API kimlik bilgileri yapılandırılmamış",
+      "lyrics_format": "Format: .lyrics Sanatçı Adı - Şarkı Başlığı",
+      "no_lyrics": "Şarkı sözleri bulunamadı",
+      "lyrics_title": "Şarkı Sözleri",
+      "artist": "Sanatçı",
+      "song": "Şarkı",
+      "lyrics_truncated": "Uzunluk nedeniyle şarkı sözleri kısaltıldı",
+      "error": "Müzik arama hatası",
+      "no_preview": "Bu şarkı için ses önizlemesi mevcut değil",
+      "downloading": "⏬ İndiriliyor..."
     },
     "notify": {
       "desc": "Set keyword notifications",

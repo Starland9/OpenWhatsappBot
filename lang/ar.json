@@ -121,6 +121,16 @@
       "example": "> *مثال :*\n- gemini hi\n- gemini what is in the picture(أثناء الرد على صورة)",
       "Key": "> مفتاح API لـ Gemini مفقود!\nاحصل عليه من: https://aistudio.google.com/app/apikey\n\n*عيّنه باستخدام:*\nsetvar GEMINI_API_KEY = مفتاح_ال_API_الخاص_بك"
     },
+    "imagen": {
+      "desc": "إنشاء صور باستخدام Google Imagen AI",
+      "example": "> *مثال:*\n- imagine غروب جميل فوق المحيط\n- imagen قطة لطيفة تلعب",
+      "no_key": "❌ مفتاح API لـ Gemini غير مكوّن. قم بتعيين GEMINI_API_KEY في config.env",
+      "no_query": "❌ يرجى تقديم وصف\n\nمثال: .imagine غروب جميل فوق المحيط",
+      "no_image": "❌ لم يتم إنشاء صورة. جرب وصفًا مختلفًا.",
+      "quota": "❌ تم تجاوز حصة API. يرجى المحاولة لاحقًا أو ترقية خطة API الخاصة بك.",
+      "safety": "❌ تم حظر الوصف الخاص بك بواسطة مرشحات الأمان. جرب وصفًا مختلفًا.",
+      "error": "❌ خطأ: {0}"
+    },
     "gstop": {
       "desc": "حذف الفلاتر العامة في جميع المجموعات",
       "example": "> *الاستخدام:*\n- gstop <فلتر>\n- gstop hi",
@@ -738,9 +748,39 @@
       "error": "Weather error"
     },
     "quiz": {
-      "desc": "Play quiz and games",
-      "usage": "Usage: .quiz start/stop/hint",
-      "error": "Game error"
+      "desc": "لعب الاختبارات وألعاب التخمين",
+      "usage": "الاستخدام: .quiz start/stop/hint",
+      "started": "بدأ الاختبار",
+      "category": "الفئة",
+      "question": "السؤال",
+      "hint_info": "اكتب 'quiz hint' للحصول على تلميح",
+      "reply_to_answer": "رد على هذه الرسالة بإجابتك",
+      "reply_to_guess": "رد على هذه الرسالة بتخمينك (1-100)",
+      "no_game": "لا يوجد لعبة نشطة. ابدأ بـ: quiz start",
+      "stopped": "توقفت اللعبة",
+      "correct_answer": "الإجابة الصحيحة",
+      "no_hints": "لا توجد تلميحات متاحة",
+      "hint": "تلميح",
+      "correct": "صحيح",
+      "answer": "الإجابة",
+      "attempts": "المحاولات",
+      "new_game": "ابدأ لعبة جديدة بـ: quiz start",
+      "failed": "انتهت اللعبة",
+      "try_again": "حاول مرة أخرى بـ: quiz start",
+      "wrong": "إجابة خاطئة",
+      "attempts_left": "المحاولات المتبقية",
+      "guess_started": "بدأت لعبة التخمين",
+      "guess_info": "اخترت رقمًا بين 1 و 100",
+      "guess_attempts": "المحاولات",
+      "number_was": "كان الرقم",
+      "invalid_number": "الرجاء إدخال رقم بين 1 و 100",
+      "guess_correct": "صحيح! لقد وجدته",
+      "number": "الرقم",
+      "guess_failed": "نفدت المحاولات",
+      "higher": "أعلى",
+      "lower": "أقل",
+      "guess_usage": "الاستخدام: .guess start/stop",
+      "error": "خطأ في اللعبة"
     },
     "imagesearch": {
       "desc": "Search images and GIFs",
@@ -773,9 +813,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "البحث عن الموسيقى وكلمات الأغاني",
+      "usage": "الاستخدام:\n- .music <اسم الأغنية> - البحث عن الموسيقى\n- .play <اسم الأغنية> - تحميل وتشغيل الموسيقى\n- .spotify <اسم الأغنية> - البحث في Spotify\n- .lyrics <الفنان - الأغنية> - الحصول على كلمات الأغاني",
+      "no_results": "لم يتم العثور على نتائج",
+      "search_results": "نتائج البحث",
+      "no_spotify_api": "بيانات اعتماد Spotify API غير مكوّنة",
+      "lyrics_format": "التنسيق: .lyrics اسم الفنان - عنوان الأغنية",
+      "no_lyrics": "كلمات الأغاني غير موجودة",
+      "lyrics_title": "كلمات الأغاني",
+      "artist": "الفنان",
+      "song": "الأغنية",
+      "lyrics_truncated": "تم اقتطاع كلمات الأغاني بسبب الطول",
+      "error": "خطأ في البحث عن الموسيقى",
+      "no_preview": "لا يوجد معاينة صوتية متاحة لهذه الأغنية",
+      "downloading": "⏬ جاري التحميل..."
     },
     "notify": {
       "desc": "Set keyword notifications",

@@ -121,6 +121,16 @@
       "example": "> *Example :*\n- gemini hi\n- gemini what is in the picture(while replying to a image)",
       "Key": "> Missing Gemini API Key!\nGet one at: https://aistudio.google.com/app/apikey\n\n*Set it using:*\nsetvar GEMINI_API_KEY = your_api_key"
     },
+    "imagen": {
+      "desc": "Generate images with Google Imagen AI",
+      "example": "> *Example:*\n- imagine a beautiful sunset over the ocean\n- imagen a cute cat playing",
+      "no_key": "❌ Gemini API key not configured. Set GEMINI_API_KEY in config.env",
+      "no_query": "❌ Please provide a description\n\nExample: .imagine a beautiful sunset over the ocean",
+      "no_image": "❌ No image was generated. Try a different prompt.",
+      "quota": "❌ API quota exceeded. Please try again later or upgrade your API plan.",
+      "safety": "❌ Your prompt was blocked by content safety filters. Try a different description.",
+      "error": "❌ Error: {0}"
+    },
     "gstop": {
       "desc": "Delete gfilters in all groups",
       "example": "> *Usage:*\n- gstop <filter>\n- gstop hi",
@@ -774,6 +784,8 @@
       "question": "Question",
       "hint_info": "Type 'quiz hint' for a hint",
       "answer_info": "Type your answer to respond",
+      "reply_to_answer": "Reply to this message with your answer",
+      "reply_to_guess": "Reply to this message with your guess (1-100)",
       "no_game": "No active game. Start with: quiz start",
       "stopped": "Game stopped",
       "correct_answer": "Correct answer",
@@ -879,7 +891,7 @@
     },
     "music": {
       "desc": "Search for music and lyrics",
-      "usage": "Usage:\n- .music <song name> - Search music\n- .spotify <song name> - Search on Spotify\n- .lyrics <artist - song> - Get lyrics",
+      "usage": "Usage:\n- .music <song name> - Search music\n- .play <song name> - Download and play music\n- .spotify <song name> - Search on Spotify\n- .lyrics <artist - song> - Get lyrics",
       "no_results": "No results found",
       "search_results": "Search Results",
       "no_spotify_api": "Spotify API credentials not configured",
@@ -889,7 +901,9 @@
       "artist": "Artist",
       "song": "Song",
       "lyrics_truncated": "Lyrics truncated due to length",
-      "error": "Music search error"
+      "error": "Music search error",
+      "no_preview": "No audio preview available for this song",
+      "downloading": "⏬ Downloading..."
     },
     "notify": {
       "desc": "Set keyword-based notifications",

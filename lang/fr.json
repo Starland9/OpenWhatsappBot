@@ -121,6 +121,16 @@
       "example": "> *Exemple :*\n- gemini salut\n- gemini qu'y a-t-il sur la photo (en répondant à une image)",
       "Key": "> Clé API Gemini manquante !\nObtenez-en une sur : https://aistudio.google.com/app/apikey\n\n*Définissez-la avec :*\nsetvar GEMINI_API_KEY = votre_clé_api"
     },
+    "imagen": {
+      "desc": "Générer des images avec Google Imagen AI",
+      "example": "> *Exemple :*\n- imagine un magnifique coucher de soleil sur l'océan\n- imagen un chat mignon qui joue",
+      "no_key": "❌ Clé API Gemini non configurée. Définissez GEMINI_API_KEY dans config.env",
+      "no_query": "❌ Veuillez fournir une description\n\nExemple : .imagine un magnifique coucher de soleil sur l'océan",
+      "no_image": "❌ Aucune image n'a été générée. Essayez une description différente.",
+      "quota": "❌ Quota API dépassé. Veuillez réessayer plus tard ou mettre à niveau votre plan API.",
+      "safety": "❌ Votre description a été bloquée par les filtres de sécurité. Essayez une description différente.",
+      "error": "❌ Erreur : {0}"
+    },
     "gstop": {
       "desc": "Supprimer les gfiltres dans tous les groupes",
       "example": "> *Utilisation :*\n- gstop <filtre>\n- gstop salut",
@@ -774,6 +784,8 @@
       "question": "Question",
       "hint_info": "Tapez 'quiz hint' pour un indice",
       "answer_info": "Tapez votre réponse pour répondre",
+      "reply_to_answer": "Répondez à ce message avec votre réponse",
+      "reply_to_guess": "Répondez à ce message avec votre supposition (1-100)",
       "no_game": "Aucun jeu actif. Démarrez avec: quiz start",
       "stopped": "Jeu arrêté",
       "correct_answer": "Réponse correcte",
@@ -879,7 +891,7 @@
     },
     "music": {
       "desc": "Rechercher de la musique et des paroles",
-      "usage": "Utilisation:\n- .music <nom de chanson> - Rechercher de la musique\n- .spotify <nom de chanson> - Rechercher sur Spotify\n- .lyrics <artiste - chanson> - Obtenir les paroles",
+      "usage": "Utilisation:\n- .music <nom de chanson> - Rechercher de la musique\n- .play <nom de chanson> - Télécharger et jouer la musique\n- .spotify <nom de chanson> - Rechercher sur Spotify\n- .lyrics <artiste - chanson> - Obtenir les paroles",
       "no_results": "Aucun résultat trouvé",
       "search_results": "Résultats de recherche",
       "no_spotify_api": "Identifiants API Spotify non configurés",
@@ -889,7 +901,9 @@
       "artist": "Artiste",
       "song": "Chanson",
       "lyrics_truncated": "Paroles tronquées en raison de la longueur",
-      "error": "Erreur de recherche musicale"
+      "error": "Erreur de recherche musicale",
+      "no_preview": "Aucun extrait audio disponible pour cette chanson",
+      "downloading": "⏬ Téléchargement en cours..."
     },
     "notify": {
       "desc": "Définir des notifications basées sur des mots-clés",

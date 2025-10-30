@@ -121,6 +121,16 @@
       "example": "> *Contoh :*\n- gemini hai\n- gemini apa yang ada di gambar (saat membalas gambar)",
       "Key": "> Kunci API Gemini Hilang!\nDapatkan di: https://aistudio.google.com/app/apikey\n\n*Atur menggunakan:*\nsetvar GEMINI_API_KEY = kunci_api_anda"
     },
+    "imagen": {
+      "desc": "Buat gambar dengan Google Imagen AI",
+      "example": "> *Contoh:*\n- imagine matahari terbenam yang indah di laut\n- imagen kucing lucu sedang bermain",
+      "no_key": "❌ Kunci API Gemini tidak dikonfigurasi. Atur GEMINI_API_KEY di config.env",
+      "no_query": "❌ Mohon berikan deskripsi\n\nContoh: .imagine matahari terbenam yang indah di laut",
+      "no_image": "❌ Tidak ada gambar yang dibuat. Coba deskripsi lain.",
+      "quota": "❌ Kuota API terlampaui. Silakan coba lagi nanti atau upgrade paket API Anda.",
+      "safety": "❌ Deskripsi Anda diblokir oleh filter keamanan. Coba deskripsi lain.",
+      "error": "❌ Kesalahan: {0}"
+    },
     "gstop": {
       "desc": "Hapus filter global di semua grup",
       "example": "> *Cara Pakai:*\n- gstop <filter>\n- gstop hi",
@@ -773,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "Cari musik dan lirik",
+      "usage": "Penggunaan:\n- .music <nama lagu> - Cari musik\n- .play <nama lagu> - Unduh dan putar musik\n- .spotify <nama lagu> - Cari di Spotify\n- .lyrics <artis - lagu> - Dapatkan lirik",
+      "no_results": "Tidak ada hasil ditemukan",
+      "search_results": "Hasil Pencarian",
+      "no_spotify_api": "Kredensial API Spotify tidak dikonfigurasi",
+      "lyrics_format": "Format: .lyrics Nama Artis - Judul Lagu",
+      "no_lyrics": "Lirik tidak ditemukan",
+      "lyrics_title": "Lirik",
+      "artist": "Artis",
+      "song": "Lagu",
+      "lyrics_truncated": "Lirik dipotong karena panjang",
+      "error": "Kesalahan pencarian musik",
+      "no_preview": "Tidak ada pratinjau audio yang tersedia untuk lagu ini",
+      "downloading": "⏬ Mengunduh..."
     },
     "notify": {
       "desc": "Set keyword notifications",

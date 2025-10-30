@@ -7,7 +7,7 @@ const config = require("../config");
  */
 module.exports = {
   command: {
-    pattern: "gpt|ai|chatgpt",
+    pattern: "gpt",
     desc: getLang("plugins.groq.desc"),
     type: "ai",
   },
@@ -36,7 +36,9 @@ module.exports = {
       let imageBuffer = null;
 
       if (message.quoted && message.quoted.message?.imageMessage) {
-        imageBuffer = await message.client.getSocket().downloadMediaMessage(message.quoted);
+        imageBuffer = await message.client
+          .getSocket()
+          .downloadMediaMessage(message.quoted);
         hasImage = true;
       } else if (message.hasMedia && message.type === "imageMessage") {
         imageBuffer = await message.downloadMedia();
@@ -46,7 +48,7 @@ module.exports = {
       if (hasImage && imageBuffer) {
         // Use GPT-4 Vision for image analysis
         const base64Image = imageBuffer.toString("base64");
-        
+
         messages.push({
           role: "user",
           content: [

@@ -1,5 +1,7 @@
 const { getLang } = require("../lib/utils/language");
 const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+const { ViewOnce } = require("../lib/database");
+const config = require("../config");
 
 /**
  * View Once Viewer - Download and forward view once messages
@@ -104,19 +106,72 @@ module.exports = {
       const caption =
         mediaMessage.caption || getLang("plugins.viewonce.forwarded");
 
-      // Envoyer le média selon son type
+      // Récupérer les paramètres de transfert automatique
+      const settings = await ViewOnce.findOne({ where: { id: 1 } });
+      let targetJid = null;
+
+      // Déterminer la destination en fonction des paramètres
+      if (settings && settings.enabled) {
+        const mode = settings.vvMode;
+
+        if (mode === "g") {
+          // Envoyer au même chat (groupe ou privé)
+          targetJid = message.jid;
+        } else if (mode === "p") {
+          // Envoyer au chat privé du sudo (propriétaire)
+          const sudoNumber = config.SUDO.split(",")[0].trim();
+          if (sudoNumber) {
+            targetJid = sudoNumber.includes("@")
+              ? sudoNumber
+              : `${sudoNumber}@s.whatsapp.net`;
+          } else {
+            // Fallback: envoyer au chat courant si SUDO non configuré
+            targetJid = message.jid;
+          }
+        } else if (mode === "jid") {
+          // Envoyer à un JID personnalisé
+          targetJid = settings.vvJid;
+        }
+      }
+
+      // Si aucun paramètre ou mode désactivé, envoyer au chat courant
+      if (!targetJid) {
+        targetJid = message.jid;
+      }
+
+      // Envoyer le média selon son type à la destination configurée
+      const socket = message.client.getSocket();
+
       if (messageType === "image") {
-        await message.sendImage(buffer, caption);
+        await socket.sendMessage(targetJid, {
+          image: buffer,
+          caption: caption,
+        });
       } else if (messageType === "video") {
-        await message.sendVideo(buffer, caption);
+        await socket.sendMessage(targetJid, {
+          video: buffer,
+          caption: caption,
+        });
       } else if (messageType === "audio") {
-        await message.sendAudio(buffer, {
+        await socket.sendMessage(targetJid, {
+          audio: buffer,
           mimetype: mediaMessage.mimetype || "audio/mp4",
           ptt: mediaMessage.ptt || false,
         });
       }
 
       await message.react("✅");
+
+      // Notifier l'utilisateur si le média a été envoyé ailleurs
+      if (targetJid !== message.jid) {
+        const destination =
+          settings.vvMode === "p"
+            ? "votre chat privé"
+            : settings.vvMode === "jid"
+            ? "le JID configuré"
+            : "le chat configuré";
+        await message.reply(`✅ Média view once transféré vers ${destination}`);
+      }
     } catch (error) {
       await message.react("❌");
       console.error("ViewOnce error:", error);

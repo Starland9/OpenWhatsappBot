@@ -1,7 +1,7 @@
 const { WhatsAppClient } = require("./lib/baileys/client");
 const { Message } = require("./lib/classes/Message");
 const PluginLoader = require("./lib/plugins/loader");
-const { executeCommand } = require("./lib/plugins/registry");
+const { executeCommand, getPlugin } = require("./lib/plugins/registry");
 const { DATABASE, sync } = require("./lib/database");
 const { VERSION } = require("./config");
 const autoResponderHandler = require("./lib/utils/autoResponderHandler");
@@ -53,11 +53,24 @@ async function start() {
         // Create Message instance
         const message = new Message(client, msg);
 
+        // Check if message is a reply to a quiz/game
+        if (message.quoted) {
+          const quizPlugin = getPlugin("quiz");
+          if (quizPlugin && quizPlugin.handleReply) {
+            const handled = await quizPlugin.handleReply(message);
+            if (handled) {
+              continue; // Skip further processing
+            }
+          }
+        }
+
         // Try auto-responder first (only for non-command messages)
         const isCommand = message.body.startsWith(require("./config").PREFIX);
-        
+
         if (!isCommand && !message.fromMe) {
-          const autoResponded = await autoResponderHandler.handleMessage(message);
+          const autoResponded = await autoResponderHandler.handleMessage(
+            message
+          );
           if (autoResponded) {
             continue; // Skip command execution if auto-responded
           }

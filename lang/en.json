@@ -784,6 +784,8 @@
       "question": "Question",
       "hint_info": "Type 'quiz hint' for a hint",
       "answer_info": "Type your answer to respond",
+      "reply_to_answer": "Reply to this message with your answer",
+      "reply_to_guess": "Reply to this message with your guess (1-100)",
       "no_game": "No active game. Start with: quiz start",
       "stopped": "Game stopped",
       "correct_answer": "Correct answer",

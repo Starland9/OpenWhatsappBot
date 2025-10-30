@@ -1,0 +1,292 @@
+# First Steps
+
+Welcome! This guide will help you start using your OpenWhatsappBot after installation.
+
+## Scanning the QR Code
+
+After starting the bot for the first time, you'll see a QR code in your terminal:
+
+```bash
+yarn dev
+```
+
+1. Open WhatsApp on your phone
+2. Go to **Settings** → **Linked Devices**
+3. Tap **Link a Device**
+4. Scan the QR code shown in your terminal
+
+The bot will connect to WhatsApp and save the session for future use.
+
+## Testing Your Bot
+
+Once connected, send a message to your bot number:
+
+```
+.ping
+```
+
+The bot should respond with latency information.
+
+## Basic Commands
+
+Try these essential commands:
+
+### Help Command
+
+Get a list of all available commands:
+
+```
+.help
+```
+
+### Status Check
+
+Check if the bot is alive:
+
+```
+.alive
+```
+
+### Test AI (if configured)
+
+If you've set up AI keys:
+
+```
+.gpt Hello, how are you?
+.gemini Tell me a joke
+```
+
+## Understanding Command Prefixes
+
+By default, commands use the `.` prefix. This is configured in your `config.env`:
+
+```env
+PREFIX=.
+```
+
+You can change it to any character:
+- `!` - Commands like `!ping`
+- `/` - Commands like `/ping`
+- `#` - Commands like `#ping`
+
+## Managing Your Bot
+
+### Viewing Logs
+
+Monitor bot activity in real-time:
+
+```bash
+# Development mode
+yarn dev
+
+# PM2 mode
+pm2 logs open-whatsapp-bot
+```
+
+### Restarting the Bot
+
+```bash
+# Development mode
+# Press Ctrl+C to stop, then yarn dev to restart
+
+# PM2 mode
+pm2 restart open-whatsapp-bot
+```
+
+### Stopping the Bot
+
+```bash
+# Development mode
+# Press Ctrl+C
+
+# PM2 mode
+pm2 stop open-whatsapp-bot
+```
+
+## Working with Groups
+
+### Adding Bot to Groups
+
+1. Create a group or use an existing one
+2. Add your bot number to the group
+3. The bot will automatically respond to commands in the group
+
+### Group Commands
+
+Try these group-specific commands (admin only):
+
+```
+.tag @everyone        # Mention all members
+.promote @user        # Make someone admin
+.demote @user         # Remove admin status
+```
+
+## Customizing Bot Behavior
+
+### Setting Sudo Users
+
+Sudo users have special permissions. Add their numbers to `config.env`:
+
+```env
+SUDO=1234567890,0987654321
+```
+
+Format: Country code + number (without + or -)
+
+### Auto-Read Messages
+
+Configure automatic message reading:
+
+```env
+AUTO_READ=true    # Automatically mark messages as read
+AUTO_READ=false   # Don't mark as read
+```
+
+### Status Viewing
+
+Enable automatic status viewing:
+
+```env
+AUTO_STATUS_VIEW=true    # Auto-view WhatsApp statuses
+AUTO_STATUS_REACT=true   # Auto-react to statuses
+STATUS_EMOJIS=😀,👍,❤️,🔥,💯,✨
+```
+
+## Using Plugins
+
+### Media Downloads
+
+Download content from various platforms:
+
+```
+.ytdl <YouTube URL>      # Download YouTube video
+.yta <YouTube URL>       # Download YouTube audio
+.instagram <URL>         # Download Instagram content
+.tiktok <URL>           # Download TikTok videos
+```
+
+### Creating Stickers
+
+Convert images or videos to stickers:
+
+1. Send or forward an image/video to the bot
+2. Reply to it with:
+   ```
+   .sticker
+   ```
+
+### Translation
+
+Translate messages:
+
+```
+.translate Hello world           # Auto-translate to English
+.translate fr Hello world        # Translate to French
+Reply to message: .translate es  # Translate replied message to Spanish
+```
+
+### QR Codes
+
+Generate QR codes:
+
+```
+.qr https://example.com
+.qr Any text here
+```
+
+## AI Features
+
+### ChatGPT
+
+Have conversations with ChatGPT:
+
+```
+.gpt What is quantum computing?
+.gpt Explain recursion in programming
+```
+
+### Google Gemini
+
+Use Google's Gemini AI:
+
+```
+.gemini Write a poem about technology
+.gemini Explain the solar system
+```
+
+### Auto-Responder
+
+Enable AI-powered automatic responses (sudo only):
+
+```
+.ar on                           # Enable auto-responder
+.ar off                          # Disable auto-responder
+.ar personality You are a friendly assistant
+.ar ignore add 1234567890        # Ignore specific number
+.ar status                       # Check current settings
+```
+
+See [Auto-Responder Guide](/guides/auto-responder) for details.
+
+## Troubleshooting
+
+### Bot Not Responding
+
+1. **Check if bot is running**:
+   ```bash
+   pm2 status  # If using PM2
+   ```
+
+2. **Check logs for errors**:
+   ```bash
+   pm2 logs open-whatsapp-bot
+   ```
+
+3. **Restart the bot**:
+   ```bash
+   pm2 restart open-whatsapp-bot
+   ```
+
+### Session Expired
+
+If you see "Session expired" errors:
+
+1. Stop the bot
+2. Delete the `sessions/` folder
+3. Restart and scan QR code again
+
+### Commands Not Working
+
+1. **Check prefix**: Ensure you're using the correct prefix (default: `.`)
+2. **Check permissions**: Some commands require sudo or admin status
+3. **Check plugin**: Verify the plugin is loaded in logs
+
+### Connection Issues
+
+If the bot keeps disconnecting:
+
+1. Check your internet connection
+2. Verify WhatsApp is linked properly
+3. Check for rate limiting
+4. Review logs for specific errors
+
+## Next Steps
+
+Now that you're familiar with basics:
+
+1. [Explore All Plugins](/plugins) - Discover what your bot can do
+2. [Configure Advanced Features](/getting-started/configuration) - Customize behavior
+3. [Deploy to Production](/getting-started/deployment) - Run 24/7
+4. [Create Custom Plugins](/plugins/creation) - Extend functionality
+
+## Getting Help
+
+Need assistance?
+
+- 💬 [GitHub Discussions](https://github.com/Starland9/OpenWhatsappBot/discussions) - Ask questions
+- 🐛 [Issue Tracker](https://github.com/Starland9/OpenWhatsappBot/issues) - Report bugs
+- 📖 [Full Documentation](/getting-started) - Read more guides
+
+---
+
+Happy botting! 🤖

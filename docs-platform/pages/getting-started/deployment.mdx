@@ -1,0 +1,539 @@
+# Deployment
+
+This guide covers deploying OpenWhatsappBot to various platforms for production use.
+
+## Deployment Options
+
+Choose the platform that best fits your needs:
+
+| Platform | Difficulty | Cost | Best For |
+|----------|-----------|------|----------|
+| **VPS (Ubuntu)** | Medium | $5-20/mo | Full control, custom setup |
+| **Heroku** | Easy | Free-$7/mo | Quick deployment, no DevOps |
+| **Railway** | Easy | Free-$5/mo | Modern, developer-friendly |
+| **Render** | Easy | Free-$7/mo | Simple, reliable |
+| **Docker** | Medium | Varies | Containerized deployment |
+| **PM2 (Local)** | Easy | Free | Development, testing |
+
+## VPS Deployment (Ubuntu)
+
+### Prerequisites
+
+- Ubuntu 20.04+ VPS
+- Root or sudo access
+- Public IP address
+
+### Step 1: Initial Server Setup
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install required packages
+sudo apt install -y git curl build-essential
+```
+
+### Step 2: Install Node.js 20
+
+```bash
+# Add NodeSource repository
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
+# Install Node.js
+sudo apt install -y nodejs
+
+# Verify installation
+node --version  # Should show v20.x.x
+npm --version
+```
+
+### Step 3: Install FFmpeg
+
+```bash
+sudo apt install -y ffmpeg
+
+# Verify installation
+ffmpeg -version
+```
+
+### Step 4: Install Yarn and PM2
+
+```bash
+# Install Yarn
+npm install -g yarn
+
+# Install PM2
+npm install -g pm2
+```
+
+### Step 5: Clone and Setup Bot
+
+```bash
+# Clone repository
+git clone https://github.com/Starland9/OpenWhatsappBot
+cd OpenWhatsappBot
+
+# Install dependencies
+yarn install
+
+# Configure environment
+cp config.env.example config.env
+nano config.env
+```
+
+Edit `config.env` with your settings (see [Configuration](/getting-started/configuration)).
+
+### Step 6: Start with PM2
+
+```bash
+# Start the bot
+pm2 start ecosystem.config.js
+
+# View logs
+pm2 logs open-whatsapp-bot
+
+# Monitor
+pm2 monit
+```
+
+### Step 7: Setup Auto-Start
+
+```bash
+# Save PM2 process list
+pm2 save
+
+# Generate startup script
+pm2 startup
+
+# Follow the instructions shown
+```
+
+### Step 8: Setup PostgreSQL (Optional)
+
+For production, use PostgreSQL instead of SQLite:
+
+```bash
+# Install PostgreSQL
+sudo apt install -y postgresql postgresql-contrib
+
+# Start PostgreSQL service
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# Create database
+sudo -u postgres psql
+CREATE DATABASE whatsappbot;
+CREATE USER botuser WITH PASSWORD 'yourpassword';
+GRANT ALL PRIVILEGES ON DATABASE whatsappbot TO botuser;
+\q
+
+# Update config.env
+nano config.env
+# Add: DATABASE_URL=postgresql://botuser:yourpassword@localhost:5432/whatsappbot
+```
+
+### Step 9: Setup Firewall
+
+```bash
+# Allow SSH
+sudo ufw allow 22/tcp
+
+# Enable firewall
+sudo ufw enable
+```
+
+### Maintenance Commands
+
+```bash
+# View logs
+pm2 logs
+
+# Restart bot
+pm2 restart open-whatsapp-bot
+
+# Stop bot
+pm2 stop open-whatsapp-bot
+
+# Update bot
+cd OpenWhatsappBot
+git pull origin main
+yarn install
+pm2 restart open-whatsapp-bot
+```
+
+## Heroku Deployment
+
+### Prerequisites
+
+- Heroku account
+- Heroku CLI installed
+
+### Step 1: Install Heroku CLI
+
+```bash
+# macOS
+brew install heroku/brew/heroku
+
+# Ubuntu/Debian
+curl https://cli-assets.heroku.com/install.sh | sh
+
+# Windows
+# Download from https://devcenter.heroku.com/articles/heroku-cli
+```
+
+### Step 2: Login to Heroku
+
+```bash
+heroku login
+```
+
+### Step 3: Create Heroku App
+
+```bash
+# Clone repository (if not already done)
+git clone https://github.com/Starland9/OpenWhatsappBot
+cd OpenWhatsappBot
+
+# Create Heroku app
+heroku create your-bot-name
+
+# Add PostgreSQL addon
+heroku addons:create heroku-postgresql:mini
+```
+
+### Step 4: Configure Environment Variables
+
+```bash
+# Set configuration
+heroku config:set PREFIX=.
+heroku config:set SUDO=your_number
+heroku config:set OPENAI_API_KEY=your_key
+heroku config:set GEMINI_API_KEY=your_key
+# ... add other config variables
+```
+
+### Step 5: Deploy
+
+```bash
+# Deploy to Heroku
+git push heroku main
+
+# View logs
+heroku logs --tail
+```
+
+### Step 6: Scale Dyno
+
+```bash
+# Start worker dyno
+heroku ps:scale worker=1
+
+# Check status
+heroku ps
+```
+
+### Managing Heroku App
+
+```bash
+# View logs
+heroku logs --tail
+
+# Restart
+heroku restart
+
+# View config
+heroku config
+
+# Open dashboard
+heroku open
+```
+
+## Railway Deployment
+
+### Step 1: Create Account
+
+1. Visit [railway.app](https://railway.app)
+2. Sign up with GitHub
+
+### Step 2: Deploy from GitHub
+
+1. Click "New Project"
+2. Select "Deploy from GitHub repo"
+3. Choose `Starland9/OpenWhatsappBot`
+4. Railway will auto-detect and deploy
+
+### Step 3: Add PostgreSQL
+
+1. Click "New" → "Database" → "PostgreSQL"
+2. Database URL is automatically added to environment
+
+### Step 4: Configure Environment Variables
+
+1. Go to "Variables" tab
+2. Add your configuration:
+   - `PREFIX`
+   - `SUDO`
+   - `OPENAI_API_KEY`
+   - `GEMINI_API_KEY`
+   - etc.
+
+### Step 5: Deploy
+
+Railway automatically deploys on push to main branch.
+
+## Render Deployment
+
+### Step 1: Create Account
+
+1. Visit [render.com](https://render.com)
+2. Sign up with GitHub
+
+### Step 2: Create Web Service
+
+1. Click "New +" → "Web Service"
+2. Connect your GitHub repository
+3. Configure:
+   - **Name:** openwhatsappbot
+   - **Environment:** Node
+   - **Build Command:** `yarn install`
+   - **Start Command:** `yarn start`
+
+### Step 3: Add PostgreSQL
+
+1. Click "New +" → "PostgreSQL"
+2. Create database
+3. Copy internal database URL
+
+### Step 4: Environment Variables
+
+Add in "Environment" tab:
+```
+PREFIX=.
+SUDO=your_number
+DATABASE_URL=<from PostgreSQL>
+OPENAI_API_KEY=your_key
+GEMINI_API_KEY=your_key
+```
+
+### Step 5: Deploy
+
+Render automatically deploys on git push.
+
+## Docker Deployment
+
+### Using Docker
+
+```bash
+# Clone repository
+git clone https://github.com/Starland9/OpenWhatsappBot
+cd OpenWhatsappBot
+
+# Configure environment
+cp config.env.example config.env
+nano config.env
+
+# Build image
+docker build -t openwhatsappbot .
+
+# Run container
+docker run -d \
+  --name whatsapp-bot \
+  --env-file config.env \
+  --restart unless-stopped \
+  openwhatsappbot
+
+# View logs
+docker logs -f whatsapp-bot
+```
+
+### Using Docker Compose
+
+```bash
+# Configure environment
+cp config.env.example config.env
+nano config.env
+
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### With PostgreSQL
+
+Update `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    env_file: config.env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: whatsappbot
+      POSTGRES_USER: botuser
+      POSTGRES_PASSWORD: yourpassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+```
+
+## Koyeb Deployment
+
+### Step 1: Create Account
+
+Visit [koyeb.com](https://www.koyeb.com) and sign up.
+
+### Step 2: Deploy
+
+1. Click "Create App"
+2. Select "GitHub"
+3. Choose repository
+4. Configure environment variables
+5. Deploy
+
+## Choosing a Platform
+
+### Free Tier Comparison
+
+| Platform | Free Tier | Limitations |
+|----------|-----------|-------------|
+| **Heroku** | 550-1000 hrs/mo | Must sleep 6 hrs/day |
+| **Railway** | $5 free credit | Time-limited |
+| **Render** | 750 hrs/mo | Sleeps after inactivity |
+| **VPS** | Not free | Full control |
+
+### Recommendations
+
+**For Beginners:**
+- Start with Railway or Render
+- Easy setup, good free tier
+- Great for testing
+
+**For Production:**
+- VPS (DigitalOcean, Linode, Vultr)
+- Full control, better performance
+- More reliable for 24/7 uptime
+
+**For Quick Testing:**
+- Heroku
+- Fast deployment
+- Good for demos
+
+## Performance Optimization
+
+### For VPS
+
+```bash
+# Increase Node.js memory
+pm2 start ecosystem.config.js --node-args="--max-old-space-size=512"
+
+# Enable cluster mode
+pm2 start ecosystem.config.js -i max
+```
+
+### Database Optimization
+
+```javascript
+// In production, use connection pooling
+// Automatically configured when using PostgreSQL
+```
+
+### Monitoring
+
+```bash
+# VPS - Use PM2
+pm2 monit
+
+# Heroku
+heroku logs --tail
+
+# Railway/Render
+# Use web dashboard
+```
+
+## Troubleshooting
+
+### Bot Not Starting
+
+```bash
+# Check logs
+pm2 logs
+# or
+heroku logs --tail
+
+# Check configuration
+pm2 logs | grep ERROR
+```
+
+### Database Connection Issues
+
+```bash
+# Test connection
+psql $DATABASE_URL
+
+# Check environment variables
+pm2 env 0  # On VPS
+heroku config  # On Heroku
+```
+
+### Out of Memory
+
+```bash
+# Increase memory (VPS)
+pm2 start ecosystem.config.js --node-args="--max-old-space-size=1024"
+
+# Upgrade plan (Heroku/Railway/Render)
+```
+
+## Security Best Practices
+
+1. **Use Environment Variables**
+   - Never commit secrets
+   - Use platform environment variables
+
+2. **Keep Dependencies Updated**
+   ```bash
+   yarn upgrade
+   ```
+
+3. **Enable Firewall** (VPS)
+   ```bash
+   sudo ufw enable
+   ```
+
+4. **Use PostgreSQL in Production**
+   - More reliable than SQLite
+   - Better for concurrent access
+
+5. **Regular Backups**
+   ```bash
+   # Backup database
+   pg_dump $DATABASE_URL > backup.sql
+   ```
+
+## Next Steps
+
+After deployment:
+
+1. [Configure your bot](/getting-started/configuration)
+2. [Monitor performance](/guides/monitoring)
+3. [Set up automated backups](/guides/backups)
+
+---
+
+Need help? Check our [troubleshooting guide](/guides/troubleshooting) or [join discussions](https://github.com/Starland9/OpenWhatsappBot/discussions).

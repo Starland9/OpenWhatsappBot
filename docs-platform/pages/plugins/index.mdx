@@ -1,0 +1,264 @@
+# Plugins Overview
+
+OpenWhatsappBot comes with 50+ powerful plugins covering various functionalities. All plugins are modular, independently developed, and support multiple languages.
+
+## Plugin Categories
+
+### 🤖 AI & Chat
+Intelligent conversation and AI-powered features:
+- **ChatGPT** - Chat with OpenAI's GPT models
+- **Gemini** - Google's Gemini AI integration
+- **Auto-Responder** - Automated AI responses with context
+
+[View AI Plugins →](/plugins/ai)
+
+### 📥 Media Downloads
+Download media from popular platforms:
+- **YouTube** - Download videos and audio
+- **Instagram** - Download posts and stories
+- **TikTok** - Download TikTok videos
+- **Twitter/X** - Download tweets and media
+- **Facebook** - Download Facebook videos
+
+[View Media Plugins →](/plugins/media)
+
+### 👥 Group Management
+Complete group administration tools:
+- **Kick/Add** - Remove or add members
+- **Promote/Demote** - Manage admin status
+- **Tag All** - Mention all members
+- **Antilink** - Prevent link spam
+- **Welcome/Goodbye** - Custom messages
+- **Mute/Unmute** - Control group chat
+
+[View Group Management →](/plugins/group-management)
+
+### 🛠️ Utilities
+Useful everyday tools:
+- **Sticker** - Create stickers from media
+- **QR Code** - Generate and read QR codes
+- **Translation** - Translate messages
+- **PDF Maker** - Create PDF documents
+- **Screenshot** - Take website screenshots
+- **TTS** - Text-to-speech conversion
+
+[View Utilities →](/plugins/utilities)
+
+### 🎉 Fun & Entertainment
+Entertainment and games:
+- **Quiz** - Interactive quiz games
+- **Guess Game** - Number guessing
+- **Jokes** - Random jokes
+- **Facts** - Interesting facts
+- **Memes** - Generate memes
+- **8Ball** - Magic 8-ball responses
+
+[View Fun Plugins →](/plugins/fun)
+
+### 🛡️ Moderation
+Advanced moderation features:
+- **Warning System** - Warn misbehaving users
+- **Auto-Moderation** - Automated content filtering
+- **Filters** - Custom word filters
+- **Ban Chat** - Disable bot in specific chats
+- **Anti-Spam** - Spam prevention
+
+[View Moderation →](/plugins/moderation)
+
+### 📊 Information
+Get information and data:
+- **Weather** - Weather forecasts
+- **News** - Latest news updates
+- **Wikipedia** - Wikipedia searches
+- **Dictionary** - Word definitions
+- **Calculator** - Math calculations
+- **Exchange Rates** - Currency conversion
+
+[View Information Plugins →](/plugins/information)
+
+## Plugin Features
+
+### 🌍 Multilingual Support
+All plugins support 10+ languages:
+- English, French, Indonesian, Arabic
+- Spanish, Turkish, Russian
+- Bengali, Hindi, Urdu
+
+### 🔧 Easy Configuration
+Most plugins work out of the box. Some require API keys:
+- Configure via environment variables
+- Detailed setup instructions included
+- Optional features clearly marked
+
+### 🔐 Permission System
+Three levels of access control:
+- **Public** - Anyone can use
+- **Group** - Group members only
+- **Sudo** - Bot admins only
+
+### ⚡ Performance
+- Lightweight and fast
+- Asynchronous operations
+- Efficient resource usage
+
+## Plugin Statistics
+
+<div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+  <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-center">
+    <div className="text-3xl font-bold text-green-600">50+</div>
+    <div className="text-sm text-gray-600 dark:text-gray-400">Total Plugins</div>
+  </div>
+  
+  <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-center">
+    <div className="text-3xl font-bold text-green-600">10+</div>
+    <div className="text-sm text-gray-600 dark:text-gray-400">Languages</div>
+  </div>
+  
+  <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-center">
+    <div className="text-3xl font-bold text-green-600">8</div>
+    <div className="text-sm text-gray-600 dark:text-gray-400">Categories</div>
+  </div>
+  
+  <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-center">
+    <div className="text-3xl font-bold text-green-600">100%</div>
+    <div className="text-sm text-gray-600 dark:text-gray-400">Open Source</div>
+  </div>
+</div>
+
+## Using Plugins
+
+### Basic Usage
+
+All commands use the configured prefix (default: `.`):
+
+```
+.ping                    # Check bot status
+.help                    # List all commands
+.help <command>          # Get help for specific command
+```
+
+### Command Patterns
+
+Plugins may have multiple aliases:
+
+```
+.translate | .tr | .tl   # Translation plugin
+.youtube | .yt | .ytdl   # YouTube downloader
+.sticker | .s | .stick   # Sticker maker
+```
+
+### Reply-Based Commands
+
+Some commands work by replying to messages:
+
+```
+Reply to an image:
+.sticker                 # Convert to sticker
+
+Reply to a message:
+.translate es            # Translate to Spanish
+```
+
+### With Arguments
+
+Most plugins accept arguments:
+
+```
+.weather London          # Get weather for London
+.youtube <url>           # Download YouTube video
+.translate fr Hello      # Translate to French
+```
+
+## Plugin Management
+
+### Enabling/Disabling Plugins
+
+Plugins can be enabled or disabled by moving them in/out of the `plugins` folder or by renaming them with a `.disabled` extension:
+
+```bash
+# Disable a plugin
+mv plugins/plugin.js plugins/plugin.js.disabled
+
+# Enable a plugin
+mv plugins/plugin.js.disabled plugins/plugin.js
+```
+
+### Plugin Updates
+
+Plugins are updated with bot updates:
+
+```bash
+git pull origin main
+yarn install
+```
+
+### Custom Plugins
+
+Create your own plugins! See our [Plugin Creation Guide](/plugins/creation).
+
+## API Keys Required
+
+Some plugins require API keys:
+
+| Plugin | API Key | Get It From |
+|--------|---------|-------------|
+| ChatGPT | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com) |
+| Gemini | `GEMINI_API_KEY` | [makersuite.google.com](https://makersuite.google.com) |
+| Weather | `WEATHER_API_KEY` | [weatherapi.com](https://weatherapi.com) |
+| News | `NEWS_API_KEY` | [newsapi.org](https://newsapi.org) |
+
+Configure API keys in your `config.env` file.
+
+## Popular Plugins
+
+### Most Used
+1. **Sticker** - Create stickers from any media
+2. **ChatGPT** - AI conversations
+3. **YouTube** - Download YouTube content
+4. **Translation** - Translate messages
+5. **Tag All** - Mention all group members
+
+### Most Powerful
+1. **Auto-Responder** - AI-powered auto-replies
+2. **Group Management** - Complete admin toolkit
+3. **Media Downloads** - Multi-platform downloader
+4. **Moderation** - Advanced content filtering
+5. **Welcome System** - Customizable greetings
+
+## Getting Help
+
+### Plugin Documentation
+Each plugin category has detailed documentation:
+- Usage examples
+- Configuration options
+- Troubleshooting tips
+
+### Command Help
+Use the built-in help system:
+
+```
+.help                    # List all plugins
+.help <plugin>           # Get plugin-specific help
+```
+
+### Community Support
+- [GitHub Discussions](https://github.com/Starland9/OpenWhatsappBot/discussions)
+- [Issue Tracker](https://github.com/Starland9/OpenWhatsappBot/issues)
+
+## Next Steps
+
+- [AI Plugins](/plugins/ai) - Set up ChatGPT and Gemini
+- [Create a Plugin](/plugins/creation) - Build your own plugin
+- [API Reference](/api-reference) - Developer documentation
+
+---
+
+<div className="p-6 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-lg my-8">
+  <h3 className="text-xl font-bold mb-2">Want to create your own plugin?</h3>
+  <p className="mb-4 text-gray-700 dark:text-gray-300">
+    Our plugin system is easy to extend. Create custom commands in minutes!
+  </p>
+  <a href="/plugins/creation" className="inline-block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+    Plugin Creation Guide →
+  </a>
+</div>

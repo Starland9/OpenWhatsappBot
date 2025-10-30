@@ -27,3 +27,7 @@ Thumbs.db
 ideas
 AGENT_PLUGIN.md
 media/temp
+# Documentation Platform
+docs-platform/node_modules/
+docs-platform/.next/
+docs-platform/out/

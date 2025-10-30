@@ -1,19 +1,27 @@
 const { getLang } = require("../lib/utils/language");
 const axios = require("axios");
 const config = require("../config");
+const fs = require("fs");
+const path = require("path");
+const { promisify } = require("util");
+const stream = require("stream");
+const pipeline = promisify(stream.pipeline);
 
 /**
  * Music Search Plugin - Search music on Spotify/YouTube
  */
 module.exports = {
   command: {
-    pattern: "music|song|spotify|lyrics",
+    pattern: "music|song|spotify|lyrics|play",
     desc: getLang("plugins.music.desc"),
     type: "media",
   },
 
   async execute(message, query) {
-    const command = message.body.split(" ")[0].replace(config.PREFIX, "").toLowerCase();
+    const command = message.body
+      .split(" ")[0]
+      .replace(config.PREFIX, "")
+      .toLowerCase();
 
     if (!query) {
       return await message.reply(getLang("plugins.music.usage"));
@@ -26,15 +34,18 @@ module.exports = {
         await handleSpotify(message, query);
       } else if (command === "lyrics") {
         await handleLyrics(message, query);
+      } else if (command === "play") {
+        await handlePlay(message, query);
       } else {
         // Default to music search
         await handleMusicSearch(message, query);
       }
-
     } catch (error) {
       await message.react("❌");
       console.error("Music search error:", error);
-      await message.reply(`❌ ${getLang("plugins.music.error")}: ${error.message}`);
+      await message.reply(
+        `❌ ${getLang("plugins.music.error")}: ${error.message}`
+      );
     }
   },
 };
@@ -74,8 +85,10 @@ async function handleMusicSearch(message, query) {
 }
 
 async function handleSpotify(message, query) {
-  const SPOTIFY_CLIENT_ID = config.SPOTIFY_CLIENT_ID || process.env.SPOTIFY_CLIENT_ID;
-  const SPOTIFY_CLIENT_SECRET = config.SPOTIFY_CLIENT_SECRET || process.env.SPOTIFY_CLIENT_SECRET;
+  const SPOTIFY_CLIENT_ID =
+    config.SPOTIFY_CLIENT_ID || process.env.SPOTIFY_CLIENT_ID;
+  const SPOTIFY_CLIENT_SECRET =
+    config.SPOTIFY_CLIENT_SECRET || process.env.SPOTIFY_CLIENT_SECRET;
 
   if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
     return await message.reply(`❌ ${getLang("plugins.music.no_spotify_api")}`);
@@ -88,7 +101,9 @@ async function handleSpotify(message, query) {
     {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString("base64")}`,
+        Authorization: `Basic ${Buffer.from(
+          `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
+        ).toString("base64")}`,
       },
     }
   );
@@ -107,16 +122,21 @@ async function handleSpotify(message, query) {
     },
   });
 
-  if (!searchResponse.data.tracks.items || searchResponse.data.tracks.items.length === 0) {
+  if (
+    !searchResponse.data.tracks.items ||
+    searchResponse.data.tracks.items.length === 0
+  ) {
     await message.react("❌");
     return await message.reply(`❌ ${getLang("plugins.music.no_results")}`);
   }
 
-  let spotifyText = `🎵 *Spotify ${getLang("plugins.music.search_results")}*\n\n`;
+  let spotifyText = `🎵 *Spotify ${getLang(
+    "plugins.music.search_results"
+  )}*\n\n`;
 
   searchResponse.data.tracks.items.forEach((track, index) => {
     spotifyText += `${index + 1}. *${track.name}*\n`;
-    spotifyText += `   🎤 ${track.artists.map(a => a.name).join(", ")}\n`;
+    spotifyText += `   🎤 ${track.artists.map((a) => a.name).join(", ")}\n`;
     spotifyText += `   💿 ${track.album.name}\n`;
     spotifyText += `   🔗 ${track.external_urls.spotify}\n\n`;
   });
@@ -135,7 +155,9 @@ async function handleLyrics(message, query) {
   }
 
   const response = await axios.get(
-    `https://api.lyrics.ovh/v1/${encodeURIComponent(artist.trim())}/${encodeURIComponent(song)}`,
+    `https://api.lyrics.ovh/v1/${encodeURIComponent(
+      artist.trim()
+    )}/${encodeURIComponent(song)}`,
     { timeout: 15000 }
   );
 
@@ -148,14 +170,90 @@ async function handleLyrics(message, query) {
 
   // Limit to first 2000 characters for WhatsApp
   if (lyrics.length > 2000) {
-    lyrics = lyrics.substring(0, 2000) + "\n\n... _" + getLang("plugins.music.lyrics_truncated") + "_";
+    lyrics =
+      lyrics.substring(0, 2000) +
+      "\n\n... _" +
+      getLang("plugins.music.lyrics_truncated") +
+      "_";
   }
 
-  const lyricsText = `🎵 *${getLang("plugins.music.lyrics_title")}*\n\n` +
+  const lyricsText =
+    `🎵 *${getLang("plugins.music.lyrics_title")}*\n\n` +
     `🎤 *${getLang("plugins.music.artist")}:* ${artist.trim()}\n` +
     `🎵 *${getLang("plugins.music.song")}:* ${song}\n\n` +
     `${lyrics}`;
 
   await message.react("✅");
   await message.reply(lyricsText);
+}
+
+async function handlePlay(message, query) {
+  // Search using iTunes API
+  const response = await axios.get("https://itunes.apple.com/search", {
+    params: {
+      term: query,
+      media: "music",
+      entity: "song",
+      limit: 1,
+    },
+    timeout: 10000,
+  });
+
+  if (!response.data.results || response.data.results.length === 0) {
+    await message.react("❌");
+    return await message.reply(`❌ ${getLang("plugins.music.no_results")}`);
+  }
+
+  const track = response.data.results[0];
+
+  if (!track.previewUrl) {
+    await message.react("❌");
+    return await message.reply(`❌ ${getLang("plugins.music.no_preview")}`);
+  }
+
+  await message.reply(
+    `🎵 ${getLang("plugins.music.downloading")}\n\n` +
+      `🎤 *${track.artistName}*\n` +
+      `🎵 *${track.trackName}*\n` +
+      `💿 ${track.collectionName}`
+  );
+
+  // Download the preview
+  const tempDir = path.join(__dirname, "..", "media", "temp");
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  const fileName = `${Date.now()}_${track.trackName
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .substring(0, 50)}.m4a`;
+  const filePath = path.join(tempDir, fileName);
+
+  // Download audio
+  const audioResponse = await axios.get(track.previewUrl, {
+    responseType: "stream",
+    timeout: 30000,
+  });
+
+  await pipeline(audioResponse.data, fs.createWriteStream(filePath));
+
+  // Read file as buffer
+  const audioBuffer = fs.readFileSync(filePath);
+
+  // Send as audio
+  await message.sendAudio(audioBuffer, {
+    caption:
+      `🎵 *${track.trackName}*\n` +
+      `🎤 ${track.artistName}\n` +
+      `💿 ${track.collectionName}`,
+  });
+
+  // Clean up
+  try {
+    fs.unlinkSync(filePath);
+  } catch (err) {
+    console.error("Error deleting temp file:", err);
+  }
+
+  await message.react("✅");
 }

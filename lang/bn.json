@@ -121,6 +121,16 @@
       "example": "> উদাহরণ :\n- gemini hi\n- gemini ছবিতে কি আছে (একটি ইমেজের রিপ্লাই করুন)",
       "Key": "> Gemini API Key অনুপস্থিত!\nএটি পেতে ভিজিট করুন: https://aistudio.google.com/app/apikey\n\n*এটি সেট করুন:*\nsetvar GEMINI_API_KEY = your_api_key"
     },
+    "imagen": {
+      "desc": "Google Imagen AI দিয়ে ছবি তৈরি করুন",
+      "example": "> *উদাহরণ:*\n- imagine সমুদ্রের উপর একটি সুন্দর সূর্যাস্ত\n- imagen একটি সুন্দর বিড়াল খেলছে",
+      "no_key": "❌ Gemini API key কনফিগার করা নেই। config.env এ GEMINI_API_KEY সেট করুন",
+      "no_query": "❌ দয়া করে একটি বর্ণনা প্রদান করুন\n\nউদাহরণ: .imagine সমুদ্রের উপর একটি সুন্দর সূর্যাস্ত",
+      "no_image": "❌ কোনো ছবি তৈরি হয়নি। ভিন্ন বর্ণনা চেষ্টা করুন।",
+      "quota": "❌ API কোটা অতিক্রম করা হয়েছে। পরে আবার চেষ্টা করুন বা আপনার API প্ল্যান আপগ্রেড করুন।",
+      "safety": "❌ আপনার বর্ণনা নিরাপত্তা ফিল্টার দ্বারা ব্লক করা হয়েছে। ভিন্ন বর্ণনা চেষ্টা করুন।",
+      "error": "❌ ত্রুটি: {0}"
+    },
     "gstop": {
       "desc": "সব গ্রুপে gfilters ডিলিট করুন",
       "example": "> ব্যবহার:\n- gstop <filter>\n- gstop hi",
@@ -773,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "সঙ্গীত এবং গানের কথা খুঁজুন",
+      "usage": "ব্যবহার:\n- .music <গানের নাম> - সঙ্গীত খুঁজুন\n- .play <গানের নাম> - সঙ্গীত ডাউনলোড এবং চালান\n- .spotify <গানের নাম> - Spotify এ খুঁজুন\n- .lyrics <শিল্পী - গান> - গানের কথা পান",
+      "no_results": "কোনো ফলাফল পাওয়া যায়নি",
+      "search_results": "অনুসন্ধান ফলাফল",
+      "no_spotify_api": "Spotify API শংসাপত্র কনফিগার করা হয়নি",
+      "lyrics_format": "বিন্যাস: .lyrics শিল্পীর নাম - গানের শিরোনাম",
+      "no_lyrics": "গানের কথা পাওয়া যায়নি",
+      "lyrics_title": "গানের কথা",
+      "artist": "শিল্পী",
+      "song": "গান",
+      "lyrics_truncated": "দৈর্ঘ্যের কারণে গানের কথা সংক্ষিপ্ত করা হয়েছে",
+      "error": "সঙ্গীত অনুসন্ধান ত্রুটি",
+      "no_preview": "এই গানের জন্য কোনো অডিও পূর্বরূপ উপলব্ধ নেই",
+      "downloading": "⏬ ডাউনলোড হচ্ছে..."
     },
     "notify": {
       "desc": "Set keyword notifications",

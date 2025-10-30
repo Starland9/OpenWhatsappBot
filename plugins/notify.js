@@ -40,14 +40,18 @@ module.exports = {
           }
 
           if (userNotifications.keywords.includes(keyword)) {
-            return await message.reply(getLang("plugins.notify.already_watching"));
+            return await message.reply(
+              getLang("plugins.notify.already_watching")
+            );
           }
 
           userNotifications.keywords.push(keyword);
           await message.react("✅");
           await message.reply(
             `✅ ${getLang("plugins.notify.added")}: _${keyword}_\n\n` +
-            `📝 ${getLang("plugins.notify.watching")}: ${userNotifications.keywords.length} ${getLang("plugins.notify.keywords")}`
+              `📝 ${getLang("plugins.notify.watching")}: ${
+                userNotifications.keywords.length
+              } ${getLang("plugins.notify.keywords")}`
           );
           break;
 
@@ -65,7 +69,9 @@ module.exports = {
 
           userNotifications.keywords.splice(index, 1);
           await message.react("✅");
-          await message.reply(`✅ ${getLang("plugins.notify.removed")}: _${removeKeyword}_`);
+          await message.reply(
+            `✅ ${getLang("plugins.notify.removed")}: _${removeKeyword}_`
+          );
           break;
 
         case "list":
@@ -73,10 +79,18 @@ module.exports = {
             return await message.reply(getLang("plugins.notify.no_keywords"));
           }
 
-          const keywordList = userNotifications.keywords.map((kw, idx) => `${idx + 1}. ${kw}`).join("\n");
+          const keywordList = userNotifications.keywords
+            .map((kw, idx) => `${idx + 1}. ${kw}`)
+            .join("\n");
           await message.reply(
-            `📋 *${getLang("plugins.notify.list_title")}*\n\n${keywordList}\n\n` +
-            `📊 ${getLang("plugins.notify.status")}: ${userNotifications.enabled ? "✅ " + getLang("plugins.notify.enabled") : "❌ " + getLang("plugins.notify.disabled")}`
+            `📋 *${getLang(
+              "plugins.notify.list_title"
+            )}*\n\n${keywordList}\n\n` +
+              `📊 ${getLang("plugins.notify.status")}: ${
+                userNotifications.enabled
+                  ? "✅ " + getLang("plugins.notify.enabled")
+                  : "❌ " + getLang("plugins.notify.disabled")
+              }`
           );
           break;
 
@@ -103,11 +117,12 @@ module.exports = {
         default:
           await message.reply(getLang("plugins.notify.usage"));
       }
-
     } catch (error) {
       await message.react("❌");
       console.error("Notification error:", error);
-      await message.reply(`❌ ${getLang("plugins.notify.error")}: ${error.message}`);
+      await message.reply(
+        `❌ ${getLang("plugins.notify.error")}: ${error.message}`
+      );
     }
   },
 };
@@ -126,7 +141,7 @@ async function checkNotifications(message, messageText) {
   for (const [userId, settings] of notifications.entries()) {
     // Don't notify the sender about their own messages
     if (userId === message.sender) continue;
-    
+
     if (!settings.enabled) continue;
 
     for (const keyword of settings.keywords) {
@@ -134,14 +149,14 @@ async function checkNotifications(message, messageText) {
         // Rate limiting: max 1 notification per keyword per 5 minutes
         const alertKey = `${userId}_${keyword}`;
         const now = Date.now();
-        
+
         if (!triggeredAlerts.has(alertKey)) {
           triggeredAlerts.set(alertKey, []);
         }
-        
+
         const alerts = triggeredAlerts.get(alertKey);
-        const recentAlerts = alerts.filter(time => now - time < 300000); // 5 minutes
-        
+        const recentAlerts = alerts.filter((time) => now - time < 300000); // 5 minutes
+
         if (recentAlerts.length > 0) {
           continue; // Skip if recently notified
         }
@@ -149,11 +164,16 @@ async function checkNotifications(message, messageText) {
         // Send notification to user
         try {
           const senderNumber = message.sender.split("@")[0];
-          const notificationText = `🔔 *${getLang("plugins.notify.alert_title")}*\n\n` +
+          const notificationText =
+            `🔔 *${getLang("plugins.notify.alert_title")}*\n\n` +
             `🔑 *${getLang("plugins.notify.keyword")}:* _${keyword}_\n` +
             `👤 *${getLang("plugins.notify.from")}:* @${senderNumber}\n` +
             `💬 *${getLang("plugins.notify.message")}:* ${messageText}\n` +
-            `📍 *${getLang("plugins.notify.chat")}:* ${message.isGroup ? settings.chatId.split("@")[0] : getLang("plugins.notify.private")}`;
+            `📍 *${getLang("plugins.notify.chat")}:* ${
+              message.isGroup
+                ? settings.chatId.split("@")[0]
+                : getLang("plugins.notify.private")
+            }`;
 
           await message.client.getSocket().sendMessage(userId, {
             text: notificationText,
@@ -163,7 +183,6 @@ async function checkNotifications(message, messageText) {
           // Update alert history
           recentAlerts.push(now);
           triggeredAlerts.set(alertKey, recentAlerts);
-          
         } catch (error) {
           console.error("Failed to send notification:", error);
         }

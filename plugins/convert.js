@@ -1,5 +1,6 @@
 const { getLang } = require("../lib/utils/language");
 const { convertImage, resizeImage } = require("../lib/utils/media");
+const { downloadMediaMessage } = require("@whiskeysockets/baileys");
 const sharp = require("sharp");
 const { exec } = require("child_process");
 const { promisify } = require("util");
@@ -20,12 +21,15 @@ module.exports = {
   },
 
   async execute(message, query) {
-    const command = message.body.split(" ")[0].replace(require("../config").PREFIX, "").toLowerCase();
+    const command = message.body
+      .split(" ")[0]
+      .replace(require("../config").PREFIX, "")
+      .toLowerCase();
 
     try {
       // Determine target format from command
       let targetFormat = query?.toLowerCase();
-      
+
       if (command === "topng") targetFormat = "png";
       else if (command === "tojpg") targetFormat = "jpg";
       else if (command === "topdf") targetFormat = "pdf";
@@ -42,12 +46,28 @@ module.exports = {
       if (message.quoted && message.quoted.message) {
         const quotedMsg = message.quoted.message;
         const quotedType = Object.keys(quotedMsg)[0];
-        
-        if (!["imageMessage", "videoMessage", "audioMessage", "documentMessage"].includes(quotedType)) {
+
+        if (
+          ![
+            "imageMessage",
+            "videoMessage",
+            "audioMessage",
+            "documentMessage",
+          ].includes(quotedType)
+        ) {
           return await message.reply(getLang("plugins.convert.reply_media"));
         }
 
-        buffer = await message.client.getSocket().downloadMediaMessage(message.quoted);
+        buffer = await downloadMediaMessage(
+          message.quoted,
+          "buffer",
+          {},
+          {
+            logger: { info() {}, error() {}, warn() {} },
+            reuploadRequest: message.client.getSocket().updateMediaMessage,
+          }
+        );
+
         mediaType = quotedType.replace("Message", "");
       } else if (message.hasMedia) {
         buffer = await message.downloadMedia();
@@ -57,7 +77,9 @@ module.exports = {
       }
 
       if (!buffer) {
-        return await message.reply(`❌ ${getLang("plugins.convert.download_failed")}`);
+        return await message.reply(
+          `❌ ${getLang("plugins.convert.download_failed")}`
+        );
       }
 
       await message.react("⏳");
@@ -67,11 +89,16 @@ module.exports = {
       let caption;
 
       // Image conversions
-      if (mediaType === "image" && ["png", "jpg", "jpeg", "webp"].includes(targetFormat)) {
+      if (
+        mediaType === "image" &&
+        ["png", "jpg", "jpeg", "webp"].includes(targetFormat)
+      ) {
         convertedBuffer = await convertImage(buffer, targetFormat);
         fileName = `converted.${targetFormat}`;
-        caption = `✅ ${getLang("plugins.convert.success")} → ${targetFormat.toUpperCase()}`;
-        
+        caption = `✅ ${getLang(
+          "plugins.convert.success"
+        )} → ${targetFormat.toUpperCase()}`;
+
         await message.react("✅");
         await message.sendImage(convertedBuffer, caption);
         return;
@@ -80,14 +107,19 @@ module.exports = {
       // Image to PDF
       if (mediaType === "image" && targetFormat === "pdf") {
         const tempPdf = path.join("/tmp", `converted_${Date.now()}.pdf`);
-        
+
         try {
           const metadata = await sharp(buffer).metadata();
-          const doc = new PDFDocument({ size: [metadata.width, metadata.height] });
+          const doc = new PDFDocument({
+            size: [metadata.width, metadata.height],
+          });
           const stream = require("fs").createWriteStream(tempPdf);
-          
+
           doc.pipe(stream);
-          doc.image(buffer, 0, 0, { width: metadata.width, height: metadata.height });
+          doc.image(buffer, 0, 0, {
+            width: metadata.width,
+            height: metadata.height,
+          });
           doc.end();
 
           await new Promise((resolve, reject) => {
@@ -96,7 +128,7 @@ module.exports = {
           });
 
           convertedBuffer = await fs.readFile(tempPdf);
-          
+
           await message.react("✅");
           await message.sendDocument(convertedBuffer, {
             fileName: "converted.pdf",
@@ -135,9 +167,15 @@ module.exports = {
       }
 
       // Audio format conversion
-      if (mediaType === "audio" && ["mp3", "ogg", "m4a"].includes(targetFormat)) {
+      if (
+        mediaType === "audio" &&
+        ["mp3", "ogg", "m4a"].includes(targetFormat)
+      ) {
         const tempInput = path.join("/tmp", `audio_in_${Date.now()}.tmp`);
-        const tempOutput = path.join("/tmp", `audio_out_${Date.now()}.${targetFormat}`);
+        const tempOutput = path.join(
+          "/tmp",
+          `audio_out_${Date.now()}.${targetFormat}`
+        );
 
         try {
           await fs.writeFile(tempInput, buffer);
@@ -156,7 +194,9 @@ module.exports = {
 
           await message.react("✅");
           await message.sendAudio(convertedBuffer, {
-            caption: `✅ ${getLang("plugins.convert.success")} → ${targetFormat.toUpperCase()}`,
+            caption: `✅ ${getLang(
+              "plugins.convert.success"
+            )} → ${targetFormat.toUpperCase()}`,
           });
         } finally {
           await fs.unlink(tempInput).catch(() => {});
@@ -168,11 +208,12 @@ module.exports = {
       // Unsupported conversion
       await message.react("❌");
       await message.reply(getLang("plugins.convert.unsupported"));
-
     } catch (error) {
       await message.react("❌");
       console.error("Convert error:", error);
-      await message.reply(`❌ ${getLang("plugins.convert.error")}: ${error.message}`);
+      await message.reply(
+        `❌ ${getLang("plugins.convert.error")}: ${error.message}`
+      );
     }
   },
 };

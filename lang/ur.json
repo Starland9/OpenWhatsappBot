@@ -121,6 +121,16 @@
       "example": "> *Example :*\n- gemini hi\n- gemini photo ky endar kiya hai(photo ka reply dety howy)",
       "Key": "> Missing Gemini API Key!\nyanh se lain: https://aistudio.google.com/app/apikey\n\n*Isay use karte hue set karein:*\nsetvar GEMINI_API_KEY = your_api_key"
     },
+    "imagen": {
+      "desc": "_Google Imagen AI se tasweerain banayein_",
+      "example": "> *Misal:*\n- imagine samundar par khubsurat ghuroob aftab\n- imagen khelta hua pyara billi",
+      "no_key": "❌ Gemini API key configure nahi hai. config.env mein GEMINI_API_KEY set karein",
+      "no_query": "❌ Mehrbani karke tafseel fara ham karein\n\nMisal: .imagine samundar par khubsurat ghuroob aftab",
+      "no_image": "❌ Koi tasveer nahi bani. Mukhtalif tafseel try karein.",
+      "quota": "❌ API quota khatam ho gaya. Bad mein try karein ya apna API plan upgrade karein.",
+      "safety": "❌ Aapki tafseel safety filters ne block kar di. Mukhtalif tafseel try karein.",
+      "error": "❌ Khata: {0}"
+    },
     "gstop": {
       "desc": "_sary groups mein gfilters delete karein._",
       "example": "> *Usage:*\n- gstop <filter>\n- gstop hi",
@@ -773,9 +783,20 @@
       "error": "Conversion error"
     },
     "music": {
-      "desc": "Search music and lyrics",
-      "usage": "Usage: .music / .lyrics",
-      "error": "Music error"
+      "desc": "موسیقی اور گیت تلاش کریں",
+      "usage": "استعمال:\n- .music <گانے کا نام> - موسیقی تلاش کریں\n- .play <گانے کا نام> - موسیقی ڈاؤن لوڈ اور چلائیں\n- .spotify <گانے کا نام> - Spotify پر تلاش کریں\n- .lyrics <فنکار - گانا> - گیت حاصل کریں",
+      "no_results": "کوئی نتیجہ نہیں ملا",
+      "search_results": "تلاش کے نتائج",
+      "no_spotify_api": "Spotify API کی اسناد ترتیب نہیں دی گئیں",
+      "lyrics_format": "فارمیٹ: .lyrics فنکار کا نام - گانے کا عنوان",
+      "no_lyrics": "گیت نہیں ملے",
+      "lyrics_title": "گیت",
+      "artist": "فنکار",
+      "song": "گانا",
+      "lyrics_truncated": "لمبائی کی وجہ سے گیت مختصر کیے گئے",
+      "error": "موسیقی کی تلاش میں خرابی",
+      "no_preview": "اس گانے کے لیے آڈیو پیش نظارہ دستیاب نہیں",
+      "downloading": "⏬ ڈاؤن لوڈ ہو رہا ہے..."
     },
     "notify": {
       "desc": "Set keyword notifications",

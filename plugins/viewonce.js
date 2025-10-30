@@ -22,8 +22,9 @@ module.exports = {
       
       // Helper function to validate JID format
       const isValidJid = (jid) => {
-        // WhatsApp JID format: number@s.whatsapp.net or number@g.us
-        const jidRegex = /^\d+@(s\.whatsapp\.net|g\.us)$/;
+        // WhatsApp JID format: identifier@s.whatsapp.net or identifier@g.us
+        // Accepts digits, letters, and some special characters
+        const jidRegex = /^[^@]+@(s\.whatsapp\.net|g\.us)$/;
         return jidRegex.test(jid);
       };
       

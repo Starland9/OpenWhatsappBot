@@ -833,7 +833,9 @@
       "mode_group": "समान समूह/चैट",
       "mode_private": "आपकी निजी चैट",
       "mode_jid": "कस्टम JID: {0}",
-      "mode_disabled": "अक्षम"
+      "mode_disabled": "अक्षम",
+      "status_enabled": "✅ सक्षम",
+      "status_disabled": "❌ अक्षम"
     }
   }
 }

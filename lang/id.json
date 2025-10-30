@@ -833,7 +833,9 @@
       "mode_group": "Grup/chat yang sama",
       "mode_private": "Chat pribadi Anda",
       "mode_jid": "JID khusus: {0}",
-      "mode_disabled": "Dinonaktifkan"
+      "mode_disabled": "Dinonaktifkan",
+      "status_enabled": "✅ Diaktifkan",
+      "status_disabled": "❌ Dinonaktifkan"
     }
   }
 }

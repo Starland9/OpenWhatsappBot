@@ -8,21 +8,17 @@ const config = require("../config");
 module.exports = {
   command: {
     pattern: "imagine|imagen",
-    desc: "Generate images with Google Imagen AI",
+    desc: getLang("plugins.imagen.desc"),
     type: "ai",
   },
 
   async execute(message, query) {
     if (!config.GEMINI_API_KEY) {
-      return await message.reply(
-        "❌ Gemini API key not configured. Set GEMINI_API_KEY in config.env"
-      );
+      return await message.reply(getLang("plugins.imagen.no_key"));
     }
 
     if (!query) {
-      return await message.reply(
-        "❌ Please provide a description\n\nExample: .imagine a beautiful sunset over the ocean"
-      );
+      return await message.reply(getLang("plugins.imagen.no_query"));
     }
 
     try {
@@ -42,9 +38,7 @@ module.exports = {
 
       if (!response.images || response.images.length === 0) {
         await message.react("❌");
-        return await message.reply(
-          "❌ No image was generated. Try a different prompt."
-        );
+        return await message.reply(getLang("plugins.imagen.no_image"));
       }
 
       // Get the first generated image
@@ -64,18 +58,16 @@ module.exports = {
         error.message.includes("quota") ||
         error.message.includes("rate limit")
       ) {
-        await message.reply(
-          "❌ API quota exceeded. Please try again later or upgrade your API plan."
-        );
+        await message.reply(getLang("plugins.imagen.quota"));
       } else if (
         error.message.includes("safety") ||
         error.message.includes("blocked")
       ) {
-        await message.reply(
-          "❌ Your prompt was blocked by content safety filters. Try a different description."
-        );
+        await message.reply(getLang("plugins.imagen.safety"));
       } else {
-        await message.reply(`❌ Error: ${error.message}`);
+        await message.reply(
+          getLang("plugins.imagen.error").replace("{0}", error.message)
+        );
       }
     }
   },

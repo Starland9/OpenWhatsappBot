@@ -121,6 +121,16 @@
       "example": "> *Example :*\n- gemini hi\n- gemini what is in the picture(while replying to a image)",
       "Key": "> Missing Gemini API Key!\nGet one at: https://aistudio.google.com/app/apikey\n\n*Set it using:*\nsetvar GEMINI_API_KEY = your_api_key"
     },
+    "imagen": {
+      "desc": "Generate images with Google Imagen AI",
+      "example": "> *Example:*\n- imagine a beautiful sunset over the ocean\n- imagen a cute cat playing",
+      "no_key": "❌ Gemini API key not configured. Set GEMINI_API_KEY in config.env",
+      "no_query": "❌ Please provide a description\n\nExample: .imagine a beautiful sunset over the ocean",
+      "no_image": "❌ No image was generated. Try a different prompt.",
+      "quota": "❌ API quota exceeded. Please try again later or upgrade your API plan.",
+      "safety": "❌ Your prompt was blocked by content safety filters. Try a different description.",
+      "error": "❌ Error: {0}"
+    },
     "gstop": {
       "desc": "Delete gfilters in all groups",
       "example": "> *Usage:*\n- gstop <filter>\n- gstop hi",

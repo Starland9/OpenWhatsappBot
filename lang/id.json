@@ -121,6 +121,16 @@
       "example": "> *Contoh :*\n- gemini hai\n- gemini apa yang ada di gambar (saat membalas gambar)",
       "Key": "> Kunci API Gemini Hilang!\nDapatkan di: https://aistudio.google.com/app/apikey\n\n*Atur menggunakan:*\nsetvar GEMINI_API_KEY = kunci_api_anda"
     },
+    "imagen": {
+      "desc": "Buat gambar dengan Google Imagen AI",
+      "example": "> *Contoh:*\n- imagine matahari terbenam yang indah di laut\n- imagen kucing lucu sedang bermain",
+      "no_key": "❌ Kunci API Gemini tidak dikonfigurasi. Atur GEMINI_API_KEY di config.env",
+      "no_query": "❌ Mohon berikan deskripsi\n\nContoh: .imagine matahari terbenam yang indah di laut",
+      "no_image": "❌ Tidak ada gambar yang dibuat. Coba deskripsi lain.",
+      "quota": "❌ Kuota API terlampaui. Silakan coba lagi nanti atau upgrade paket API Anda.",
+      "safety": "❌ Deskripsi Anda diblokir oleh filter keamanan. Coba deskripsi lain.",
+      "error": "❌ Kesalahan: {0}"
+    },
     "gstop": {
       "desc": "Hapus filter global di semua grup",
       "example": "> *Cara Pakai:*\n- gstop <filter>\n- gstop hi",

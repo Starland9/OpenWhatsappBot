@@ -121,6 +121,16 @@
       "example": "> *Örnek :*\n- gemini merhaba\n- gemini resimde ne var(bir resme cevap verirken)",
       "Key": "> Gemini API Anahtarı Eksik!\nAlın: https://aistudio.google.com/app/apikey\n\n*Şöyle ayarlayın:*\nsetvar GEMINI_API_KEY = api_anahtarınız"
     },
+    "imagen": {
+      "desc": "Google Imagen AI ile resim oluşturun",
+      "example": "> *Örnek:*\n- imagine okyanus üzerinde güzel bir gün batımı\n- imagen oynayan sevimli bir kedi",
+      "no_key": "❌ Gemini API anahtarı yapılandırılmamış. config.env dosyasında GEMINI_API_KEY ayarlayın",
+      "no_query": "❌ Lütfen bir açıklama sağlayın\n\nÖrnek: .imagine okyanus üzerinde güzel bir gün batımı",
+      "no_image": "❌ Görsel oluşturulamadı. Farklı bir açıklama deneyin.",
+      "quota": "❌ API kotası aşıldı. Lütfen daha sonra tekrar deneyin veya API planınızı yükseltin.",
+      "safety": "❌ Açıklamanız güvenlik filtreleri tarafından engellendi. Farklı bir açıklama deneyin.",
+      "error": "❌ Hata: {0}"
+    },
     "gstop": {
       "desc": "Tüm gruplardaki gfiltreleri sil",
       "example": "> *Kullanım:*\n- gstop <filtre>\n- gstop merhaba",

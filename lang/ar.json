@@ -863,7 +863,9 @@
       "mode_group": "نفس المجموعة/الدردشة",
       "mode_private": "دردشتك الخاصة",
       "mode_jid": "JID مخصص: {0}",
-      "mode_disabled": "معطل"
+      "mode_disabled": "معطل",
+      "status_enabled": "✅ مُفعّل",
+      "status_disabled": "❌ معطل"
     }
   }
 }

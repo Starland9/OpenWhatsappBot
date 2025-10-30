@@ -833,7 +833,9 @@
       "mode_group": "Aynı grup/sohbet",
       "mode_private": "Özel sohbetiniz",
       "mode_jid": "Özel JID: {0}",
-      "mode_disabled": "Devre dışı"
+      "mode_disabled": "Devre dışı",
+      "status_enabled": "✅ Etkin",
+      "status_disabled": "❌ Devre Dışı"
     }
   }
 }

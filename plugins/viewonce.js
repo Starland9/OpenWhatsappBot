@@ -20,9 +20,19 @@ module.exports = {
 
       const mode = query.trim().toLowerCase();
       
+      // Helper function to validate JID format
+      const isValidJid = (jid) => {
+        // WhatsApp JID format: number@s.whatsapp.net or number@g.us
+        const jidRegex = /^\d+@(s\.whatsapp\.net|g\.us)$/;
+        return jidRegex.test(jid);
+      };
+      
       // Validate mode
-      if (!["g", "p", "null", "false"].includes(mode) && !mode.includes("@")) {
-        return await message.reply(getLang("plugins.viewonce.usage"));
+      if (!["g", "p", "null", "false"].includes(mode)) {
+        // Check if it's a JID
+        if (!isValidJid(mode)) {
+          return await message.reply(getLang("plugins.viewonce.usage"));
+        }
       }
 
       // Get or create settings
@@ -43,7 +53,7 @@ module.exports = {
       }
 
       // Handle JID mode
-      if (mode.includes("@")) {
+      if (isValidJid(mode)) {
         await settings.update({ 
           vvMode: "jid", 
           vvJid: mode,

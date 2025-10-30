@@ -833,7 +833,9 @@
       "mode_group": "Та же группа/чат",
       "mode_private": "Ваш личный чат",
       "mode_jid": "Пользовательский JID: {0}",
-      "mode_disabled": "Отключено"
+      "mode_disabled": "Отключено",
+      "status_enabled": "✅ Включено",
+      "status_disabled": "❌ Отключено"
     }
   }
 }

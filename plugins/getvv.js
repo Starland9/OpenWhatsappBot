@@ -20,7 +20,9 @@ module.exports = {
         return await message.reply(getLang("plugins.viewonce.not_set"));
       }
 
-      const statusText = settings.enabled ? "✅ Enabled" : "❌ Disabled";
+      const statusText = settings.enabled 
+        ? getLang("plugins.viewonce.status_enabled") 
+        : getLang("plugins.viewonce.status_disabled");
       const modeText = settings.vvMode === "p" ? getLang("plugins.viewonce.mode_private")
         : settings.vvMode === "g" ? getLang("plugins.viewonce.mode_group")
         : settings.vvMode === "jid" ? getLang("plugins.viewonce.mode_jid").replace("{0}", settings.vvJid)

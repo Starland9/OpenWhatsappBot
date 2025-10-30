@@ -833,7 +833,9 @@
       "mode_group": "اسی گروپ/چیٹ",
       "mode_private": "آپ کی نجی چیٹ",
       "mode_jid": "حسب ضرورت JID: {0}",
-      "mode_disabled": "غیر فعال"
+      "mode_disabled": "غیر فعال",
+      "status_enabled": "✅ فعال",
+      "status_disabled": "❌ غیر فعال"
     }
   }
 }

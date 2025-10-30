@@ -967,7 +967,9 @@
       "mode_group": "Même groupe/chat",
       "mode_private": "Votre chat privé",
       "mode_jid": "JID personnalisé: {0}",
-      "mode_disabled": "Désactivé"
+      "mode_disabled": "Désactivé",
+      "status_enabled": "✅ Activé",
+      "status_disabled": "❌ Désactivé"
     }
   }
 }

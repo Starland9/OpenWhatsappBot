@@ -833,7 +833,9 @@
       "mode_group": "একই গ্রুপ/চ্যাট",
       "mode_private": "আপনার ব্যক্তিগত চ্যাট",
       "mode_jid": "কাস্টম JID: {0}",
-      "mode_disabled": "অক্ষম"
+      "mode_disabled": "অক্ষম",
+      "status_enabled": "✅ সক্রিয়",
+      "status_disabled": "❌ নিষ্ক্রিয়"
     }
   }
 }

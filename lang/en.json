@@ -735,6 +735,11 @@
     "translate": {
       "desc": "Translate text to any language",
       "usage": "Usage:\n- .translate <text> - Auto-translate to English\n- .translate <lang> <text> - Translate to specific language\n- Reply to message: .translate <lang>",
+      "title": "Translation",
+      "from": "From",
+      "to": "To",
+      "original": "Original",
+      "translation": "Translation",
       "error": "Translation failed"
     },
     "task": {

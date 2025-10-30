@@ -3,6 +3,5 @@
   "outputDirectory": "docs-platform/.next",
   "devCommand": "cd docs-platform && npm run dev",
   "installCommand": "cd docs-platform && npm install",
-  "framework": "nextjs",
-  "regions": ["iad1"]
+  "framework": "nextjs"
 }

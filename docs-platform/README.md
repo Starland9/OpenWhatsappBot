@@ -87,9 +87,9 @@ This is my documentation content.
 
 ## Code Example
 
-\`\`\`javascript
+```javascript
 console.log('Hello, World!')
-\`\`\`
+```
 ```
 
 ### Navigation Structure

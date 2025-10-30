@@ -10,10 +10,15 @@ on:
     paths:
       - 'docs-platform/**'
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     name: Build and Test Documentation
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -50,6 +55,9 @@ jobs:
     name: Deploy to Vercel
     needs: build-and-test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:

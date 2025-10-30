@@ -1,4 +1,5 @@
 const { getLang } = require("../lib/utils/language");
+const { downloadMediaMessage } = require("@whiskeysockets/baileys");
 const OpenAI = require("openai");
 const config = require("../config");
 
@@ -36,9 +37,15 @@ module.exports = {
       let imageBuffer = null;
 
       if (message.quoted && message.quoted.message?.imageMessage) {
-        imageBuffer = await message.client
-          .getSocket()
-          .downloadMediaMessage(message.quoted);
+        imageBuffer = await downloadMediaMessage(
+          message.quoted,
+          "buffer",
+          {},
+          {
+            logger: { info() {}, error() {}, warn() {} },
+            reuploadRequest: message.client.getSocket().updateMediaMessage,
+          }
+        );
         hasImage = true;
       } else if (message.hasMedia && message.type === "imageMessage") {
         imageBuffer = await message.downloadMedia();

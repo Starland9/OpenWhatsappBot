@@ -1,9 +1,10 @@
 const { getLang } = require("../lib/utils/language");
 const { GoogleGenAI } = require("@google/genai");
+const { downloadMediaMessage } = require("@whiskeysockets/baileys");
 const config = require("../config");
 
 /**
- * Gemini command - AI chat using Google Gemini
+ * Gemini command - AI chat using Google Gemini with multimodal support
  */
 module.exports = {
   command: {
@@ -17,25 +18,75 @@ module.exports = {
       return await message.reply(getLang("plugins.gemini.Key"));
     }
 
-    if (!query) {
-      return await message.reply(getLang("plugins.gemini.example"));
-    }
-
     try {
       await message.react("⏳");
 
       const genAI = new GoogleGenAI({
         apiKey: config.GEMINI_API_KEY,
       });
-      const response = await genAI.models.generateContent({
-        model: "gemini-2.5-flash-lite",
-        contents: query,
-      });
 
-      const text = response.text;
+      // Check for image in quoted message or current message
+      let hasImage = false;
+      let imageBuffer = null;
 
-      await message.react("✅");
-      await message.reply(`${text}`);
+      if (message.quoted && message.quoted.message?.imageMessage) {
+        imageBuffer = await downloadMediaMessage(
+          message.quoted,
+          "buffer",
+          {},
+          {
+            logger: { info() {}, error() {}, warn() {} },
+            reuploadRequest: message.client.getSocket().updateMediaMessage,
+          }
+        );
+        hasImage = true;
+      } else if (message.hasMedia && message.type === "imageMessage") {
+        imageBuffer = await message.downloadMedia();
+        hasImage = true;
+      }
+
+      if (hasImage && imageBuffer) {
+        // Use Gemini Vision for image analysis
+        const base64Image = imageBuffer.toString("base64");
+
+        const response = await genAI.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: query || "What's in this image? Describe it in detail.",
+                },
+                {
+                  inlineData: {
+                    mimeType: "image/jpeg",
+                    data: base64Image,
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        const text = response.text;
+        await message.react("✅");
+        await message.reply(`🌟 *Gemini Vision*\n\n${text}`);
+      } else {
+        // Text-only query
+        if (!query) {
+          return await message.reply(getLang("plugins.gemini.example"));
+        }
+
+        const response = await genAI.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: query,
+        });
+
+        const text = response.text;
+        await message.react("✅");
+        await message.reply(`🌟 *Gemini*\n\n${text}`);
+      }
     } catch (error) {
       await message.react("❌");
       console.error("Gemini error:", error);

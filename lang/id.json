@@ -820,6 +820,22 @@
       "ignore_cleared": "✅ Daftar abaikan dibersihkan",
       "current_personality": "*Kepribadian AI Saat Ini:*",
       "personality_updated": "✅ Kepribadian AI berhasil diperbarui"
+    },
+    "viewonce": {
+      "desc": "Kelola penerusan pesan sekali lihat otomatis",
+      "setvv_desc": "Konfigurasi tujuan pesan sekali lihat",
+      "getvv_desc": "Periksa pengaturan sekali lihat saat ini",
+      "usage": "*Manajemen Sekali Lihat:*\n\n*.setvv g* - Kirim pesan sekali lihat ke grup/chat yang sama\n*.setvv p* - Kirim ke chat pribadi Anda (sudo)\n*.setvv <jid>* - Kirim ke JID tertentu\n*.setvv null* - Nonaktifkan penerusan otomatis\n\n*.getvv* - Periksa pengaturan saat ini",
+      "updated": "✅ Penerusan sekali lihat diperbarui ke: *{0}*\n\n_Pesan sekali lihat sekarang akan diteruskan secara otomatis._",
+      "disabled": "❌ Penerusan otomatis sekali lihat telah dinonaktifkan.",
+      "not_set": "Penerusan sekali lihat tidak dikonfigurasi.\n\nGunakan *.setvv* untuk mengonfigurasinya.",
+      "status": "*Pengaturan Sekali Lihat:*\n\n*Status:* {0}\n*Tujuan:* {1}",
+      "mode_group": "Grup/chat yang sama",
+      "mode_private": "Chat pribadi Anda",
+      "mode_jid": "JID khusus: {0}",
+      "mode_disabled": "Dinonaktifkan",
+      "status_enabled": "✅ Diaktifkan",
+      "status_disabled": "❌ Dinonaktifkan"
     }
   }
 }

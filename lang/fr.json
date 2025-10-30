@@ -954,6 +954,29 @@
       "ignore_cleared": "✅ Liste d'ignorés vidée",
       "current_personality": "*Personnalité IA Actuelle:*",
       "personality_updated": "✅ Personnalité de l'IA mise à jour avec succès"
+    },
+    "viewonce": {
+      "desc": "Visualiser et télécharger les messages view once (photos/vidéos éphémères)",
+      "reply_required": "❌ Répondez à un message view once pour le visualiser.",
+      "no_message": "❌ Aucun message trouvé.",
+      "not_viewonce": "❌ Ce n'est pas un message view once.",
+      "unsupported_type": "❌ Type de média non supporté.",
+      "download_failed": "❌ Échec du téléchargement du média.",
+      "forwarded": "📸 Message view once transféré",
+      "error": "❌ Erreur lors du traitement",
+      "setvv_desc": "Configurer la destination des messages éphémères",
+      "getvv_desc": "Vérifier les paramètres actuels des messages éphémères",
+      "usage": "*Gestion des Messages Éphémères:*\n\n*.setvv g* - Envoyer les messages éphémères au même groupe/chat\n*.setvv p* - Envoyer à votre chat privé (sudo)\n*.setvv <jid>* - Envoyer à un JID spécifique\n*.setvv null* - Désactiver le transfert automatique\n\n*.getvv* - Vérifier les paramètres actuels",
+      "updated": "✅ Transfert des messages éphémères mis à jour : *{0}*\n\n_Les messages éphémères seront maintenant transférés automatiquement._",
+      "disabled": "❌ Le transfert automatique des messages éphémères a été désactivé.",
+      "not_set": "Le transfert des messages éphémères n'est pas configuré.\n\nUtilisez *.setvv* pour le configurer.",
+      "status": "*Paramètres des Messages Éphémères:*\n\n*Statut:* {0}\n*Destination:* {1}",
+      "mode_group": "Même groupe/chat",
+      "mode_private": "Votre chat privé",
+      "mode_jid": "JID personnalisé: {0}",
+      "mode_disabled": "Désactivé",
+      "status_enabled": "✅ Activé",
+      "status_disabled": "❌ Désactivé"
     }
   }
 }

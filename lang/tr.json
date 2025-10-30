@@ -820,6 +820,22 @@
       "ignore_cleared": "✅ Yoksayma listesi temizlendi",
       "current_personality": "*Mevcut AI Kişiliği:*",
       "personality_updated": "✅ AI kişiliği başarıyla güncellendi"
+    },
+    "viewonce": {
+      "desc": "Otomatik tek görüntüleme mesajı iletmeyi yönet",
+      "setvv_desc": "Tek görüntüleme mesajı hedefini yapılandır",
+      "getvv_desc": "Mevcut tek görüntüleme ayarlarını kontrol et",
+      "usage": "*Tek Görüntüleme Yönetimi:*\n\n*.setvv g* - Tek görüntüleme mesajlarını aynı gruba/sohbete gönder\n*.setvv p* - Özel sohbetinize gönderin (sudo)\n*.setvv <jid>* - Belirli JID'ye gönder\n*.setvv null* - Otomatik iletmeyi devre dışı bırak\n\n*.getvv* - Mevcut ayarları kontrol et",
+      "updated": "✅ Tek görüntüleme iletme güncellendi: *{0}*\n\n_Tek görüntüleme mesajları artık otomatik olarak iletilecek._",
+      "disabled": "❌ Otomatik tek görüntüleme iletme devre dışı bırakıldı.",
+      "not_set": "Tek görüntüleme iletme yapılandırılmamış.\n\nYapılandırmak için *.setvv* kullanın.",
+      "status": "*Tek Görüntüleme Ayarları:*\n\n*Durum:* {0}\n*Hedef:* {1}",
+      "mode_group": "Aynı grup/sohbet",
+      "mode_private": "Özel sohbetiniz",
+      "mode_jid": "Özel JID: {0}",
+      "mode_disabled": "Devre dışı",
+      "status_enabled": "✅ Etkin",
+      "status_disabled": "❌ Devre Dışı"
     }
   }
 }

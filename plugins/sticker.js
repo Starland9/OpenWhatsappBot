@@ -1,4 +1,5 @@
 const { getLang } = require("../lib/utils/language");
+const { downloadMediaMessage } = require("@whiskeysockets/baileys");
 const sharp = require("sharp");
 const { exec } = require("child_process");
 const { promisify } = require("util");
@@ -31,12 +32,28 @@ module.exports = {
         const quotedType = Object.keys(quotedMsg)[0];
 
         if (!["imageMessage", "videoMessage"].includes(quotedType)) {
+          await message.react("❌");
           return await message.reply(getLang("plugins.sticker.reply_required"));
         }
 
-        buffer = await message.client
-          .getSocket()
-          .downloadMediaMessage(message.quoted);
+        // Create a message object that Baileys expects
+        const quotedMessage = {
+          key: {
+            remoteJid: message.jid,
+            id: message.quoted.id,
+          },
+          message: quotedMsg,
+        };
+
+        buffer = await downloadMediaMessage(
+          quotedMessage,
+          "buffer",
+          {},
+          {
+            logger: console,
+            reuploadRequest: message.client.getSocket().updateMediaMessage,
+          }
+        );
       } else if (message.hasMedia) {
         buffer = await message.downloadMedia();
       } else {
@@ -56,15 +73,15 @@ module.exports = {
         message.type === "videoMessage" ||
         (message.quoted && message.quoted.message?.videoMessage)
       ) {
-        // Convert video to webp
+        // Convert video to webp with transparent background
         const tempInput = path.join("/tmp", `input_${Date.now()}.mp4`);
         const tempOutput = path.join("/tmp", `output_${Date.now()}.webp`);
 
         await fs.writeFile(tempInput, buffer);
 
-        // Use ffmpeg to convert video to animated webp sticker
+        // Use ffmpeg to convert video to animated webp sticker with transparency
         await execAsync(
-          `ffmpeg -i ${tempInput} -vcodec libwebp -vf "scale=512:512:force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=white@0.0" -loop 0 -preset default -an -vsync 0 ${tempOutput}`
+          `ffmpeg -i ${tempInput} -vcodec libwebp -vf "scale=512:512:force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=0x00000000,format=yuva420p" -loop 0 -preset default -an -vsync 0 -lossless 0 -compression_level 6 -q:v 50 ${tempOutput}`
         );
 
         stickerBuffer = await fs.readFile(tempOutput);

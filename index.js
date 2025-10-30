@@ -2,7 +2,7 @@ const { WhatsAppClient } = require("./lib/baileys/client");
 const { Message } = require("./lib/classes/Message");
 const PluginLoader = require("./lib/plugins/loader");
 const { executeCommand, getPlugin } = require("./lib/plugins/registry");
-const { DATABASE, sync } = require("./lib/database");
+const { DATABASE, sync, StickerCommand } = require("./lib/database");
 const { VERSION } = require("./config");
 const autoResponderHandler = require("./lib/utils/autoResponderHandler");
 const viewOnceHandler = require("./lib/utils/viewOnceHandler");
@@ -45,7 +45,6 @@ async function start() {
 
     // Handle incoming messages
     client.on("messages", async (messages) => {
-
       for (const msg of messages) {
         // Skip broadcast messages
         if (msg.key.remoteJid === "status@broadcast") continue;
@@ -68,6 +67,34 @@ async function start() {
             if (handled) {
               continue; // Skip further processing
             }
+          }
+        }
+
+        // Check if this is a sticker command (stealth mode)
+        if (
+          message.type === "stickerMessage" &&
+          message.data.message?.stickerMessage
+        ) {
+          try {
+            const fileSha256 = message.data.message.stickerMessage.fileSha256;
+            if (fileSha256) {
+              const stickerHash = Buffer.from(fileSha256).toString("hex");
+              const stickerCmd = await StickerCommand.findOne({
+                where: { stickerHash },
+              });
+
+              if (stickerCmd) {
+                // Execute the bound command silently
+                logger.debug(
+                  `Executing sticker command: ${stickerCmd.command}`
+                );
+                message.body = require("./config").PREFIX + stickerCmd.command;
+                await executeCommand(message);
+                continue; // Skip other handlers
+              }
+            }
+          } catch (error) {
+            logger.error("Sticker command error:", error);
           }
         }
 

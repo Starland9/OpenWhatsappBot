@@ -20,13 +20,14 @@ module.exports = {
         return await message.reply(getLang("plugins.viewonce.reply_required"));
       }
 
-      await message.react("⏳");
+      // MODE DISCRET : Pas de réactions visibles
+      // await message.react("⏳"); // DÉSACTIVÉ
 
       // Récupérer le message cité - structure réelle
       const quotedMsg = message.quoted.message;
 
       if (!quotedMsg) {
-        await message.react("❌");
+        // await message.react("❌"); // DÉSACTIVÉ
         return await message.reply(getLang("plugins.viewonce.no_message"));
       }
 
@@ -79,8 +80,8 @@ module.exports = {
       }
 
       if (!mediaMessage || !messageType) {
-        await message.react("❌");
-        return await message.reply(getLang("plugins.viewonce.not_viewonce"));
+        // await message.react("❌"); // DÉSACTIVÉ
+        return; // MODE SILENCIEUX : Pas de message d'erreur
       }
 
       // Télécharger le média en utilisant la structure correcte
@@ -98,8 +99,8 @@ module.exports = {
       );
 
       if (!buffer) {
-        await message.react("❌");
-        return await message.reply(getLang("plugins.viewonce.download_failed"));
+        // await message.react("❌"); // DÉSACTIVÉ
+        return; // MODE SILENCIEUX : Pas de message d'erreur
       }
 
       // Extraire la caption si présente
@@ -160,24 +161,14 @@ module.exports = {
         });
       }
 
-      await message.react("✅");
+      // await message.react("✅"); // DÉSACTIVÉ - Mode discret total
 
-      // Notifier l'utilisateur si le média a été envoyé ailleurs
-      if (targetJid !== message.jid) {
-        const destination =
-          settings.vvMode === "p"
-            ? "votre chat privé"
-            : settings.vvMode === "jid"
-            ? "le JID configuré"
-            : "le chat configuré";
-        await message.reply(`✅ Média view once transféré vers ${destination}`);
-      }
+      // MODE DISCRET : Pas de notification même si envoyé ailleurs
+      // L'utilisateur ne saura pas que le média a été transféré
     } catch (error) {
-      await message.react("❌");
+      // await message.react("❌"); // DÉSACTIVÉ
       console.error("ViewOnce error:", error);
-      await message.reply(
-        getLang("plugins.viewonce.error") + `: ${error.message}`
-      );
+      // MODE SILENCIEUX : Pas de message d'erreur visible
     }
   },
 };

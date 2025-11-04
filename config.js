@@ -55,6 +55,7 @@ module.exports = {
   ALWAYS_ONLINE: toBool(process.env.ALWAYS_ONLINE),
   AUTO_READ: toBool(process.env.AUTO_READ),
   AUTO_STATUS_VIEW: toBool(process.env.AUTO_STATUS_VIEW),
+  AUTO_STATUS_REACT: toBool(process.env.AUTO_STATUS_REACT),
   ANTI_DELETE: toBool(process.env.ANTI_DELETE),
   // Message reactions (enable/disable message reaction feature)
   ENABLE_MESSAGE_REACTIONS: toBool(process.env.ENABLE_MESSAGE_REACTIONS),
@@ -115,8 +116,7 @@ module.exports = {
   VPS: toBool(process.env.VPS),
   BRANCH: "master",
 
-  // Auto Status Viewer
-  AUTO_STATUS_REACT: toBool(process.env.AUTO_STATUS_REACT),
+  // Auto Status React Configuration
   STATUS_EMOJIS: process.env.STATUS_EMOJIS || "😀,👍,❤️,🔥,💯,✨,🎉,👏,💪,🙌",
 
   // Auto Responder

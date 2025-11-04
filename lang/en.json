@@ -280,6 +280,23 @@
       "text_too_long": "❌ Text too long (max 500 characters).",
       "tts_error": "❌ Text-to-speech failed."
     },
+    "update": {
+      "desc": "Update bot from GitHub repository (owner only)",
+      "usage": "*Bot Update:*\n\nUse *.update now* to update the bot to the latest version from GitHub.\n\n⚠️ *Warning:* This will:\n• Pull latest code from GitHub\n• Install new dependencies\n• Restart the bot automatically",
+      "owner_only": "⛔ This command is only for the bot owner!",
+      "starting": "🔄 Starting bot update...",
+      "fetching": "📥 Fetching latest changes from GitHub...",
+      "uncommitted_changes": "⚠️ *Warning:* You have uncommitted local changes.\n\nPlease commit or discard them before updating.",
+      "already_updated": "✅ Bot is already up to date!\n\nNo new changes available.",
+      "changes_detected": "📊 *Changes detected:*\n\n• Files changed: {0}\n• Additions: +{1}\n• Deletions: -{2}",
+      "installing_deps": "📦 Installing dependencies...\n\n⏳ This may take a few minutes...",
+      "install_failed": "❌ Failed to install dependencies",
+      "restarting": "🔄 Restarting bot...",
+      "success": "✅ *Update successful!*\n\nBot will restart in a few seconds...",
+      "error": "❌ Update failed",
+      "conflict_error": "❌ *Git conflict detected!*\n\nPlease resolve conflicts manually before updating.",
+      "network_error": "❌ *Network error!*\n\nCould not connect to GitHub. Please check your internet connection."
+    },
     "weather": {
       "desc": "Get weather information",
       "usage": "Usage: .weather <city name>",

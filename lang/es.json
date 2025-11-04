@@ -280,6 +280,23 @@
       "text_too_long": "❌ Text too long (max 500 characters).",
       "tts_error": "❌ Text-to-speech failed."
     },
+    "update": {
+      "desc": "Actualizar bot desde el repositorio de GitHub (solo propietario)",
+      "usage": "*Actualización del Bot:*\n\nUsa *.update now* para actualizar el bot a la última versión desde GitHub.\n\n⚠️ *Advertencia:* Esto hará:\n• Obtener el último código de GitHub\n• Instalar nuevas dependencias\n• Reiniciar el bot automáticamente",
+      "owner_only": "⛔ ¡Este comando es solo para el propietario del bot!",
+      "starting": "🔄 Iniciando actualización del bot...",
+      "fetching": "📥 Obteniendo últimos cambios desde GitHub...",
+      "uncommitted_changes": "⚠️ *Advertencia:* Tienes cambios locales sin confirmar.\n\nPor favor confírmalos o descártalos antes de actualizar.",
+      "already_updated": "✅ ¡El bot ya está actualizado!\n\nNo hay nuevos cambios disponibles.",
+      "changes_detected": "📊 *Cambios detectados:*\n\n• Archivos modificados: {0}\n• Adiciones: +{1}\n• Eliminaciones: -{2}",
+      "installing_deps": "📦 Instalando dependencias...\n\n⏳ Esto puede tardar unos minutos...",
+      "install_failed": "❌ Error al instalar dependencias",
+      "restarting": "🔄 Reiniciando bot...",
+      "success": "✅ *¡Actualización exitosa!*\n\nEl bot se reiniciará en unos segundos...",
+      "error": "❌ La actualización falló",
+      "conflict_error": "❌ *¡Conflicto de Git detectado!*\n\nPor favor resuelve los conflictos manualmente antes de actualizar.",
+      "network_error": "❌ *¡Error de red!*\n\nNo se pudo conectar a GitHub. Por favor verifica tu conexión a internet."
+    },
     "weather": {
       "desc": "Get weather information",
       "usage": "Usage: .weather <city name>",

@@ -1,19 +1,8 @@
 {
-  "desc": "Configurer la récupération des messages supprimés",
-  "getantidel_desc": "Vérifier les paramètres anti-suppression actuels",
-  "usage": "*Gestion Anti-Suppression:*\n\n*.antidel g* - Transférer les messages supprimés vers le même groupe/chat\n*.antidel p* - Transférer vers votre chat privé (sudo)\n*.antidel sudo* - Transférer uniquement les messages supprimés du sudo vers sudo\n*.antidel <jid>* - Transférer vers un JID spécifique\n*.antidel null* - Désactiver l'anti-suppression\n\n*.getantidel* - Vérifier les paramètres actuels",
-  "updated": "✅ Le transfert anti-suppression a été mis à jour vers: *{0}*\n\n_Les messages supprimés seront maintenant automatiquement transférés._",
-  "disabled": "❌ Le transfert anti-suppression a été désactivé.",
-  "not_set": "Le transfert anti-suppression n'est pas configuré.\n\nUtilisez *.antidel* pour le configurer.",
-  "status": "*Paramètres Anti-Suppression:*\n\n*Statut:* {0}\n*Destination:* {1}",
-  "mode_group": "Même groupe/chat",
-  "mode_private": "Votre chat privé",
-  "mode_sudo": "Sudo uniquement (vers chat sudo)",
-  "mode_jid": "JID personnalisé: {0}",
-  "mode_disabled": "Désactivé",
-  "status_enabled": "✅ Activé",
-  "status_disabled": "❌ Désactivé",
   "plugins": {
+    "alive": {
+      "desc": "Vérifier l'état du bot et les informations système"
+    },
     "antidelete": {
       "desc": "Configurer la récupération des messages supprimés",
       "getantidel_desc": "Vérifier les paramètres anti-suppression actuels",
@@ -29,6 +18,291 @@
       "mode_disabled": "Désactivé",
       "status_enabled": "✅ Activé",
       "status_disabled": "❌ Désactivé"
+    },
+    "autorespond": {
+      "desc": "Gérer les paramètres de réponse automatique IA",
+      "status": "*État du Répondeur Automatique:*\n\n*Activé:* {0}\n*Numéros Ignorés:* {1}\n*Personnalité:* {2}",
+      "no_api_key": "❌ GEMINI_API_KEY non configurée. Veuillez l'ajouter pour activer le répondeur automatique.",
+      "enabled": "✅ Le répondeur automatique a été activé.",
+      "disabled": "❌ Le répondeur automatique a été désactivé.",
+      "already_ignored": "❌ Ce numéro est déjà dans la liste d'ignorés.",
+      "number_ignored": "✅ Numéro {0} ajouté à la liste d'ignorés.",
+      "not_ignored": "❌ Ce numéro n'est pas dans la liste d'ignorés.",
+      "number_unignored": "✅ Numéro {0} retiré de la liste d'ignorés.",
+      "no_ignored": "Aucun numéro n'est actuellement ignoré.",
+      "ignored_list": "*Numéros Ignorés:*",
+      "ignore_cleared": "✅ La liste d'ignorés a été effacée.",
+      "ignore_usage": "*Utilisation Ignorer:*\n\n*.ar ignore add <numéro>* - Ajouter un numéro à ignorer\n*.ar ignore remove <numéro>* - Retirer un numéro\n*.ar ignore list* - Afficher les numéros ignorés\n*.ar ignore clear* - Effacer tous les numéros ignorés",
+      "current_personality": "*Personnalité Actuelle:*",
+      "personality_updated": "✅ La personnalité a été mise à jour.",
+      "usage": "*Commandes du Répondeur Automatique:*\n\n*.ar status* - Afficher les paramètres actuels\n*.ar on* - Activer le répondeur automatique\n*.ar off* - Désactiver le répondeur automatique\n*.ar ignore* - Gérer les numéros ignorés\n*.ar personality <texte>* - Définir la personnalité du bot"
+    },
+    "ping": {
+      "desc": "Vérifier le temps de réponse du bot",
+      "ping_sent": "Ping en cours...",
+      "pong": "🏓 Pong!\n*Latence:* {0}ms"
+    },
+    "gemini": {
+      "desc": "Chat IA utilisant Google Gemini avec support d'images",
+      "Key": "❌ GEMINI_API_KEY non configurée. Veuillez l'ajouter à la configuration.",
+      "example": "Veuillez fournir une requête.\n\n*Exemple:*\n.gemini Qu'est-ce que l'IA?\n\nOu répondez à une image avec .gemini pour l'analyser."
+    },
+    "groq": {
+      "desc": "Chat IA utilisant l'API Groq"
+    },
+    "convert": {
+      "desc": "Convertir les médias entre formats (sticker/image/vidéo)",
+      "usage": "*Utilisation de Convert:*\n\nRépondre à:\n• Photo → .convert sticker\n• Sticker → .convert image\n• Vidéo → .convert gif",
+      "reply_media": "❌ Veuillez répondre à une photo, un sticker ou une vidéo.",
+      "download_failed": "❌ Échec du téléchargement du média.",
+      "success": "✅ Converti en {0} avec succès!",
+      "unsupported": "❌ Type de conversion non supporté.",
+      "error": "❌ La conversion a échoué: {0}"
+    },
+    "demote": {
+      "desc": "Rétrograder un utilisateur d'administrateur (groupe uniquement)",
+      "mention_user": "❌ Veuillez mentionner ou répondre à un utilisateur à rétrograder.",
+      "not_admin": "❌ Cet utilisateur n'est pas un administrateur."
+    },
+    "promote": {
+      "desc": "Promouvoir un utilisateur en administrateur (groupe uniquement)",
+      "mention_user": "❌ Veuillez mentionner ou répondre à un utilisateur à promouvoir.",
+      "not_admin": "❌ Le bot doit être administrateur pour promouvoir des utilisateurs."
+    },
+    "kick": {
+      "desc": "Retirer un utilisateur du groupe",
+      "mention_user": "❌ Veuillez mentionner ou répondre à un utilisateur à expulser.",
+      "not_admin": "❌ Le bot doit être administrateur pour expulser des utilisateurs."
+    },
+    "imagen": {
+      "desc": "Générer des images avec l'IA",
+      "no_key": "❌ GEMINI_API_KEY non configurée.",
+      "no_query": "❌ Veuillez fournir une description.\n\n*Exemple:* .imagen coucher de soleil sur les montagnes",
+      "no_image": "❌ Aucune image n'a été générée.",
+      "quota": "❌ Quota API dépassé. Veuillez réessayer plus tard.",
+      "safety": "❌ Requête bloquée par les filtres de sécurité.",
+      "error": "❌ Erreur lors de la génération d'image: {0}"
+    },
+    "imagesearch": {
+      "desc": "Rechercher des images sur Google",
+      "gif_usage": "*Recherche GIF:*\n\n.gif <requête> - Rechercher des GIFs animés",
+      "usage": "*Recherche d'Images:*\n\n.img <requête> - Rechercher des images",
+      "no_gifs": "❌ Aucun GIF trouvé pour votre requête.",
+      "no_api_key": "❌ Clé API Google Custom Search non configurée.",
+      "no_images": "❌ Aucune image trouvée pour votre requête.",
+      "invalid_api_key": "❌ Clé API ou ID de moteur de recherche invalide.",
+      "error": "❌ La recherche a échoué: {0}"
+    },
+    "music": {
+      "desc": "Rechercher et télécharger de la musique depuis Spotify/YouTube",
+      "usage": "Veuillez fournir un nom de chanson ou un lien Spotify/YouTube.\n\n*Exemple:* .music Bohemian Rhapsody",
+      "error": "❌ Erreur: {0}",
+      "no_results": "❌ Aucun résultat trouvé.",
+      "search_results": "*Résultats de Recherche:*",
+      "no_spotify_api": "❌ API Spotify non configurée.",
+      "lyrics_format": "*{0}*\nArtiste: {1}\n\n{2}",
+      "no_lyrics": "❌ Paroles non trouvées.",
+      "lyrics_truncated": "\n\n_...paroles tronquées_",
+      "lyrics_title": "Paroles",
+      "artist": "Artiste",
+      "song": "Chanson",
+      "no_preview": "Aucun aperçu disponible",
+      "downloading": "⏳ Téléchargement..."
+    },
+    "news": {
+      "desc": "Obtenir les dernières nouvelles ou les prix crypto/actions",
+      "error": "❌ Erreur lors de la récupération des nouvelles: {0}",
+      "no_api_key": "❌ Clé API News non configurée.",
+      "no_news": "❌ Aucun article de nouvelles trouvé.",
+      "title": "📰 *Dernières Nouvelles*",
+      "crypto_not_found": "❌ Cryptomonnaie non trouvée.",
+      "market_cap": "Capitalisation",
+      "powered_by": "Propulsé par",
+      "stock_usage": "*Utilisation Stock:*\n.stock <symbole> - Obtenir le prix de l'action",
+      "no_stock_api_key": "❌ Clé API Stock non configurée.",
+      "stock_not_found": "❌ Symbole d'action non trouvé.",
+      "stock_price": "💹 *Prix de l'Action {0}*",
+      "price": "Prix",
+      "change": "Variation",
+      "volume": "Volume",
+      "last_update": "Dernière Mise à Jour"
+    },
+    "notify": {
+      "desc": "Être notifié quand des mots-clés sont mentionnés",
+      "add_usage": "Utilisation: .notify add <mot-clé>",
+      "already_watching": "❌ Mot-clé déjà surveillé: *{0}*",
+      "added": "✅ Maintenant surveillé: *{0}*",
+      "watching": "Surveillance",
+      "keywords": "mots-clés",
+      "remove_usage": "Utilisation: .notify remove <mot-clé>",
+      "not_watching": "❌ Mot-clé non surveillé: *{0}*",
+      "removed": "✅ Arrêt de la surveillance: *{0}*",
+      "no_keywords": "Vous ne surveillez aucun mot-clé.",
+      "status": "*Vos Mots-Clés:*",
+      "enabled": "✅ Notifications activées.",
+      "disabled": "❌ Notifications désactivées.",
+      "enabled_msg": "✅ Notifications activées pour tous les mots-clés.",
+      "disabled_msg": "❌ Notifications désactivées pour tous les mots-clés.",
+      "cleared": "✅ Tous les mots-clés effacés.",
+      "usage": "*Commandes Notify:*\n\n.notify add <mot-clé> - Surveiller un mot-clé\n.notify remove <mot-clé> - Arrêter la surveillance\n.notify list - Afficher vos mots-clés\n.notify on/off - Activer/désactiver les notifications\n.notify clear - Supprimer tous les mots-clés",
+      "error": "❌ Erreur: {0}",
+      "alert_title": "🔔 *Alerte Mot-Clé*",
+      "keyword": "Mot-clé",
+      "from": "De",
+      "message": "Message",
+      "chat": "Chat",
+      "private": "Privé"
+    },
+    "poll": {
+      "desc": "Créer un sondage dans le chat",
+      "usage": "Utilisation: .poll <question> | <option1> | <option2> | ...",
+      "format_error": "❌ Format invalide. Utilisez: .poll <question> | <option1> | <option2>",
+      "min_options": "❌ Veuillez fournir au moins 2 options.",
+      "max_options": "❌ Maximum 12 options autorisées.",
+      "title": "Sondage",
+      "instruction": "Sélectionner une option",
+      "error": "❌ Erreur lors de la création du sondage: {0}"
+    },
+    "quiz": {
+      "desc": "Jouer à un quiz ou deviner un nombre",
+      "error": "❌ Erreur: {0}",
+      "started": "🎯 *Quiz Démarré!*\n\n*Catégorie:* {0}\n*Question:* {1}\n\nTapez votre réponse!",
+      "category": "Catégorie",
+      "question": "Question",
+      "hint_info": "Utilisez .quiz hint pour un indice ({0} indices restants)",
+      "reply_to_answer": "Répondez à ce message avec votre réponse!",
+      "no_game": "❌ Aucun quiz actif. Utilisez .quiz pour en démarrer un!",
+      "stopped": "🛑 Quiz arrêté!",
+      "correct_answer": "La bonne réponse était",
+      "no_hints": "❌ Plus d'indices!",
+      "hint": "💡 *Indice:* {0}",
+      "usage": "*Commandes Quiz:*\n\n.quiz - Démarrer un quiz\n.quiz hint - Obtenir un indice\n.quiz stop - Terminer le quiz\n.quiz guess - Jeu de devinette de nombre",
+      "correct": "🎉 *Correct!*",
+      "answer": "Réponse",
+      "attempts": "Tentatives",
+      "new_game": "Démarrez une nouvelle partie avec .quiz",
+      "failed": "❌ *Game Over!*",
+      "try_again": "Réessayez!",
+      "wrong": "❌ Faux!",
+      "attempts_left": "{0} tentatives restantes",
+      "guess_started": "🎲 *Devinez le Nombre!*\n\nJe pense à un nombre entre 1 et {0}.\n\nVous avez {1} tentatives. Bonne chance!",
+      "guess_info": "Utilisez .quiz guess <nombre> pour deviner!",
+      "guess_attempts": "Tentatives restantes",
+      "reply_to_guess": "Répondez avec votre devinette!",
+      "number_was": "Le nombre était",
+      "guess_usage": "Utilisez: .quiz guess <nombre>",
+      "invalid_number": "❌ Veuillez fournir un nombre valide!",
+      "guess_correct": "🎉 *Correct!*\n\nVous avez deviné le nombre {0} en {1} tentatives!",
+      "number": "Nombre",
+      "guess_failed": "❌ *Game Over!*\n\nLe nombre était {0}.",
+      "higher": "📈 Plus haut!",
+      "lower": "📉 Plus bas!"
+    },
+    "stats": {
+      "desc": "Voir les statistiques du chat",
+      "no_data": "❌ Aucune statistique disponible pour le moment.",
+      "no_messages": "Aucun message suivi pour le moment.",
+      "title": "📊 *Statistiques du Chat*",
+      "top_users": "Meilleurs Utilisateurs",
+      "messages_label": "messages",
+      "total_tracked": "Total suivi",
+      "users_label": "utilisateurs",
+      "no_words": "Aucun mot suivi pour le moment.",
+      "word_title": "📝 *Statistiques des Mots*",
+      "top_words": "Meilleurs Mots",
+      "usage": "*Commandes Stats:*\n\n.stats - Voir les statistiques du chat\n.stats reset - Réinitialiser les statistiques (admin uniquement)",
+      "error": "❌ Erreur: {0}",
+      "reset": "✅ Statistiques réinitialisées avec succès."
+    },
+    "sticker": {
+      "desc": "Convertir photo/vidéo en sticker",
+      "reply_required": "❌ Veuillez répondre à une photo ou vidéo (max 10 secondes)."
+    },
+    "tag": {
+      "desc": "Mentionner tous les membres du groupe"
+    },
+    "task": {
+      "desc": "Gérer vos tâches à faire",
+      "usage": "*Commandes Task:*\n\n.task add <tâche> - Ajouter une nouvelle tâche\n.task list - Voir toutes les tâches\n.task done <numéro> - Marquer la tâche comme terminée\n.task delete <numéro> - Supprimer une tâche\n.task clear - Effacer toutes les tâches\n.task reminder <minutes> <tâche> - Définir un rappel",
+      "error": "❌ Erreur: {0}",
+      "add_usage": "Utilisation: .task add <description de la tâche>",
+      "added": "✅ Tâche ajoutée!",
+      "no_tasks": "Vous n'avez aucune tâche.",
+      "list_title": "📝 *Vos Tâches*",
+      "invalid_index": "❌ Numéro de tâche invalide.",
+      "marked_done": "✅ Tâche marquée comme terminée!",
+      "deleted": "✅ Tâche supprimée!",
+      "cleared": "✅ Toutes les tâches effacées!",
+      "task_usage": "Utilisation: .task <add|list|done|delete|clear>",
+      "reminder_usage": "Utilisation: .task reminder <minutes> <tâche>",
+      "reminder": "⏰ *Rappel*",
+      "reminder_set": "✅ Rappel défini pour {0} minutes!",
+      "minutes": "minutes",
+      "no_reminders": "Aucun rappel actif.",
+      "reminders_title": "⏰ *Rappels Actifs*",
+      "reminder_canceled": "✅ Rappel annulé!"
+    },
+    "translate": {
+      "desc": "Traduire du texte dans n'importe quelle langue",
+      "usage": "Utilisation: .translate <code langue> <texte>\n\nExemple: .translate en Bonjour le monde",
+      "error": "❌ Erreur de traduction: {0}"
+    },
+    "video": {
+      "desc": "Télécharger des vidéos depuis YouTube"
+    },
+    "viewonce": {
+      "desc": "Transférer les messages à vue unique",
+      "setvv_desc": "Configurer le transfert des messages à vue unique",
+      "getvv_desc": "Vérifier les paramètres de vue unique",
+      "usage": "*Gestion Vue Unique:*\n\n.vv - Basculer dans le chat actuel\n.setvv g - Transférer vers le même groupe/chat\n.setvv p - Transférer vers le chat privé\n.setvv <jid> - Transférer vers un JID spécifique\n.setvv null - Désactiver",
+      "disabled": "❌ Transfert de vue unique désactivé.",
+      "mode_private": "Votre chat privé",
+      "mode_group": "Même groupe/chat",
+      "mode_jid": "JID personnalisé: {0}",
+      "mode_disabled": "Désactivé",
+      "updated": "✅ Transfert de vue unique mis à jour vers: *{0}*",
+      "not_set": "Transfert de vue unique non configuré.\n\nUtilisez .setvv pour configurer.",
+      "status": "*Paramètres Vue Unique:*\n\n*Statut:* {0}\n*Destination:* {1}",
+      "status_enabled": "✅ Activé",
+      "status_disabled": "❌ Désactivé",
+      "reply_required": "❌ Veuillez répondre à un message à vue unique.",
+      "no_message": "❌ Aucun message à vue unique trouvé.",
+      "forwarded": "✅ Message à vue unique transféré!"
+    },
+    "voice": {
+      "desc": "Transcrire l'audio ou synthèse vocale",
+      "error": "❌ Erreur: {0}",
+      "reply_audio": "❌ Veuillez répondre à un message audio.",
+      "download_failed": "❌ Échec du téléchargement de l'audio.",
+      "no_api_key": "❌ GEMINI_API_KEY non configurée.",
+      "transcription": "📝 *Transcription:*\n\n{0}",
+      "tts_usage": "Utilisation: .tts <texte>",
+      "text_too_long": "❌ Texte trop long (max 500 caractères).",
+      "tts_error": "❌ La synthèse vocale a échoué."
+    },
+    "weather": {
+      "desc": "Obtenir les informations météo",
+      "usage": "Utilisation: .weather <nom de ville>",
+      "no_api_key": "❌ Clé API Météo non configurée.",
+      "title": "🌤️ *Météo pour {0}*",
+      "location": "Localisation",
+      "temperature": "Température",
+      "feels_like": "Ressenti",
+      "condition": "Condition",
+      "wind": "Vent",
+      "humidity": "Humidité",
+      "pressure": "Pression",
+      "visibility": "Visibilité",
+      "uv_index": "Index UV",
+      "last_update": "Dernière Mise à Jour",
+      "location_not_found": "❌ Localisation non trouvée.",
+      "error": "❌ Erreur météo: {0}"
+    },
+    "common": {
+      "not_admin": "❌ Le bot doit être administrateur pour effectuer cette action."
     }
+  },
+  "extra": {
+    "group_cmd": "Cette commande ne peut être utilisée que dans les groupes."
   }
 }

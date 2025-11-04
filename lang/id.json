@@ -280,6 +280,23 @@
       "text_too_long": "❌ Text too long (max 500 characters).",
       "tts_error": "❌ Text-to-speech failed."
     },
+    "update": {
+      "desc": "Perbarui bot dari repositori GitHub (khusus pemilik)",
+      "usage": "*Pembaruan Bot:*\n\nGunakan *.update now* untuk memperbarui bot ke versi terbaru dari GitHub.\n\n⚠️ *Peringatan:* Ini akan:\n• Mengambil kode terbaru dari GitHub\n• Menginstal dependensi baru\n• Me-restart bot secara otomatis",
+      "owner_only": "⛔ Perintah ini hanya untuk pemilik bot!",
+      "starting": "🔄 Memulai pembaruan bot...",
+      "fetching": "📥 Mengambil perubahan terbaru dari GitHub...",
+      "uncommitted_changes": "⚠️ *Peringatan:* Anda memiliki perubahan lokal yang belum di-commit.\n\nSilakan commit atau buang perubahan sebelum memperbarui.",
+      "already_updated": "✅ Bot sudah diperbarui!\n\nTidak ada perubahan baru yang tersedia.",
+      "changes_detected": "📊 *Perubahan terdeteksi:*\n\n• File diubah: {0}\n• Penambahan: +{1}\n• Penghapusan: -{2}",
+      "installing_deps": "📦 Menginstal dependensi...\n\n⏳ Ini mungkin memakan waktu beberapa menit...",
+      "install_failed": "❌ Gagal menginstal dependensi",
+      "restarting": "🔄 Me-restart bot...",
+      "success": "✅ *Pembaruan berhasil!*\n\nBot akan di-restart dalam beberapa detik...",
+      "error": "❌ Pembaruan gagal",
+      "conflict_error": "❌ *Konflik Git terdeteksi!*\n\nSilakan selesaikan konflik secara manual sebelum memperbarui.",
+      "network_error": "❌ *Kesalahan jaringan!*\n\nTidak dapat terhubung ke GitHub. Silakan periksa koneksi internet Anda."
+    },
     "weather": {
       "desc": "Get weather information",
       "usage": "Usage: .weather <city name>",

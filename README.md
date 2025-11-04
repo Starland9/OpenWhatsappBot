@@ -179,13 +179,20 @@ const metadata = await message.getGroupMetadata()
 
 ### Auto Status Viewer
 
-Automatically view and react to WhatsApp statuses with random emojis.
+Automatically view and/or react to WhatsApp statuses with random emojis.
 
 **Configuration:**
 ```env
-AUTO_STATUS_REACT=true
+AUTO_STATUS_VIEW=true      # Auto-view statuses
+AUTO_STATUS_REACT=false    # Auto-react to statuses
 STATUS_EMOJIS=😀,👍,❤️,🔥,💯,✨,🎉,👏,💪,🙌
 ```
+
+**Features:**
+- `AUTO_STATUS_VIEW`: Automatically mark statuses as viewed
+- `AUTO_STATUS_REACT`: Automatically react to statuses with random emojis from the configured list
+- Both features can be enabled independently
+- Prevents duplicate reactions with smart tracking
 
 ### AI Auto-Responder (Gemini)
 
@@ -284,6 +291,7 @@ pm2 startup
 | `ALWAYS_ONLINE` | Keep bot always online | `false` |
 | `AUTO_READ` | Auto-read messages | `true` |
 | `AUTO_STATUS_VIEW` | Auto-view statuses | `true` |
+| `AUTO_STATUS_REACT` | Auto-react to statuses | `false` |
 | `OPENAI_API_KEY` | OpenAI API key for ChatGPT | - |
 | `GEMINI_API_KEY` | Google Gemini API key | - |
 | `DATABASE_URL` | PostgreSQL URL (optional) | SQLite |

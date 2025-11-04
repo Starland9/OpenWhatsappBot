@@ -6,6 +6,7 @@ const { DATABASE, sync, StickerCommand } = require("./lib/database");
 const { VERSION } = require("./config");
 const autoResponderHandler = require("./lib/utils/autoResponderHandler");
 const viewOnceHandler = require("./lib/utils/viewOnceHandler");
+const antiDeleteHandler = require("./lib/utils/antiDeleteHandler");
 const pino = require("pino");
 
 const logger = pino({
@@ -51,6 +52,9 @@ async function start() {
 
         // Create Message instance
         const message = new Message(client, msg);
+
+        // Cache message for anti-delete functionality
+        antiDeleteHandler.cacheMessage(message);
 
         // Handle view-once messages first (before any other processing)
         const viewOnceHandled = await viewOnceHandler.handleMessage(message);
@@ -121,6 +125,13 @@ async function start() {
     // Ready event
     client.on("ready", () => {
       logger.info("✅ Bot is ready and listening for messages");
+    });
+
+    // Handle message updates (for anti-delete)
+    client.on("messages.update", async (updates) => {
+      for (const update of updates) {
+        await antiDeleteHandler.handleMessageDelete(update, client);
+      }
     });
   } catch (error) {
     logger.error("Failed to start bot:", error);

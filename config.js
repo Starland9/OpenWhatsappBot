@@ -18,11 +18,23 @@ const DATABASE = DATABASE_URL.includes("postgres")
         ssl: { require: true, rejectUnauthorized: false },
       },
       logging: false,
+      pool: {
+        max: 10,
+        min: 2,
+        acquire: 30000,
+        idle: 10000,
+      },
     })
   : new Sequelize({
       dialect: "sqlite",
       storage: DATABASE_URL,
       logging: false,
+      pool: {
+        max: 5,
+        min: 1,
+        acquire: 30000,
+        idle: 10000,
+      },
     });
 
 module.exports = {

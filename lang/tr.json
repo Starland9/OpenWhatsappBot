@@ -280,6 +280,23 @@
       "text_too_long": "❌ Text too long (max 500 characters).",
       "tts_error": "❌ Text-to-speech failed."
     },
+    "update": {
+      "desc": "Botu GitHub deposundan güncelle (sadece sahip)",
+      "usage": "*Bot Güncellemesi:*\n\nBotu GitHub'dan en son sürüme güncellemek için *.update now* kullanın.\n\n⚠️ *Uyarı:* Bu şunları yapacak:\n• GitHub'dan en son kodu çekme\n• Yeni bağımlılıkları yükleme\n• Botu otomatik olarak yeniden başlatma",
+      "owner_only": "⛔ Bu komut sadece bot sahibi içindir!",
+      "starting": "🔄 Bot güncellemesi başlatılıyor...",
+      "fetching": "📥 GitHub'dan son değişiklikler alınıyor...",
+      "uncommitted_changes": "⚠️ *Uyarı:* Kaydedilmemiş yerel değişiklikleriniz var.\n\nLütfen güncellemeden önce bunları kaydedin veya iptal edin.",
+      "already_updated": "✅ Bot zaten güncel!\n\nYeni değişiklik yok.",
+      "changes_detected": "📊 *Değişiklikler tespit edildi:*\n\n• Değiştirilen dosyalar: {0}\n• Eklemeler: +{1}\n• Silmeler: -{2}",
+      "installing_deps": "📦 Bağımlılıklar yükleniyor...\n\n⏳ Bu birkaç dakika sürebilir...",
+      "install_failed": "❌ Bağımlılıklar yüklenemedi",
+      "restarting": "🔄 Bot yeniden başlatılıyor...",
+      "success": "✅ *Güncelleme başarılı!*\n\nBot birkaç saniye içinde yeniden başlayacak...",
+      "error": "❌ Güncelleme başarısız oldu",
+      "conflict_error": "❌ *Git çakışması tespit edildi!*\n\nLütfen güncellemeden önce çakışmaları manuel olarak çözün.",
+      "network_error": "❌ *Ağ hatası!*\n\nGitHub'a bağlanılamadı. Lütfen internet bağlantınızı kontrol edin."
+    },
     "weather": {
       "desc": "Get weather information",
       "usage": "Usage: .weather <city name>",

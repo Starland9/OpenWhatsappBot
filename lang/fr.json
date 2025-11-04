@@ -280,6 +280,23 @@
       "text_too_long": "❌ Texte trop long (max 500 caractères).",
       "tts_error": "❌ La synthèse vocale a échoué."
     },
+    "update": {
+      "desc": "Mettre à jour le bot depuis le dépôt GitHub (propriétaire uniquement)",
+      "usage": "*Mise à jour du Bot:*\n\nUtilisez *.update now* pour mettre à jour le bot vers la dernière version depuis GitHub.\n\n⚠️ *Attention:* Cela va:\n• Récupérer le dernier code de GitHub\n• Installer les nouvelles dépendances\n• Redémarrer le bot automatiquement",
+      "owner_only": "⛔ Cette commande est réservée au propriétaire du bot!",
+      "starting": "🔄 Démarrage de la mise à jour du bot...",
+      "fetching": "📥 Récupération des dernières modifications depuis GitHub...",
+      "uncommitted_changes": "⚠️ *Attention:* Vous avez des modifications locales non validées.\n\nVeuillez les valider ou les annuler avant la mise à jour.",
+      "already_updated": "✅ Le bot est déjà à jour!\n\nAucune nouvelle modification disponible.",
+      "changes_detected": "📊 *Modifications détectées:*\n\n• Fichiers modifiés: {0}\n• Ajouts: +{1}\n• Suppressions: -{2}",
+      "installing_deps": "📦 Installation des dépendances...\n\n⏳ Cela peut prendre quelques minutes...",
+      "install_failed": "❌ Échec de l'installation des dépendances",
+      "restarting": "🔄 Redémarrage du bot...",
+      "success": "✅ *Mise à jour réussie!*\n\nLe bot va redémarrer dans quelques secondes...",
+      "error": "❌ La mise à jour a échoué",
+      "conflict_error": "❌ *Conflit Git détecté!*\n\nVeuillez résoudre les conflits manuellement avant la mise à jour.",
+      "network_error": "❌ *Erreur réseau!*\n\nImpossible de se connecter à GitHub. Veuillez vérifier votre connexion internet."
+    },
     "weather": {
       "desc": "Obtenir les informations météo",
       "usage": "Utilisation: .weather <nom de ville>",

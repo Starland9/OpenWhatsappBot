@@ -52,7 +52,7 @@ async function start() {
     // Handle incoming messages
     client.on("messages", async (messages) => {
       // Process messages in parallel (with concurrency limit)
-      const concurrencyLimit = 5;
+      const concurrencyLimit = require("./config").MESSAGE_CONCURRENCY_LIMIT;
       for (let i = 0; i < messages.length; i += concurrencyLimit) {
         const batch = messages.slice(i, i + concurrencyLimit);
         await Promise.allSettled(

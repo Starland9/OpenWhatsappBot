@@ -131,4 +131,13 @@ module.exports = {
   AUTO_RESPONDER_MAX_TYPING_TIME: parseInt(process.env.AUTO_RESPONDER_MAX_TYPING_TIME) || 10000, // Max typing indicator duration (ms)
   AUTO_RESPONDER_RATE_LIMIT: parseInt(process.env.AUTO_RESPONDER_RATE_LIMIT) || 5, // Max responses per time window
   AUTO_RESPONDER_RATE_WINDOW: parseInt(process.env.AUTO_RESPONDER_RATE_WINDOW) || 60000, // Time window for rate limit (ms)
+
+  // Performance Optimization
+  MESSAGE_CONCURRENCY_LIMIT: parseInt(process.env.MESSAGE_CONCURRENCY_LIMIT) || 5, // Parallel message processing limit
+  CACHE_CLEANUP_INTERVAL: parseInt(process.env.CACHE_CLEANUP_INTERVAL) || 600000, // 10 minutes
+  CACHE_MAX_AGE: parseInt(process.env.CACHE_MAX_AGE) || 3600000, // 1 hour
+  CONVERSATION_UPDATE_INTERVAL: parseInt(process.env.CONVERSATION_UPDATE_INTERVAL) || 2000, // 2 seconds
+  CONVERSATION_BATCH_SIZE: parseInt(process.env.CONVERSATION_BATCH_SIZE) || 5, // Batch size for DB updates
+  MEMORY_CLEANUP_INTERVAL: parseInt(process.env.MEMORY_CLEANUP_INTERVAL) || 900000, // 15 minutes
+  MEMORY_WARN_THRESHOLD: parseInt(process.env.MEMORY_WARN_THRESHOLD) || 400, // MB
 };

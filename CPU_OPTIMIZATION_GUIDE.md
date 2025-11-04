@@ -55,6 +55,15 @@ ANTI_DELETE=false  # Si non utilisé
 AUTO_RESPONDER_RATE_LIMIT=3
 AUTO_RESPONDER_RATE_WINDOW=120000
 
+# Paramètres d'Optimisation Performance (optionnels)
+MESSAGE_CONCURRENCY_LIMIT=5  # Nombre de messages traités en parallèle (défaut: 5)
+CACHE_CLEANUP_INTERVAL=600000  # Nettoyage cache toutes les 10 min (défaut: 600000ms)
+CACHE_MAX_AGE=3600000  # Âge max des messages cachés: 1h (défaut: 3600000ms)
+CONVERSATION_UPDATE_INTERVAL=2000  # Intervalle mise à jour conversations: 2s (défaut: 2000ms)
+CONVERSATION_BATCH_SIZE=5  # Taille de lot pour mises à jour DB (défaut: 5)
+MEMORY_CLEANUP_INTERVAL=900000  # Nettoyage mémoire toutes les 15 min (défaut: 900000ms)
+MEMORY_WARN_THRESHOLD=400  # Seuil d'alerte mémoire en MB (défaut: 400)
+
 # Base de données
 # Utiliser PostgreSQL en production pour de meilleures performances
 DATABASE_URL=postgresql://...
@@ -72,13 +81,19 @@ module.exports = {
     instances: 1,  // Un seul processus pour WhatsApp
     exec_mode: 'fork',
     max_memory_restart: '500M',
-    node_args: '--max-old-space-size=512',
+    node_args: '--max-old-space-size=512 --expose-gc',
     env: {
       NODE_ENV: 'production'
     }
   }]
 }
 ```
+
+**Note sur --expose-gc:**
+- Le flag `--expose-gc` expose la fonction `global.gc()` pour permettre le garbage collection manuel
+- Utilisé par le `memoryManager` pour optimiser la gestion de la mémoire
+- À utiliser uniquement dans des environnements contrôlés (production, VPS)
+- Si vous rencontrez des problèmes de sécurité, vous pouvez le retirer (le bot fonctionnera toujours, mais avec moins d'optimisations mémoire)
 
 ## Monitoring et Maintenance
 

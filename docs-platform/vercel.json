@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd docs-platform && npm install && npm run build",
+  "outputDirectory": "docs-platform/.next",
+  "devCommand": "cd docs-platform && npm run dev",
+  "installCommand": "cd docs-platform && npm install",
+  "framework": "nextjs"
+}

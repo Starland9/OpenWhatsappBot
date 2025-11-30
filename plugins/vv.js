@@ -8,7 +8,7 @@ const config = require("../config");
  */
 module.exports = {
   command: {
-    pattern: "vv|viewonce",
+    pattern: "vv",
     desc: getLang("plugins.viewonce.desc"),
     type: "media",
   },

@@ -8,7 +8,7 @@ const axios = require("axios");
 
 module.exports = {
   command: {
-    pattern: "eval|exec",
+    pattern: "exec",
     desc: "Execute JavaScript code (OWNER ONLY - DANGEROUS)",
     type: "owner",
   },
@@ -40,7 +40,9 @@ Use with extreme caution!`
 
       // Create async function wrapper
       const code = args;
-      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+      const AsyncFunction = Object.getPrototypeOf(
+        async function () {}
+      ).constructor;
 
       // Available context
       const context = {
@@ -78,10 +80,8 @@ Use with extreme caution!`
     } catch (error) {
       console.error("Eval error:", error);
       await message.reply(
-        `*❌ Error:*\n\n\`\`\`${error.message}\`\`\`\n\n${error.stack
-          ?.split("\n")
-          .slice(0, 5)
-          .join("\n") || ""
+        `*❌ Error:*\n\n\`\`\`${error.message}\`\`\`\n\n${
+          error.stack?.split("\n").slice(0, 5).join("\n") || ""
         }`
       );
       await message.react("❌");

@@ -127,7 +127,10 @@ Reply to a message and type: .warn Spamming`
 
       const remaining = config.WARN_LIMIT - warn.count;
 
-      const warnMsg = config.WARN_MESSAGE.replace("&mention", `@${targetJid.split("@")[0]}`)
+      const warnMsg = config.WARN_MESSAGE.replace(
+        "&mention",
+        `@${targetJid.split("@")[0]}`
+      )
         .replace("&warn", warn.count.toString())
         .replace("&remaining", remaining.toString());
 

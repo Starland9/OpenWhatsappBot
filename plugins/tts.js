@@ -62,9 +62,7 @@ ar - Arabic`
       // Limit text length
       if (text.length > 200) {
         text = text.substring(0, 200);
-        await message.reply(
-          "*Text too long! Truncated to 200 characters.*"
-        );
+        await message.reply("*Text too long! Truncated to 200 characters.*");
       }
 
       // Get TTS audio URL

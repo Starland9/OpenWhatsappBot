@@ -15,6 +15,7 @@ module.exports = {
       const command = message.body
         .split(" ")[0]
         .replace(require("../config").PREFIX, "")
+        .trim()
         .toLowerCase();
 
       if (command === "yts") {

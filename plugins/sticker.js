@@ -14,7 +14,7 @@ const execAsync = promisify(exec);
  */
 module.exports = {
   command: {
-    pattern: "sticker|s",
+    pattern: "sticker",
     desc: getLang("plugins.sticker.desc"),
     type: "media",
   },

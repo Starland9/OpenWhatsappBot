@@ -19,7 +19,7 @@ module.exports = {
       }
 
       const mode = query.trim().toLowerCase();
-      
+
       // Helper function to validate JID format
       const isValidJid = (jid) => {
         // WhatsApp JID format: identifier@s.whatsapp.net or identifier@g.us
@@ -27,7 +27,7 @@ module.exports = {
         const jidRegex = /^[^@]+@(s\.whatsapp\.net|g\.us)$/;
         return jidRegex.test(jid);
       };
-      
+
       // Validate mode
       if (!["g", "p", "null", "false"].includes(mode)) {
         // Check if it's a JID
@@ -44,10 +44,10 @@ module.exports = {
 
       // Handle disable
       if (mode === "null" || mode === "false") {
-        await settings.update({ 
-          vvMode: "null", 
+        await settings.update({
+          vvMode: "null",
           vvJid: null,
-          enabled: false 
+          enabled: false,
         });
         await message.react("✅");
         return await message.reply(getLang("plugins.viewonce.disabled"));
@@ -55,24 +55,27 @@ module.exports = {
 
       // Handle JID mode
       if (isValidJid(mode)) {
-        await settings.update({ 
-          vvMode: "jid", 
+        await settings.update({
+          vvMode: "jid",
           vvJid: mode,
-          enabled: true 
+          enabled: true,
         });
       } else {
-        await settings.update({ 
-          vvMode: mode, 
+        await settings.update({
+          vvMode: mode,
           vvJid: null,
-          enabled: true 
+          enabled: true,
         });
       }
 
       await message.react("✅");
-      const modeText = mode === "p" ? getLang("plugins.viewonce.mode_private")
-        : mode === "g" ? getLang("plugins.viewonce.mode_group")
-        : getLang("plugins.viewonce.mode_jid").replace("{0}", mode);
-      
+      const modeText =
+        mode === "p"
+          ? getLang("plugins.viewonce.mode_private")
+          : mode === "g"
+          ? getLang("plugins.viewonce.mode_group")
+          : getLang("plugins.viewonce.mode_jid").replace("{0}", mode);
+
       return await message.reply(
         getLang("plugins.viewonce.updated").replace("{0}", modeText)
       );

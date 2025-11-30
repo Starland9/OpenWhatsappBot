@@ -21,6 +21,7 @@ module.exports = {
     const command = message.body
       .split(" ")[0]
       .replace(config.PREFIX, "")
+      .trim()
       .toLowerCase();
 
     if (!query) {

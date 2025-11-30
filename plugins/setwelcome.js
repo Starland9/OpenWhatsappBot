@@ -8,7 +8,7 @@ const { Group } = require("../lib/database");
 
 module.exports = {
   command: {
-    pattern: "welcome|setwelcome",
+    pattern: "welcome",
     desc: "Set welcome message for group",
     type: "admin",
   },
@@ -72,7 +72,9 @@ ${group.welcomeMsg || "Default message"}
         return await message.reply("*Welcome messages disabled!* ❌");
       } else if (action === "get") {
         return await message.reply(
-          `*Current Welcome Message:*\n\n${group.welcomeMsg || "Default message"}`
+          `*Current Welcome Message:*\n\n${
+            group.welcomeMsg || "Default message"
+          }`
         );
       } else {
         // Set custom message

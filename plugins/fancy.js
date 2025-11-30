@@ -12,8 +12,7 @@ const fancyFonts = {
       .split("")
       .map((c) => {
         const code = c.charCodeAt(0);
-        if (code >= 65 && code <= 90)
-          return String.fromCharCode(code + 119743); // A-Z
+        if (code >= 65 && code <= 90) return String.fromCharCode(code + 119743); // A-Z
         if (code >= 97 && code <= 122)
           return String.fromCharCode(code + 119737); // a-z
         return c;
@@ -24,8 +23,7 @@ const fancyFonts = {
       .split("")
       .map((c) => {
         const code = c.charCodeAt(0);
-        if (code >= 65 && code <= 90)
-          return String.fromCharCode(code + 119795); // A-Z
+        if (code >= 65 && code <= 90) return String.fromCharCode(code + 119795); // A-Z
         if (code >= 97 && code <= 122)
           return String.fromCharCode(code + 119789); // a-z
         return c;
@@ -36,8 +34,7 @@ const fancyFonts = {
       .split("")
       .map((c) => {
         const code = c.charCodeAt(0);
-        if (code >= 65 && code <= 90)
-          return String.fromCharCode(code + 119951); // A-Z
+        if (code >= 65 && code <= 90) return String.fromCharCode(code + 119951); // A-Z
         if (code >= 97 && code <= 122)
           return String.fromCharCode(code + 119945); // a-z
         return c;
@@ -48,8 +45,7 @@ const fancyFonts = {
       .split("")
       .map((c) => {
         const code = c.charCodeAt(0);
-        if (code >= 65 && code <= 90)
-          return String.fromCharCode(code + 119847); // A-Z
+        if (code >= 65 && code <= 90) return String.fromCharCode(code + 119847); // A-Z
         if (code >= 97 && code <= 122)
           return String.fromCharCode(code + 119841); // a-z
         return c;
@@ -60,8 +56,7 @@ const fancyFonts = {
       .split("")
       .map((c) => {
         const code = c.charCodeAt(0);
-        if (code >= 65 && code <= 90)
-          return String.fromCharCode(code + 8333); // A-Z
+        if (code >= 65 && code <= 90) return String.fromCharCode(code + 8333); // A-Z
         if (code >= 97 && code <= 122)
           return String.fromCharCode(code - 32 + 8333); // a-z
         return c;
@@ -72,8 +67,7 @@ const fancyFonts = {
       .split("")
       .map((c) => {
         const code = c.charCodeAt(0);
-        if (code >= 65 && code <= 90)
-          return String.fromCharCode(code + 127280); // A-Z
+        if (code >= 65 && code <= 90) return String.fromCharCode(code + 127280); // A-Z
         if (code >= 97 && code <= 122)
           return String.fromCharCode(code - 32 + 127280); // a-z
         return c;
@@ -85,8 +79,7 @@ const fancyFonts = {
       .split("")
       .map((c) => {
         const code = c.charCodeAt(0);
-        if (code >= 97 && code <= 122)
-          return String.fromCharCode(code + 9327); // a-z
+        if (code >= 97 && code <= 122) return String.fromCharCode(code + 9327); // a-z
         return c;
       })
       .join(""), // Circled Black
@@ -101,8 +94,7 @@ const fancyFonts = {
       .split("")
       .map((c) => {
         const code = c.charCodeAt(0);
-        if (code >= 65 && code <= 90)
-          return String.fromCharCode(code + 120211); // A-Z
+        if (code >= 65 && code <= 90) return String.fromCharCode(code + 120211); // A-Z
         if (code >= 97 && code <= 122)
           return String.fromCharCode(code + 120205); // a-z
         return c;

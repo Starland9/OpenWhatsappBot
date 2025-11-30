@@ -8,7 +8,7 @@ const axios = require("axios");
 
 module.exports = {
   command: {
-    pattern: "pinterest|pin",
+    pattern: "pinterest",
     desc: "Search Pinterest images",
     type: "search",
   },
@@ -68,8 +68,7 @@ module.exports = {
 
         for (let i = 0; i < Math.min(5, images.length); i++) {
           const pin = images[i];
-          const imageUrl =
-            pin.images?.orig?.url || pin.images?.["736x"]?.url;
+          const imageUrl = pin.images?.orig?.url || pin.images?.["736x"]?.url;
 
           if (imageUrl) {
             try {

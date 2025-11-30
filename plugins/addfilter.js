@@ -8,7 +8,7 @@ const { Filter } = require("../lib/database");
 
 module.exports = {
   command: {
-    pattern: "filter|addfilter",
+    pattern: "filter",
     desc: "Add auto-reply filter",
     type: "admin",
   },

@@ -20,7 +20,7 @@ function isInstagramUrl(url) {
 
 module.exports = {
   command: {
-    pattern: "insta|igdl",
+    pattern: "insta",
     desc: "Download Instagram posts, reels, and stories",
     type: "downloader",
   },
@@ -51,7 +51,9 @@ module.exports = {
       // Method 1: API from various free services
       try {
         const response = await axios.get(
-          `https://api.instagramsave.com/v1/get.php?url=${encodeURIComponent(url)}`,
+          `https://api.instagramsave.com/v1/get.php?url=${encodeURIComponent(
+            url
+          )}`,
           { timeout: 15000 }
         );
 

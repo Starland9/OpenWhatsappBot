@@ -7,6 +7,10 @@ const {
 } = require("@whiskeysockets/baileys");
 const translate = require("@vitalets/google-translate-api");
 const config = require("../config");
+const ffmpeg = require("fluent-ffmpeg");
+const fs = require("fs").promises;
+const path = require("path");
+const os = require("os");
 
 /**
  * Text to Speech Plugin
@@ -84,10 +88,18 @@ ar - Arabic`
         text = text.replace(langMatch[0], "").trim();
       }
 
+      if (!text) {
+        return await message.reply("*Please provide text to convert!*");
+      }
+
+      // Check if text exceeds max length for TTS concatenation
+      const maxLength = config.TTS_MAX_LENGTH || 200;
+      const isLongText = text.length > 200;
+
       // Auto-detect language if no explicit {lang}
       if (!langMatch) {
         try {
-          const detection = await translate(text, {
+          const detection = await translate(text.substring(0, 500), {
             to: (config.LANG || "en").toLowerCase(),
           });
           const detected = detection?.from?.language?.iso;
@@ -100,12 +112,7 @@ ar - Arabic`
         }
       }
 
-      if (!text) {
-        return await message.reply("*Please provide text to convert!*");
-      }
-
-      // Limit text length
-      const maxLength = config.TTS_MAX_LENGTH || 200;
+      // Limit text if configured max is less than actual length
       if (text.length > maxLength) {
         text = text.substring(0, maxLength);
         await message.reply(
@@ -113,20 +120,93 @@ ar - Arabic`
         );
       }
 
-      // Get TTS audio URL
-      const ttsUrl = gtts.getAudioUrl(text, {
-        lang: lang,
-        slow: false,
-        host: "https://translate.google.com",
-      });
+      let buffer;
 
-      // Download audio
-      const response = await axios.get(ttsUrl, {
-        responseType: "arraybuffer",
-        timeout: 30000,
-      });
+      if (isLongText && text.length > 200) {
+        // Use getAllAudioUrls for long text
+        const results = gtts.getAllAudioUrls(text, {
+          lang: lang,
+          slow: false,
+          host: "https://translate.google.com",
+          splitPunct: ",.?;",
+        });
 
-      const buffer = Buffer.from(response.data);
+        if (!results || results.length === 0) {
+          throw new Error("Failed to generate audio URLs");
+        }
+
+        // Download all audio chunks
+        const audioBuffers = await Promise.all(
+          results.map(async (item) => {
+            const response = await axios.get(item.url, {
+              responseType: "arraybuffer",
+              timeout: 30000,
+            });
+            return Buffer.from(response.data);
+          })
+        );
+
+        // If only one chunk, no need to concatenate
+        if (audioBuffers.length === 1) {
+          buffer = audioBuffers[0];
+        } else {
+          // Concatenate multiple audio files using ffmpeg
+          const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "tts-"));
+          const inputFiles = [];
+          const listFile = path.join(tempDir, "concat.txt");
+          const outputFile = path.join(tempDir, "output.mp3");
+
+          try {
+            // Write each chunk to a temp file
+            for (let i = 0; i < audioBuffers.length; i++) {
+              const chunkPath = path.join(tempDir, `chunk${i}.mp3`);
+              await fs.writeFile(chunkPath, audioBuffers[i]);
+              inputFiles.push(chunkPath);
+            }
+
+            // Create concat list file for ffmpeg
+            const concatList = inputFiles
+              .map((file) => `file '${file}'`)
+              .join("\n");
+            await fs.writeFile(listFile, concatList);
+
+            // Concatenate using ffmpeg
+            await new Promise((resolve, reject) => {
+              ffmpeg()
+                .input(listFile)
+                .inputOptions(["-f concat", "-safe 0"])
+                .outputOptions(["-c copy"])
+                .output(outputFile)
+                .on("end", resolve)
+                .on("error", reject)
+                .run();
+            });
+
+            // Read concatenated file
+            buffer = await fs.readFile(outputFile);
+          } finally {
+            // Cleanup temp files
+            await fs
+              .rm(tempDir, { recursive: true, force: true })
+              .catch(() => {});
+          }
+        }
+      } else {
+        // Use single getAudioUrl for short text (≤200 chars)
+        const ttsUrl = gtts.getAudioUrl(text, {
+          lang: lang,
+          slow: false,
+          host: "https://translate.google.com",
+        });
+
+        // Download audio
+        const response = await axios.get(ttsUrl, {
+          responseType: "arraybuffer",
+          timeout: 30000,
+        });
+
+        buffer = Buffer.from(response.data);
+      }
 
       // Send as voice note (push-to-talk)
       await message.sendAudio(buffer, {

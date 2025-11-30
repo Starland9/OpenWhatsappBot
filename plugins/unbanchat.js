@@ -22,7 +22,7 @@ module.exports = {
     try {
       // Access the bannedChats from ban plugin
       // In production, this should be in a database
-      
+
       await message.reply(
         `*Bot reactivated in this chat!* ✅\n\nThe bot will now respond to commands.`
       );

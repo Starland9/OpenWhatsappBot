@@ -8,7 +8,7 @@ const config = require("../config");
  */
 module.exports = {
   command: {
-    pattern: "gemini|gem",
+    pattern: "gemini",
     desc: getLang("plugins.gemini.desc"),
     type: "ai",
   },

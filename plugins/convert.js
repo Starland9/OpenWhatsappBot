@@ -28,7 +28,7 @@ module.exports = {
 
     try {
       // Determine target format from command
-      let targetFormat = query?.toLowerCase();
+      let targetFormat = query?.toLowerCase().trim() || "";
 
       if (command === "topng") targetFormat = "png";
       else if (command === "tojpg") targetFormat = "jpg";

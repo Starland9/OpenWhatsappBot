@@ -27,9 +27,7 @@ module.exports = {
       // Note: This is a simplified version. In production, you'd want a reliable API
       const searchQuery = encodeURIComponent(args);
 
-      await message.reply(
-        `*Searching for: ${args}*\n\nPlease wait...`
-      );
+      await message.reply(`*Searching for: ${args}*\n\nPlease wait...`);
 
       // Using APKPure or Aptoide API alternative
       const searchUrl = `https://ws75.aptoide.com/api/7/apps/search/query=${searchQuery}/limit=10`;
@@ -50,7 +48,7 @@ module.exports = {
         const apps = response.data.datalist.list.slice(0, 5);
 
         let resultMsg = `*📱 APK Search Results*\n\n`;
-        
+
         apps.forEach((app, index) => {
           resultMsg += `*${index + 1}. ${app.name}*\n`;
           resultMsg += `📦 Package: ${app.package || "N/A"}\n`;

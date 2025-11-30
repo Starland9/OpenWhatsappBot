@@ -7,7 +7,7 @@ const config = require("../config");
  */
 module.exports = {
   command: {
-    pattern: "imagine|imagen",
+    pattern: "imagen",
     desc: getLang("plugins.imagen.desc"),
     type: "ai",
   },

@@ -26,7 +26,7 @@ module.exports = {
       await message.react("🔍");
 
       let subreddit = "all";
-      let searchQuery = query;
+      let searchQuery = query.trim();
 
       // Check if it's a subreddit query
       if (query.toLowerCase().startsWith("r/")) {
@@ -107,11 +107,11 @@ module.exports = {
       console.error("Reddit search error:", error);
 
       if (error.response && error.response.status === 404) {
-        await message.reply("*Subreddit not found!*\n\nPlease check the name and try again.");
-      } else {
         await message.reply(
-          "*Search failed!*\n\nPlease try again later."
+          "*Subreddit not found!*\n\nPlease check the name and try again."
         );
+      } else {
+        await message.reply("*Search failed!*\n\nPlease try again later.");
       }
 
       await message.react("❌");

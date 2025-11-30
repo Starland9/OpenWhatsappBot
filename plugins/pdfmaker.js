@@ -39,11 +39,11 @@ module.exports = {
       // Check if replying to an image
       if (message.quoted && message.quoted.message) {
         const quotedType = message.getMediaType();
-        
+
         if (quotedType === "image") {
           // Download image
           const buffer = await message.downloadMedia();
-          
+
           if (!buffer) {
             return await message.reply("*Failed to download image!*");
           }

@@ -1,6 +1,6 @@
 {
   "name": "open-whatsapp-bot",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Open Source Community WhatsApp Bot with Baileys",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "stop": "pm2 stop open-whatsapp-bot",
     "postinstall": "node -e \"try { require('sharp') } catch (e) { process.exit(1); }\" || yarn add --ignore-engines sharp@0.33.5"
   },
-  "author": "",
+  "author": "Landry Simo",
   "license": "MIT",
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",

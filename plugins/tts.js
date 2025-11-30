@@ -105,9 +105,12 @@ ar - Arabic`
       }
 
       // Limit text length
-      if (text.length > 200) {
-        text = text.substring(0, 200);
-        await message.reply("*Text too long! Truncated to 200 characters.*");
+      const maxLength = config.TTS_MAX_LENGTH || 200;
+      if (text.length > maxLength) {
+        text = text.substring(0, maxLength);
+        await message.reply(
+          `*Text too long! Truncated to ${maxLength} characters.*`
+        );
       }
 
       // Get TTS audio URL

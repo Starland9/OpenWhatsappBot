@@ -146,9 +146,8 @@ async function processMessage(msg, client) {
       }
     }
 
-    // Skip commands from self unless sudo; execute for others
-    // Intention: block self-commands except when sender is in SUDO list
-    if (!message.fromMe || message.isSudo()) {
+    // Execute commands ONLY for sudo users (global restriction)
+    if (message.isSudo()) {
       await executeCommand(message);
     }
   } catch (error) {

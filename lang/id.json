@@ -316,7 +316,9 @@
       "error": "❌ Weather error: {0}"
     },
     "common": {
-      "not_admin": "❌ Bot must be admin to perform this action."
+      "not_admin": "❌ Bot must be admin to perform this action.",
+      "status_enabled": "✅ Diaktifkan",
+      "status_disabled": "❌ Dinonaktifkan"
     }
   },
   "extra": {

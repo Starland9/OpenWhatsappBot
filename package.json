@@ -1,6 +1,6 @@
 {
   "name": "open-whatsapp-bot",
-  "version": "57.0.0",
+  "version": "57.0.1",
   "description": "Open Source Community WhatsApp Bot with Baileys",
   "main": "index.js",
   "scripts": {

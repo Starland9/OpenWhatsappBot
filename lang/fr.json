@@ -328,7 +328,9 @@
       "error": "❌ Erreur météo: {0}"
     },
     "common": {
-      "not_admin": "❌ Le bot doit être administrateur pour effectuer cette action."
+      "not_admin": "❌ Le bot doit être administrateur pour effectuer cette action.",
+      "status_enabled": "✅ Activé",
+      "status_disabled": "❌ Désactivé"
     }
   },
   "extra": {

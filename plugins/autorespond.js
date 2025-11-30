@@ -9,7 +9,7 @@ module.exports = {
   command: {
     pattern: "ar",
     desc: getLang("plugins.autorespond.desc"),
-    type: "settings",
+    type: "ai",
     fromMe: true,
   },
 

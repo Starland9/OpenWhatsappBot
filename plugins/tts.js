@@ -21,7 +21,7 @@ module.exports = {
   command: {
     pattern: "tts",
     desc: "Convert text to speech",
-    type: "converter",
+    type: "utility",
   },
 
   async execute(message, args) {

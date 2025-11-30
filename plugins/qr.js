@@ -7,7 +7,7 @@ module.exports = {
   command: {
     pattern: "qr",
     desc: "Generate QR code from text",
-    type: "utils",
+    type: "utility",
   },
 
   async execute(message, text) {

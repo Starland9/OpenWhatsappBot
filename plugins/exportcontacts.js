@@ -11,7 +11,7 @@ const moment = require("moment");
 
 module.exports = {
   command: {
-    pattern: "exportcontacts|contacts",
+    pattern: "exportcontacts",
     desc: "Exporter la liste des contacts en CSV/VCF",
     type: "utility",
     ownerOnly: true,

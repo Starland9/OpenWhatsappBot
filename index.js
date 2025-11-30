@@ -124,10 +124,6 @@ async function processMessage(msg, client) {
           });
 
           if (stickerCmd) {
-            if (!message.isSudo()) {
-              logger.debug("Sticker command ignored (non-sudo sender)");
-              return;
-            }
             // Execute the bound command silently
             logger.debug(`Executing sticker command: ${stickerCmd.command}`);
             message.body = require("./config").PREFIX + stickerCmd.command;
@@ -150,10 +146,8 @@ async function processMessage(msg, client) {
       }
     }
 
-    // Execute commands ONLY for sudo users (global restriction)
-    if (message.isSudo()) {
-      await executeCommand(message);
-    }
+    // Execute commands (open to everyone, per-command restrictions in registry)
+    await executeCommand(message);
   } catch (error) {
     logger.error("Error processing message:", error);
   }

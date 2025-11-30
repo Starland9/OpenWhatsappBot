@@ -42,6 +42,7 @@ module.exports = {
     pattern: "update",
     desc: getLang("plugins.update.desc"),
     type: "owner",
+    ownerOnly: true,
   },
 
   async execute(message, query) {

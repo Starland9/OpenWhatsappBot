@@ -1,6 +1,12 @@
 const { getLang } = require("../lib/utils/language");
 const gtts = require("google-tts-api");
 const axios = require("axios");
+const {
+  extractMessageContent,
+  getContentType,
+} = require("@whiskeysockets/baileys");
+const translate = require("@vitalets/google-translate-api");
+const config = require("../config");
 
 /**
  * Text to Speech Plugin
@@ -15,7 +21,30 @@ module.exports = {
   },
 
   async execute(message, args) {
-    let text = args || (message.quoted && message.body);
+    // Helper: extract plain text from a quoted message
+    const getQuotedText = () => {
+      if (!message.quoted || !message.quoted.message) return "";
+      try {
+        const content = extractMessageContent(message.quoted.message);
+        const type = getContentType(content);
+        if (!type) return "";
+        const msg = content[type];
+        const quotedText =
+          msg?.text ||
+          msg?.caption ||
+          msg?.conversation ||
+          msg?.selectedButtonId ||
+          msg?.singleSelectReply?.selectedRowId ||
+          (typeof msg === "string" ? msg : "") ||
+          "";
+        return quotedText || "";
+      } catch (e) {
+        return "";
+      }
+    };
+
+    // Prefer args; if absent, use quoted text
+    let text = (args && args.trim()) || getQuotedText();
 
     if (!text) {
       return await message.reply(
@@ -31,7 +60,7 @@ module.exports = {
 
 *Popular Languages:*
 en - English
-es - Spanish  
+es - Spanish
 fr - French
 de - German
 it - Italian
@@ -47,12 +76,28 @@ ar - Arabic`
       await message.react("🎤");
 
       // Check for language code in format {lang}
-      let lang = "en";
+      let lang = (config.LANG || "en").toLowerCase();
       const langMatch = text.match(/\{([a-z]{2})\}/i);
 
       if (langMatch) {
         lang = langMatch[1].toLowerCase();
         text = text.replace(langMatch[0], "").trim();
+      }
+
+      // Auto-detect language if no explicit {lang}
+      if (!langMatch) {
+        try {
+          const detection = await translate(text, {
+            to: (config.LANG || "en").toLowerCase(),
+          });
+          const detected = detection?.from?.language?.iso;
+          if (detected && typeof detected === "string") {
+            lang = detected.toLowerCase();
+          }
+        } catch (_) {
+          // Ignore detection errors and fall back to config.LANG
+          lang = (config.LANG || "en").toLowerCase();
+        }
       }
 
       if (!text) {
@@ -80,10 +125,10 @@ ar - Arabic`
 
       const buffer = Buffer.from(response.data);
 
-      // Send as voice note
+      // Send as voice note (push-to-talk)
       await message.sendAudio(buffer, {
         mimetype: "audio/mp4",
-        ptt: false,
+        ptt: true,
       });
 
       await message.react("✅");

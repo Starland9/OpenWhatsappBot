@@ -1,225 +1,123 @@
-const moment = require("moment");
-
-/**
- * Export contacts plugin
- * Usage:
- *  .exportcontacts         -> export as CSV (default)
- *  .exportcontacts csv     -> explicit csv
- *  .exportcontacts vcf     -> export as vCard (.vcf)
- * Restricted to bot owner (sudo)
- */
+const { jidNormalizedUser } = require("@whiskeysockets/baileys");
 
 module.exports = {
   command: {
     pattern: "exportcontacts",
-    desc: "Exporter la liste des contacts en CSV/VCF",
+    desc: "Export contacts (JSON) and send as a document. Owner only.",
     type: "utility",
+    fromMe: false,
+    onlyGroup: false,
+    onlyPm: false,
     ownerOnly: true,
   },
 
   async execute(message, argsString) {
+    // Only allow bot owners (ownerOnly handled by registry but double-check)
+    if (!message.isSudo()) {
+      return await message.reply(
+        "❌ Vous devez être propriétaire du bot pour utiliser cette commande."
+      );
+    }
+
+    await message.reply(
+      "🔎 Récupération des contacts, ceci peut prendre une seconde..."
+    );
+
     try {
-      // Allow only sudo users
-      if (!message.isSudo()) {
-        return await message.reply(
-          "❌ Commande réservée au propriétaire du bot"
-        );
-      }
-
-      await message.react("⏳");
-
-      // Determine export format
-      const format = (argsString || "csv").trim().toLowerCase();
-      if (!["csv", "vcf"].includes(format)) {
-        return await message.reply(
-          "❌ Format invalide - utilisez `csv` ou `vcf` (e.g., `.exportcontacts vcf`)"
-        );
-      }
-
       const client = message.client;
-      const socket = client.getSocket();
-      // Check for group export request
-      const args = (argsString || "").trim().split(/\s+/).filter(Boolean);
-      const isGroupExport = args[0] && args[0].toLowerCase() === "group";
 
-      // If group export requested, attempt to fetch group members
-      if (isGroupExport) {
-        // If no group id provided, and executed inside a group, use current group
-        let groupJid = args[1] || null;
-        if (!groupJid && message.isGroup) {
-          groupJid = message.jid;
-        }
+      // store may be a Baileys in-memory store; contacts can be a Map or an object
+      const rawContacts =
+        client.store?.contacts || client.store?.contacts || null;
 
-        if (!groupJid) {
-          return await message.reply(
-            "❌ Indiquez le group JID ou invoquez la commande depuis le groupe (ex: `.exportcontacts group`)"
-          );
-        }
+      let contactsArray = [];
 
-        try {
-          const metadata = await client.getSocket().groupMetadata(groupJid);
-          const participants = metadata?.participants || [];
-          if (participants.length === 0) {
-            return await message.reply(
-              "❌ Aucun participant trouvé dans ce groupe"
-            );
-          }
-
-          // Map to contacts-like objects
-          const groupContacts = participants.map((p) => ({
-            jid: p.id,
-            displayName: p.notify || p.subject || "",
-            isAdmin: !!p.admin,
+      if (!rawContacts) {
+        // Fallback: try socket state
+        const sock = client.getSocket();
+        const state = sock?.state || null;
+        const sContacts = state?.contacts || null;
+        if (sContacts) {
+          // state.contacts is an object mapping jid -> contact
+          contactsArray = Object.keys(sContacts).map((k) => ({
+            jid: k,
+            ...sContacts[k],
           }));
-
-          contacts = groupContacts;
-        } catch (err) {
-          console.error("Group export error:", err);
-          return await message.reply(
-            `❌ Impossible de récupérer les infos du groupe: ${err.message}`
-          );
         }
+      } else if (typeof rawContacts.forEach === "function") {
+        // It's a Map-like
+        rawContacts.forEach((value, key) => {
+          const jid = value?.id || key;
+          contactsArray.push({
+            jid,
+            displayName: value?.notify || value?.vname || value?.name || "",
+            raw: value,
+          });
+        });
+      } else if (typeof rawContacts === "object") {
+        contactsArray = Object.keys(rawContacts).map((k) => {
+          const v = rawContacts[k] || {};
+          const jid = v.id || k;
+          return {
+            jid,
+            displayName: v.notify || v.vname || v.name || "",
+            raw: v,
+          };
+        });
       }
 
-      // Attempt to read contacts from store (only when not group export)
-      let contacts = [];
-      if (!isGroupExport) {
-        // Preferred: in-memory store used by the client
-        if (client.store && client.store.contacts) {
-          const storeContacts = client.store.contacts;
-          if (typeof storeContacts === "object") {
-            // Possibly Map-like or plain object
-            if (typeof storeContacts.entries === "function") {
-              contacts = Array.from(storeContacts.values());
-            } else {
-              contacts = Object.values(storeContacts);
-            }
-          }
-        }
+      if (!contactsArray || contactsArray.length === 0) {
+        return await message.reply(
+          "ℹ️ Aucun contact trouvé dans le store. Assurez-vous que le client est connecté et synchronisé."
+        );
+      }
 
-        // Fallback: socket has contacts (Baileys 5/6 )
-        if ((!contacts || contacts.length === 0) && socket && socket.contacts) {
-          contacts = Object.values(socket.contacts || {});
-        }
+      // If argsString contains 'csv' export CSV instead
+      const wantCsv = argsString && argsString.trim().toLowerCase() === "csv";
 
-        if (!contacts || contacts.length === 0) {
-          return await message.reply(
-            "❌ Aucune donnée de contacts disponible (le store est vide)"
-          );
-        }
-
-        // Normalize list & filter out groups/broadcast
-        contacts = contacts
-          .map((c) => {
-            // Support both Map value and direct objects
-            const jid = c.id || c.jid || c.key || c?.key?.remoteJid || "";
-            const displayName =
-              c.name || c.notify || c.vname || c.short || c.verifiedName || "";
-            const imgUrl = c.imgUrl || c.picture || "";
-            const isBusiness = c?.isBusiness || c?.isBusinessAccount || false;
-            const status = c?.status || c?.about || "";
-            return { ...c, jid, displayName, imgUrl, isBusiness, status };
-          })
-          .filter(
+      if (wantCsv) {
+        // Build CSV: jid, displayName
+        const header = "jid,displayName\n";
+        const rows = contactsArray
+          .map(
             (c) =>
-              c.jid && !c.jid.endsWith("@g.us") && c.jid !== "status@broadcast"
-          );
-
-        if (contacts.length === 0) {
-          return await message.reply(
-            "❌ Aucun contact trouvé (excluant les groupes)"
-          );
-        }
-      }
-
-      // Build CSV or vCard
-      const timestamp = moment().format("YYYYMMDD-HHmmss");
-      if (format === "csv") {
-        const header = [
-          "jid",
-          "number",
-          "displayName",
-          "notify",
-          "short",
-          "imgUrl",
-          "isBusiness",
-          "status",
-        ];
-        const rows = [header.join(",")];
-
-        const escape = (v) => {
-          if (v === null || v === undefined) return "";
-          const s = String(v);
-          // Escape double quotes
-          const escaped = s.replace(/\"/g, '""');
-          // Wrap in quotes if contains comma, newline, or quotes
-          if (/[",\n]/.test(escaped)) {
-            return '"' + escaped.replace(/"/g, '""') + '"';
-          }
-          return escaped;
-        };
-
-        for (const c of contacts) {
-          const number = c.jid.split("@")[0];
-          const row = [
-            escape(c.jid),
-            escape(number),
-            escape(c.displayName || ""),
-            escape(c.notify || ""),
-            escape(c.short || ""),
-            escape(c.imgUrl || ""),
-            escape(c.isBusiness ? "TRUE" : "FALSE"),
-            escape(c.status || ""),
-          ];
-          rows.push(row.join(","));
-        }
-
-        const csvContent = rows.join("\n");
-        const buffer = Buffer.from(csvContent);
-
+              `${c.jid.replace(/,/g, "")},"${(c.displayName || "").replace(
+                /"/g,
+                '""'
+              )}"`
+          )
+          .join("\n");
+        const csv = header + rows;
+        const buffer = Buffer.from(csv, "utf8");
         await message.sendDocument(buffer, {
-          fileName: `contacts-${timestamp}.csv`,
+          fileName: "contacts.csv",
           mimetype: "text/csv",
-          caption: `📥 Export des contacts (${contacts.length})`,
+          caption: "Export contacts (CSV)",
         });
-        await message.react("✅");
-      } else {
-        // vCard
-        const lines = [];
-        for (const c of contacts) {
-          const number = c.jid.split("@")[0];
-          const name = c.displayName || number;
-          lines.push("BEGIN:VCARD");
-          lines.push("VERSION:3.0");
-          // Escape commas and semicolons in name
-          const safeName = String(name).replace(/[,;]/g, " ");
-          lines.push(`FN:${safeName}`);
-          // Add number
-          lines.push(`TEL;TYPE=CELL:${number}`);
-          if (c.status) {
-            const safeStatus = String(c.status).replace(/\n/g, " ");
-            lines.push(`NOTE:${safeStatus}`);
-          }
-          if (c.imgUrl) {
-            lines.push(`URL:${c.imgUrl}`);
-          }
-          lines.push("END:VCARD");
-        }
-
-        const vcfContent = lines.join("\n");
-        const buffer = Buffer.from(vcfContent);
-
-        await message.sendDocument(buffer, {
-          fileName: `contacts-${timestamp}.vcf`,
-          mimetype: "text/vcard",
-          caption: `📥 Export des contacts (${contacts.length})`,
-        });
-        await message.react("✅");
+        return;
       }
+
+      // Default: JSON export with simplified fields + raw
+      const exportPayload = contactsArray.map((c) => ({
+        jid: c.jid,
+        displayName: c.displayName || "",
+        raw: c.raw || null,
+      }));
+
+      const jsonBuffer = Buffer.from(
+        JSON.stringify(exportPayload, null, 2),
+        "utf8"
+      );
+      await message.sendDocument(jsonBuffer, {
+        fileName: "contacts.json",
+        mimetype: "application/json",
+        caption: "Export contacts (JSON)",
+      });
     } catch (error) {
-      console.error("ExportContacts error:", error);
-      await message.reply(`❌ Erreur: ${error.message}`);
-      await message.react("❌");
+      console.error("exportcontacts error:", error);
+      await message.reply(
+        "❌ Une erreur est survenue lors de l'export des contacts."
+      );
     }
   },
 };

@@ -97,11 +97,10 @@ module.exports = {
   RENDER_API_KEY: process.env.RENDER_API_KEY || "",
 
   // Language
-  LANG: (process.env.LANG || "en").toLowerCase(),
-  BOT_LANG: process.env.BOT_LANG || "english",
+  LANG: (process.env.BOT_LANG || "fr").toLowerCase(),
 
   // TTS Config
-  TTS_MAX_LENGTH: parseInt(process.env.TTS_MAX_LENGTH) || 200,
+  TTS_MAX_LENGTH: parseInt(process.env.TTS_MAX_LENGTH) || 500,
 
   // Group Settings
   ANTILINK_MSG:

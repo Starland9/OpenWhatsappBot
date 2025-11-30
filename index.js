@@ -124,10 +124,10 @@ async function processMessage(msg, client) {
           });
 
           if (stickerCmd) {
-              if (!message.isSudo()) {
-                logger.debug("Sticker command ignored (non-sudo sender)");
-                return;
-              }
+            if (!message.isSudo()) {
+              logger.debug("Sticker command ignored (non-sudo sender)");
+              return;
+            }
             // Execute the bound command silently
             logger.debug(`Executing sticker command: ${stickerCmd.command}`);
             message.body = require("./config").PREFIX + stickerCmd.command;

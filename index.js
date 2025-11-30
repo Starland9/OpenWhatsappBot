@@ -56,7 +56,7 @@ async function start() {
       for (let i = 0; i < messages.length; i += concurrencyLimit) {
         const batch = messages.slice(i, i + concurrencyLimit);
         await Promise.allSettled(
-          batch.map(msg => processMessage(msg, client))
+          batch.map((msg) => processMessage(msg, client))
         );
       }
     });
@@ -125,9 +125,7 @@ async function processMessage(msg, client) {
 
           if (stickerCmd) {
             // Execute the bound command silently
-            logger.debug(
-              `Executing sticker command: ${stickerCmd.command}`
-            );
+            logger.debug(`Executing sticker command: ${stickerCmd.command}`);
             message.body = require("./config").PREFIX + stickerCmd.command;
             await executeCommand(message);
             return; // Skip other handlers
@@ -142,17 +140,15 @@ async function processMessage(msg, client) {
     const isCommand = message.body.startsWith(require("./config").PREFIX);
 
     if (!isCommand && !message.fromMe) {
-      const autoResponded = await autoResponderHandler.handleMessage(
-        message
-      );
+      const autoResponded = await autoResponderHandler.handleMessage(message);
       if (autoResponded) {
         return; // Skip command execution if auto-responded
       }
     }
 
-    // Skip messages from self (unless sudo)
-    if (message.fromMe || !message.isSudo()) {
-      // Execute commands
+    // Skip commands from self unless sudo; execute for others
+    // Intention: block self-commands except when sender is in SUDO list
+    if (!message.fromMe || message.isSudo()) {
       await executeCommand(message);
     }
   } catch (error) {

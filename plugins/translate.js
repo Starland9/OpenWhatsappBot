@@ -6,7 +6,7 @@ const translate = require("@vitalets/google-translate-api");
  */
 module.exports = {
   command: {
-    pattern: "translate|tr|tl",
+    pattern: "trt",
     desc: getLang("plugins.translate.desc"),
     type: "utility",
   },

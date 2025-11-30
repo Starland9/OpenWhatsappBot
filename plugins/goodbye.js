@@ -8,7 +8,7 @@ const { Group } = require("../lib/database");
 
 module.exports = {
   command: {
-    pattern: "goodbye|setgoodbye",
+    pattern: "goodbye",
     desc: "Set goodbye message for group",
     type: "admin",
   },
@@ -59,7 +59,9 @@ ${group.goodbyeMsg || "Default message"}
 
       if (action === "get") {
         return await message.reply(
-          `*Current Goodbye Message:*\n\n${group.goodbyeMsg || "Default message"}`
+          `*Current Goodbye Message:*\n\n${
+            group.goodbyeMsg || "Default message"
+          }`
         );
       } else {
         // Set custom message

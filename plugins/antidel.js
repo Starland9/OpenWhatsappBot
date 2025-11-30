@@ -6,7 +6,7 @@ const { AntiDelete } = require("../lib/database");
  */
 module.exports = {
   command: {
-    pattern: "antidel|antidelete",
+    pattern: "antidelete",
     desc: getLang("plugins.antidelete.desc"),
     type: "whatsapp",
     fromMe: true,
@@ -19,14 +19,14 @@ module.exports = {
       }
 
       const mode = query.trim().toLowerCase();
-      
+
       // Helper function to validate JID format
       const isValidJid = (jid) => {
         // WhatsApp JID format: identifier@s.whatsapp.net or identifier@g.us
         const jidRegex = /^[^@]+@(s\.whatsapp\.net|g\.us)$/;
         return jidRegex.test(jid);
       };
-      
+
       // Validate mode
       if (!["g", "p", "sudo", "null", "false"].includes(mode)) {
         // Check if it's a JID
@@ -43,10 +43,10 @@ module.exports = {
 
       // Handle disable
       if (mode === "null" || mode === "false") {
-        await settings.update({ 
-          antiDelMode: "null", 
+        await settings.update({
+          antiDelMode: "null",
           antiDelJid: null,
-          enabled: false 
+          enabled: false,
         });
         await message.react("✅");
         return await message.reply(getLang("plugins.antidelete.disabled"));
@@ -54,25 +54,29 @@ module.exports = {
 
       // Handle JID mode
       if (isValidJid(mode)) {
-        await settings.update({ 
-          antiDelMode: "jid", 
+        await settings.update({
+          antiDelMode: "jid",
           antiDelJid: mode,
-          enabled: true 
+          enabled: true,
         });
       } else {
-        await settings.update({ 
-          antiDelMode: mode, 
+        await settings.update({
+          antiDelMode: mode,
           antiDelJid: null,
-          enabled: true 
+          enabled: true,
         });
       }
 
       await message.react("✅");
-      const modeText = mode === "p" ? getLang("plugins.antidelete.mode_private")
-        : mode === "g" ? getLang("plugins.antidelete.mode_group")
-        : mode === "sudo" ? getLang("plugins.antidelete.mode_sudo")
-        : getLang("plugins.antidelete.mode_jid").replace("{0}", mode);
-      
+      const modeText =
+        mode === "p"
+          ? getLang("plugins.antidelete.mode_private")
+          : mode === "g"
+          ? getLang("plugins.antidelete.mode_group")
+          : mode === "sudo"
+          ? getLang("plugins.antidelete.mode_sudo")
+          : getLang("plugins.antidelete.mode_jid").replace("{0}", mode);
+
       return await message.reply(
         getLang("plugins.antidelete.updated").replace("{0}", modeText)
       );

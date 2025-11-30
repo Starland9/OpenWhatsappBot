@@ -11,7 +11,7 @@ const triggeredAlerts = new Map(); // userId -> [timestamp, timestamp, ...]
 
 module.exports = {
   command: {
-    pattern: "notify|alert|watch",
+    pattern: "notify",
     desc: getLang("plugins.notify.desc"),
     type: "utility",
   },

@@ -6,7 +6,7 @@ const { AntiDelete } = require("../lib/database");
  */
 module.exports = {
   command: {
-    pattern: "getantidel|getantidelete",
+    pattern: "getantidelete",
     desc: getLang("plugins.antidelete.getantidel_desc"),
     type: "whatsapp",
     fromMe: true,

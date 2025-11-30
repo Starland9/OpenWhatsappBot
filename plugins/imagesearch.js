@@ -13,7 +13,11 @@ module.exports = {
   },
 
   async execute(message, query) {
-    const command = message.body.split(" ")[0].replace(config.PREFIX, "");
+    const command = message.body
+      .split(" ")[0]
+      .replace(config.PREFIX, "")
+      .trim()
+      .toLowerCase();
     const isGif = command === "gif" || command === "giphy";
 
     if (!query) {

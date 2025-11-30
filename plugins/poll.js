@@ -10,7 +10,7 @@ const polls = new Map(); // messageId -> {question, options, votes}
 
 module.exports = {
   command: {
-    pattern: "poll|vote|survey",
+    pattern: "vote",
     desc: getLang("plugins.poll.desc"),
     type: "group",
     onlyGroup: true,

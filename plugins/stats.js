@@ -9,7 +9,7 @@ const groupStats = new Map(); // chatId -> {messages: Map<userJid, count>, words
 
 module.exports = {
   command: {
-    pattern: "stats|analytics|groupstats",
+    pattern: "stats",
     desc: getLang("plugins.stats.desc"),
     type: "group",
     onlyGroup: true,
@@ -55,10 +55,14 @@ module.exports = {
 
         messageStats.forEach(([userJid, count], index) => {
           const number = userJid.split("@")[0];
-          response += `${index + 1}. @${number}: ${count} ${getLang("plugins.stats.messages_label")}\n`;
+          response += `${index + 1}. @${number}: ${count} ${getLang(
+            "plugins.stats.messages_label"
+          )}\n`;
         });
 
-        response += `\n📝 _${getLang("plugins.stats.total_tracked")}: ${stats.messages.size} ${getLang("plugins.stats.users_label")}_`;
+        response += `\n📝 _${getLang("plugins.stats.total_tracked")}: ${
+          stats.messages.size
+        } ${getLang("plugins.stats.users_label")}_`;
 
         const mentions = messageStats.map(([userJid]) => userJid);
         await message.client.getSocket().sendMessage(chatId, {
@@ -86,11 +90,12 @@ module.exports = {
       } else {
         await message.reply(getLang("plugins.stats.usage"));
       }
-
     } catch (error) {
       await message.react("❌");
       console.error("Stats error:", error);
-      await message.reply(`❌ ${getLang("plugins.stats.error")}: ${error.message}`);
+      await message.reply(
+        `❌ ${getLang("plugins.stats.error")}: ${error.message}`
+      );
     }
   },
 };
@@ -118,15 +123,16 @@ function trackMessage(chatId, userJid, messageText) {
   stats.messages.set(userJid, currentCount + 1);
 
   // Track words (only words with 3+ characters, exclude common words)
-  const words = messageText.toLowerCase()
+  const words = messageText
+    .toLowerCase()
     .split(/\s+/)
-    .filter(word => {
+    .filter((word) => {
       // Remove punctuation and filter
       word = word.replace(/[^\w]/g, "");
       return word.length >= 3 && !isCommonWord(word);
     });
 
-  words.forEach(word => {
+  words.forEach((word) => {
     const wordCount = stats.words.get(word) || 0;
     stats.words.set(word, wordCount + 1);
   });
@@ -134,11 +140,64 @@ function trackMessage(chatId, userJid, messageText) {
 
 function isCommonWord(word) {
   const commonWords = [
-    "the", "and", "for", "are", "but", "not", "you", "all", "can", "her", "was", "one", 
-    "our", "out", "day", "get", "has", "him", "his", "how", "man", "new", "now", "old", 
-    "see", "two", "way", "who", "boy", "did", "its", "let", "put", "say", "she", "too", "use",
-    "what", "when", "this", "that", "with", "have", "from", "they", "will", "your", "there",
-    "been", "were", "said", "each", "which", "their", "about", "would", "these", "other"
+    "the",
+    "and",
+    "for",
+    "are",
+    "but",
+    "not",
+    "you",
+    "all",
+    "can",
+    "her",
+    "was",
+    "one",
+    "our",
+    "out",
+    "day",
+    "get",
+    "has",
+    "him",
+    "his",
+    "how",
+    "man",
+    "new",
+    "now",
+    "old",
+    "see",
+    "two",
+    "way",
+    "who",
+    "boy",
+    "did",
+    "its",
+    "let",
+    "put",
+    "say",
+    "she",
+    "too",
+    "use",
+    "what",
+    "when",
+    "this",
+    "that",
+    "with",
+    "have",
+    "from",
+    "they",
+    "will",
+    "your",
+    "there",
+    "been",
+    "were",
+    "said",
+    "each",
+    "which",
+    "their",
+    "about",
+    "would",
+    "these",
+    "other",
   ];
   return commonWords.includes(word);
 }

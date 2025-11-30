@@ -7,7 +7,7 @@ const config = require("../config");
  */
 module.exports = {
   command: {
-    pattern: "autorespond|ar",
+    pattern: "ar",
     desc: getLang("plugins.autorespond.desc"),
     type: "settings",
     fromMe: true,
@@ -32,12 +32,18 @@ module.exports = {
       // Handle commands
       if (!action || action === "status") {
         const ignoreList = settings.ignoreNumbers
-          ? settings.ignoreNumbers.split(",").map(n => n.trim()).filter(Boolean)
+          ? settings.ignoreNumbers
+              .split(",")
+              .map((n) => n.trim())
+              .filter(Boolean)
           : [];
 
         const statusMsg = getLang("plugins.autorespond.status")
           .replace("{0}", settings.enabled ? "✅ Enabled" : "❌ Disabled")
-          .replace("{1}", ignoreList.length > 0 ? ignoreList.join(", ") : "None")
+          .replace(
+            "{1}",
+            ignoreList.length > 0 ? ignoreList.join(", ") : "None"
+          )
           .replace("{2}", settings.personality.substring(0, 100) + "...");
 
         return await message.reply(statusMsg);
@@ -65,11 +71,16 @@ module.exports = {
         if (subAction === "add" && args[2]) {
           const number = args[2].replace(/[^0-9]/g, "");
           const currentIgnore = settings.ignoreNumbers
-            ? settings.ignoreNumbers.split(",").map(n => n.trim()).filter(Boolean)
+            ? settings.ignoreNumbers
+                .split(",")
+                .map((n) => n.trim())
+                .filter(Boolean)
             : [];
 
           if (currentIgnore.includes(number)) {
-            return await message.reply(getLang("plugins.autorespond.already_ignored"));
+            return await message.reply(
+              getLang("plugins.autorespond.already_ignored")
+            );
           }
 
           currentIgnore.push(number);
@@ -83,29 +94,42 @@ module.exports = {
         if (subAction === "remove" && args[2]) {
           const number = args[2].replace(/[^0-9]/g, "");
           const currentIgnore = settings.ignoreNumbers
-            ? settings.ignoreNumbers.split(",").map(n => n.trim()).filter(Boolean)
+            ? settings.ignoreNumbers
+                .split(",")
+                .map((n) => n.trim())
+                .filter(Boolean)
             : [];
 
-          const filtered = currentIgnore.filter(n => n !== number);
+          const filtered = currentIgnore.filter((n) => n !== number);
 
           if (filtered.length === currentIgnore.length) {
-            return await message.reply(getLang("plugins.autorespond.not_ignored"));
+            return await message.reply(
+              getLang("plugins.autorespond.not_ignored")
+            );
           }
 
           await settings.update({ ignoreNumbers: filtered.join(",") });
           await message.react("✅");
           return await message.reply(
-            getLang("plugins.autorespond.number_unignored").replace("{0}", number)
+            getLang("plugins.autorespond.number_unignored").replace(
+              "{0}",
+              number
+            )
           );
         }
 
         if (subAction === "list") {
           const ignoreList = settings.ignoreNumbers
-            ? settings.ignoreNumbers.split(",").map(n => n.trim()).filter(Boolean)
+            ? settings.ignoreNumbers
+                .split(",")
+                .map((n) => n.trim())
+                .filter(Boolean)
             : [];
 
           if (ignoreList.length === 0) {
-            return await message.reply(getLang("plugins.autorespond.no_ignored"));
+            return await message.reply(
+              getLang("plugins.autorespond.no_ignored")
+            );
           }
 
           return await message.reply(
@@ -118,7 +142,9 @@ module.exports = {
         if (subAction === "clear") {
           await settings.update({ ignoreNumbers: "" });
           await message.react("✅");
-          return await message.reply(getLang("plugins.autorespond.ignore_cleared"));
+          return await message.reply(
+            getLang("plugins.autorespond.ignore_cleared")
+          );
         }
 
         return await message.reply(getLang("plugins.autorespond.ignore_usage"));
@@ -137,7 +163,9 @@ module.exports = {
 
         await settings.update({ personality });
         await message.react("✅");
-        return await message.reply(getLang("plugins.autorespond.personality_updated"));
+        return await message.reply(
+          getLang("plugins.autorespond.personality_updated")
+        );
       }
 
       // Show usage

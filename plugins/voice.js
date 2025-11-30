@@ -13,24 +13,29 @@ const execAsync = promisify(exec);
  */
 module.exports = {
   command: {
-    pattern: "transcribe|totext|tts|speak",
+    pattern: "transcribe|speak",
     desc: getLang("plugins.voice.desc"),
     type: "media",
   },
 
   async execute(message, query) {
-    const command = message.body.split(" ")[0].replace(config.PREFIX, "").toLowerCase();
+    const command = message.body
+      .split(" ")[0]
+      .replace(config.PREFIX, "")
+      .toLowerCase();
 
     try {
-      if (command === "transcribe" || command === "totext") {
+      if (command === "transcribe") {
         await handleTranscription(message);
-      } else if (command === "tts" || command === "speak") {
+      } else if (command === "speak") {
         await handleTextToSpeech(message, query);
       }
     } catch (error) {
       await message.react("❌");
       console.error("Voice processing error:", error);
-      await message.reply(`❌ ${getLang("plugins.voice.error")}: ${error.message}`);
+      await message.reply(
+        `❌ ${getLang("plugins.voice.error")}: ${error.message}`
+      );
     }
   },
 };
@@ -40,7 +45,9 @@ async function handleTranscription(message) {
   let audioBuffer;
 
   if (message.quoted && message.quoted.message?.audioMessage) {
-    audioBuffer = await message.client.getSocket().downloadMediaMessage(message.quoted);
+    audioBuffer = await message.client
+      .getSocket()
+      .downloadMediaMessage(message.quoted);
   } else if (message.hasMedia && message.type === "audioMessage") {
     audioBuffer = await message.downloadMedia();
   } else {
@@ -48,13 +55,15 @@ async function handleTranscription(message) {
   }
 
   if (!audioBuffer) {
-    return await message.reply(`❌ ${getLang("plugins.voice.download_failed")}`);
+    return await message.reply(
+      `❌ ${getLang("plugins.voice.download_failed")}`
+    );
   }
 
   await message.react("⏳");
 
   const OPENAI_API_KEY = config.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-  
+
   if (!OPENAI_API_KEY) {
     return await message.reply(`❌ ${getLang("plugins.voice.no_api_key")}`);
   }
@@ -66,7 +75,9 @@ async function handleTranscription(message) {
     await fs.writeFile(tempAudio, audioBuffer);
 
     // Convert to MP3 for OpenAI Whisper
-    await execAsync(`ffmpeg -i ${tempAudio} -ar 16000 -ac 1 -c:a libmp3lame ${tempMp3}`);
+    await execAsync(
+      `ffmpeg -i ${tempAudio} -ar 16000 -ac 1 -c:a libmp3lame ${tempMp3}`
+    );
 
     const OpenAI = require("openai");
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
@@ -81,7 +92,6 @@ async function handleTranscription(message) {
     await message.reply(
       `🎤 *${getLang("plugins.voice.transcription")}*\n\n${transcription.text}`
     );
-
   } finally {
     await fs.unlink(tempAudio).catch(() => {});
     await fs.unlink(tempMp3).catch(() => {});
@@ -95,7 +105,11 @@ async function handleTextToSpeech(message, text) {
       const quotedMsg = message.quoted.message;
       const quotedType = Object.keys(quotedMsg)[0];
       const quotedContent = quotedMsg[quotedType];
-      text = quotedContent.text || quotedContent.caption || quotedContent.conversation || "";
+      text =
+        quotedContent.text ||
+        quotedContent.caption ||
+        quotedContent.conversation ||
+        "";
     }
   }
 
@@ -112,7 +126,7 @@ async function handleTextToSpeech(message, text) {
 
   try {
     const googleTTS = require("google-tts-api");
-    
+
     // Get TTS URL
     const url = googleTTS.getAudioUrl(text, {
       lang: config.LANG || "en",
@@ -122,15 +136,19 @@ async function handleTextToSpeech(message, text) {
 
     // Download audio
     const axios = require("axios");
-    const response = await axios.get(url, { responseType: "arraybuffer", timeout: 30000 });
+    const response = await axios.get(url, {
+      responseType: "arraybuffer",
+      timeout: 30000,
+    });
     const audioBuffer = Buffer.from(response.data);
 
     await message.react("✅");
     await message.sendVoice(audioBuffer);
-
   } catch (error) {
     console.error("TTS error:", error);
     await message.react("❌");
-    await message.reply(`❌ ${getLang("plugins.voice.tts_error")}: ${error.message}`);
+    await message.reply(
+      `❌ ${getLang("plugins.voice.tts_error")}: ${error.message}`
+    );
   }
 }

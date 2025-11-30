@@ -7,7 +7,7 @@ const config = require("../config");
  */
 module.exports = {
   command: {
-    pattern: "news|crypto|stock|bitcoin",
+    pattern: "news|crypto|stock",
     desc: getLang("plugins.news.desc"),
     type: "info",
   },
@@ -16,6 +16,7 @@ module.exports = {
     const command = message.body
       .split(" ")[0]
       .replace(config.PREFIX, "")
+      .trim()
       .toLowerCase();
 
     try {
@@ -23,7 +24,7 @@ module.exports = {
 
       if (command === "news") {
         await handleNews(message, query);
-      } else if (command === "crypto" || command === "bitcoin") {
+      } else if (command === "crypto") {
         await handleCrypto(message, query || "bitcoin");
       } else if (command === "stock") {
         await handleStock(message, query);

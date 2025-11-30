@@ -218,6 +218,18 @@
       "desc": "Convertir photo/vidéo en sticker",
       "reply_required": "❌ Veuillez répondre à une photo ou vidéo (max 10 secondes)."
     },
+    "truthdare": {
+      "desc": "Action ou Vérité pour pimenter les soirées en couple/amis",
+      "usage": "*Action ou Vérité (AV)*\n\n.av - Lancer une action ou vérité aléatoire\n.av truth - Pose une question ‘Vérité’\n.av dare - Lance un défi ‘Action’\n.av mode get - Voir le mode actuel\n.av mode <mild|flirty|romantic|adult> - Changer le mode (admin/group owner)\n.av on|off - Activer ou désactiver pour le chat\n\n*Modes:* mild, flirty, romantic, adult",
+      "disabled": "❌ Action ou Vérité est désactivé pour ce chat.",
+      "mode_status": "*Action ou Vérité - Mode actuel:* {0}",
+      "mode_changed": "✅ Mode Action ou Vérité changé en: {0}",
+      "mode_updated": "✅ Paramètres Action ou Vérité mis à jour: {0}",
+      "mode_invalid": "❌ Mode invalide. Utilisez: mild|flirty|romantic|adult",
+      "adult_requires_admin": "⛔ Activer le mode 'adult' requiert d'être admin du groupe ou sudo pour des raisons de sécurité.",
+      "truth": "Vérité",
+      "dare": "Action"
+    },
     "tag": {
       "desc": "Mentionner tous les membres du groupe"
     },

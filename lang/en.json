@@ -218,6 +218,18 @@
       "desc": "Convert photo/video to sticker",
       "reply_required": "❌ Please reply to a photo or video (max 10 seconds)."
     },
+    "truthdare": {
+      "desc": "Truth or Dare game to spice up evenings (couples/friends)",
+      "usage": "*Truth or Dare (AV)*\n\n.av - Random truth or dare\n.av truth - Ask a truth question\n.av dare - Give a dare\n.av mode get - View current mode\n.av mode <mild|flirty|romantic|adult> - Change mode (admin/group owner)\n.av on|off - Enable or disable in this chat\n\n*Modes:* mild, flirty, romantic, adult",
+      "disabled": "❌ Truth or Dare is disabled for this chat.",
+      "mode_status": "*Truth or Dare - Current mode:* {0}",
+      "mode_changed": "✅ Truth or Dare mode changed to: {0}",
+      "mode_updated": "✅ Truth or Dare settings updated: {0}",
+      "mode_invalid": "❌ Invalid mode. Use: mild|flirty|romantic|adult",
+      "adult_requires_admin": "⛔ Enabling 'adult' mode requires being a group admin or sudo for safety.",
+      "truth": "Truth",
+      "dare": "Dare"
+    },
     "tag": {
       "desc": "Tag all members in the group"
     },

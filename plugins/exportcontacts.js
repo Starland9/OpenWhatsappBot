@@ -26,9 +26,25 @@ module.exports = {
     try {
       const client = message.client;
 
+      // Wait for client readiness to improve chance that contacts are synced.
+      if (typeof client.ready === "function" && !client.ready()) {
+        // wait for 'ready' event or timeout after 8s
+        await new Promise((resolve) => {
+          const onReady = () => {
+            clearTimeout(timeout);
+            client.removeListener("ready", onReady);
+            resolve();
+          };
+          const timeout = setTimeout(() => {
+            client.removeListener("ready", onReady);
+            resolve();
+          }, 8000);
+          client.once("ready", onReady);
+        });
+      }
+
       // store may be a Baileys in-memory store; contacts can be a Map or an object
-      const rawContacts =
-        client.store?.contacts || client.store?.contacts || null;
+      const rawContacts = client.store?.contacts || null;
 
       let contactsArray = [];
 

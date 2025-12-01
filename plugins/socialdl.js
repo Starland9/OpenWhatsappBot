@@ -120,12 +120,12 @@ async function downloadYoutube(url, type = "video", quality = "720p") {
   const result = await proxyPost("/yt", { url, type, quality });
   // YouTube returns status: "success" or "failed" with reason
   // Returns ViDeO_LiNk_DeReCT for video/audio content
-  if (result.status !== "success" || !result.ViDeO_LiNk_DeReCT) {
+  if (result.status !== "success") {
     // Return null with error reason attached for better error handling
     const error = { failed: true, reason: result.reason || "Download failed" };
     return error;
   }
-  return { url: result.ViDeO_LiNk_DeReCT, type: type };
+  return { url: result.Video_Url || result.Audio_Url, type: type };
 }
 
 // TikTok Downloader via proxy

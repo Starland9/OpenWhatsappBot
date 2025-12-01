@@ -227,8 +227,8 @@ module.exports = {
       await message.react("❌");
       console.error("Save status error:", error);
       // await message.reply(
-        getLang("plugins.save.error").replace("{0}", error.message)
-      );
+        // getLang("plugins.save.error").replace("{0}", error.message)
+      // );
     }
   },
 };

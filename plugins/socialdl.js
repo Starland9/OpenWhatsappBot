@@ -109,54 +109,59 @@ async function proxyPost(path, body) {
 // Instagram Downloader via proxy
 async function downloadInstagram(url) {
   const result = await proxyPost("/insta", { url });
-  if (result.status === "failed") {
+  if (result.status !== "success" || !result.ViDeO_LiNk_DeReCT) {
     return null;
   }
-  return result;
+  return { url: result.ViDeO_LiNk_DeReCT, type: "video" };
 }
 
 // YouTube Downloader via proxy
 async function downloadYoutube(url, type = "video", quality = "720p") {
   const result = await proxyPost("/yt", { url, type, quality });
   // YouTube returns status: "success" or "failed" with reason
-  // We return the full result for caller to handle
-  return result;
+  // Returns ViDeO_LiNk_DeReCT for video/audio content
+  if (result.status !== "success" || !result.ViDeO_LiNk_DeReCT) {
+    // Return null with error reason attached for better error handling
+    const error = { failed: true, reason: result.reason || "Download failed" };
+    return error;
+  }
+  return { url: result.ViDeO_LiNk_DeReCT, type: type };
 }
 
 // TikTok Downloader via proxy
 async function downloadTiktok(url) {
   const result = await proxyPost("/tiktok", { url });
-  if (result.status === "failed") {
+  if (result.status !== "success" || !result.ViDeO_LiNk_DeReCT) {
     return null;
   }
-  return result;
+  return { url: result.ViDeO_LiNk_DeReCT, type: "video", quality: result.Quality };
 }
 
 // Spotify Downloader via proxy
 async function downloadSpotify(url) {
   const result = await proxyPost("/spotify", { url });
-  if (result.status === "failed") {
+  if (result.status !== "success" || !result.AuDiO_LiNk_DeReCT) {
     return null;
   }
-  return result;
+  return { url: result.AuDiO_LiNk_DeReCT, type: "audio" };
 }
 
 // Facebook Downloader via proxy
 async function downloadFacebook(url) {
   const result = await proxyPost("/facebook", { url });
-  if (result.status === "failed") {
+  if (result.status !== "success" || !result.ViDeO_LiNk_DeReCT) {
     return null;
   }
-  return result;
+  return { url: result.ViDeO_LiNk_DeReCT, type: "video", quality: result.Quality };
 }
 
 // Pinterest Downloader via proxy
 async function downloadPinterest(url) {
   const result = await proxyPost("/pinterest", { url });
-  if (result.status === "failed") {
+  if (result.status !== "success" || !result.ViDeO_LiNk_DeReCT) {
     return null;
   }
-  return result;
+  return { url: result.ViDeO_LiNk_DeReCT, type: "video", quality: result.Quality };
 }
 
 // Main plugin export
@@ -216,12 +221,9 @@ module.exports = {
             isAudio ? "audio" : "video",
             quality
           );
-          if (result && result.status === "failed") {
+          if (result && result.failed) {
             await message.react("❌");
             return await message.reply(`❌ ${result.reason}`);
-          }
-          if (result && result.status === "success") {
-            result = { url: result.url, type: result.type };
           }
           break;
         case "tiktok":

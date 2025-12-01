@@ -222,11 +222,11 @@ module.exports = {
       }
 
       await message.react("✅");
-      await message.reply(getLang("plugins.save.saved"));
+      // await message.reply(getLang("plugins.save.saved"));
     } catch (error) {
       await message.react("❌");
       console.error("Save status error:", error);
-      await message.reply(
+      // await message.reply(
         getLang("plugins.save.error").replace("{0}", error.message)
       );
     }

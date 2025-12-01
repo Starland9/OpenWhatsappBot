@@ -330,6 +330,16 @@
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ सक्रिय",
       "status_disabled": "❌ निष्क्रिय"
+    },
+    "socialdl": {
+      "desc": "Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest से मीडिया डाउनलोड करें",
+      "usage": "*सोशल मीडिया डाउनलोडर*\n\n.dl <url> - ऑटो-डिटेक्ट और डाउनलोड\n\n*समर्थित प्लेटफॉर्म:*\n• Instagram (पोस्ट, रील, स्टोरी)\n• YouTube (वीडियो/ऑडियो)\n• TikTok\n• Spotify\n• Facebook\n• Pinterest\n\n*YouTube विकल्प:*\n.dl <url> audio - केवल ऑडियो डाउनलोड\n.dl <url> 720p - क्वालिटी निर्दिष्ट करें (240p, 360p, 480p, 720p, 1080p)",
+      "invalid_url": "❌ कृपया एक वैध URL प्रदान करें।",
+      "unsupported": "❌ असमर्थित प्लेटफॉर्म। समर्थित: Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "downloading": "⏳ *{0}* से डाउनलोड हो रहा है...",
+      "failed": "❌ डाउनलोड विफल। सामग्री निजी या अनुपलब्ध हो सकती है।",
+      "success": "✅ *{0}* से डाउनलोड हो गया",
+      "error": "❌ त्रुटि: {0}"
     }
   },
   "extra": {

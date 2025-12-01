@@ -330,6 +330,16 @@
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ فعال",
       "status_disabled": "❌ معطل"
+    },
+    "socialdl": {
+      "desc": "Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest سے میڈیا ڈاؤن لوڈ کریں",
+      "usage": "*سوشل میڈیا ڈاؤن لوڈر*\n\n.dl <url> - خودکار شناخت اور ڈاؤن لوڈ\n\n*معاون پلیٹ فارم:*\n• Instagram (پوسٹس، ریلز، سٹوریز)\n• YouTube (ویڈیو/آڈیو)\n• TikTok\n• Spotify\n• Facebook\n• Pinterest\n\n*YouTube آپشنز:*\n.dl <url> audio - صرف آڈیو ڈاؤن لوڈ کریں\n.dl <url> 720p - کوالٹی بیان کریں (240p, 360p, 480p, 720p, 1080p)",
+      "invalid_url": "❌ براہ کرم ایک درست URL فراہم کریں۔",
+      "unsupported": "❌ غیر معاون پلیٹ فارم۔ معاون: Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "downloading": "⏳ *{0}* سے ڈاؤن لوڈ ہو رہا ہے...",
+      "failed": "❌ ڈاؤن لوڈ ناکام۔ مواد نجی یا غیر دستیاب ہو سکتا ہے۔",
+      "success": "✅ *{0}* سے ڈاؤن لوڈ ہو گیا",
+      "error": "❌ خرابی: {0}"
     }
   },
   "extra": {

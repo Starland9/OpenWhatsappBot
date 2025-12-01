@@ -330,6 +330,16 @@
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ Diaktifkan",
       "status_disabled": "❌ Dinonaktifkan"
+    },
+    "socialdl": {
+      "desc": "Unduh media dari Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "usage": "*Pengunduh Media Sosial*\n\n.dl <url> - Deteksi otomatis dan unduh\n\n*Platform yang didukung:*\n• Instagram (postingan, reels, stories)\n• YouTube (video/audio)\n• TikTok\n• Spotify\n• Facebook\n• Pinterest\n\n*Opsi YouTube:*\n.dl <url> audio - Unduh audio saja\n.dl <url> 720p - Tentukan kualitas (240p, 360p, 480p, 720p, 1080p)",
+      "invalid_url": "❌ Harap berikan URL yang valid.",
+      "unsupported": "❌ Platform tidak didukung. Didukung: Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "downloading": "⏳ Mengunduh dari *{0}*...",
+      "failed": "❌ Unduhan gagal. Konten mungkin privat atau tidak tersedia.",
+      "success": "✅ Diunduh dari *{0}*",
+      "error": "❌ Error: {0}"
     }
   },
   "extra": {

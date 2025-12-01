@@ -328,6 +328,16 @@
     },
     "common": {
       "not_admin": "❌ Bot must be admin to perform this action."
+    },
+    "socialdl": {
+      "desc": "Descargar medios de Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "usage": "*Descargador de Redes Sociales*\n\n.dl <url> - Detección automática y descarga\n\n*Plataformas soportadas:*\n• Instagram (posts, reels, stories)\n• YouTube (video/audio)\n• TikTok\n• Spotify\n• Facebook\n• Pinterest\n\n*Opciones de YouTube:*\n.dl <url> audio - Descargar solo audio\n.dl <url> 720p - Especificar calidad (240p, 360p, 480p, 720p, 1080p)",
+      "invalid_url": "❌ Por favor proporcione una URL válida.",
+      "unsupported": "❌ Plataforma no soportada. Soportadas: Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "downloading": "⏳ Descargando desde *{0}*...",
+      "failed": "❌ Descarga fallida. El contenido puede ser privado o no disponible.",
+      "success": "✅ Descargado desde *{0}*",
+      "error": "❌ Error: {0}"
     }
   },
   "extra": {

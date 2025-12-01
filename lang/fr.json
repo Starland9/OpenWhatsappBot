@@ -327,6 +327,17 @@
       "location_not_found": "❌ Localisation non trouvée.",
       "error": "❌ Erreur météo: {0}"
     },
+    "save": {
+      "desc": "Sauvegarder un statut dans votre boîte de réception",
+      "reply_required": "❌ Veuillez répondre à un statut pour le sauvegarder.",
+      "no_message": "❌ Aucun message trouvé à sauvegarder.",
+      "no_media": "❌ Aucun média trouvé dans ce statut.",
+      "no_sudo": "❌ SUDO non configuré. Veuillez ajouter SUDO dans config.env.",
+      "download_failed": "❌ Échec du téléchargement du média.",
+      "saved": "✅ Statut sauvegardé dans votre boîte de réception!",
+      "status_from": "Statut de",
+      "error": "❌ Erreur: {0}"
+    },
     "common": {
       "not_admin": "❌ Le bot doit être administrateur pour effectuer cette action.",
       "status_enabled": "✅ Activé",

@@ -1,9 +1,6 @@
 const { getLang } = require("../lib/utils/language");
 const axios = require("axios");
 const cheerio = require("cheerio");
-const config = require("../config");
-const fs = require("fs").promises;
-const path = require("path");
 
 /**
  * Multi-Social Media Downloader Plugin
@@ -26,43 +23,76 @@ function getRandomIP() {
   return `${gen()}.${gen()}.${gen()}.${gen()}`;
 }
 
-// Platform detection
+// Platform detection using proper URL parsing
 function detectPlatform(url) {
   if (!url) return null;
-  const lowerUrl = url.toLowerCase();
+  
+  let hostname;
+  try {
+    const parsedUrl = new URL(url);
+    hostname = parsedUrl.hostname.toLowerCase();
+  } catch {
+    // If URL parsing fails, return null
+    return null;
+  }
 
+  // Check Instagram
   if (
-    lowerUrl.includes("instagram.com") ||
-    lowerUrl.includes("instagr.am")
+    hostname === "instagram.com" ||
+    hostname === "www.instagram.com" ||
+    hostname === "instagr.am" ||
+    hostname === "www.instagr.am"
   ) {
     return "instagram";
   }
+  
+  // Check YouTube
   if (
-    lowerUrl.includes("youtube.com") ||
-    lowerUrl.includes("youtu.be")
+    hostname === "youtube.com" ||
+    hostname === "www.youtube.com" ||
+    hostname === "m.youtube.com" ||
+    hostname === "youtu.be"
   ) {
     return "youtube";
   }
+  
+  // Check TikTok
   if (
-    lowerUrl.includes("tiktok.com") ||
-    lowerUrl.includes("vm.tiktok.com")
+    hostname === "tiktok.com" ||
+    hostname === "www.tiktok.com" ||
+    hostname === "vm.tiktok.com" ||
+    hostname === "m.tiktok.com"
   ) {
     return "tiktok";
   }
+  
+  // Check Spotify
   if (
-    lowerUrl.includes("spotify.com") ||
-    lowerUrl.includes("open.spotify.com")
+    hostname === "spotify.com" ||
+    hostname === "open.spotify.com" ||
+    hostname === "www.spotify.com"
   ) {
     return "spotify";
   }
+  
+  // Check Facebook
   if (
-    lowerUrl.includes("facebook.com") ||
-    lowerUrl.includes("fb.watch") ||
-    lowerUrl.includes("fb.com")
+    hostname === "facebook.com" ||
+    hostname === "www.facebook.com" ||
+    hostname === "m.facebook.com" ||
+    hostname === "fb.watch" ||
+    hostname === "fb.com" ||
+    hostname === "www.fb.com"
   ) {
     return "facebook";
   }
-  if (lowerUrl.includes("pinterest.com") || lowerUrl.includes("pin.it")) {
+  
+  // Check Pinterest
+  if (
+    hostname === "pinterest.com" ||
+    hostname === "www.pinterest.com" ||
+    hostname === "pin.it"
+  ) {
     return "pinterest";
   }
 
@@ -502,10 +532,15 @@ module.exports = {
           // Parse options from args (e.g., "url audio" or "url 720p")
           const argsLower = input.toLowerCase();
           const isAudio = argsLower.includes("audio");
+          // Find quality - prioritize higher quality (first in the list that matches)
           let quality = "720p";
-          ["1080p", "720p", "480p", "360p", "240p"].forEach((q) => {
-            if (argsLower.includes(q)) quality = q;
-          });
+          const qualities = ["1080p", "720p", "480p", "360p", "240p"];
+          for (const q of qualities) {
+            if (argsLower.includes(q)) {
+              quality = q;
+              break;
+            }
+          }
           result = await downloadYoutube(
             url,
             isAudio ? "audio" : "video",

@@ -7,6 +7,20 @@ const {
 const config = require("../config");
 
 /**
+ * Get the SUDO user's JID for inbox
+ * @returns {string|null} The target JID or null if not configured
+ */
+function getSudoJid() {
+  const sudoNumber = config.SUDO.split(",")[0].trim();
+  if (!sudoNumber) {
+    return null;
+  }
+  return sudoNumber.includes("@")
+    ? sudoNumber
+    : `${sudoNumber}@s.whatsapp.net`;
+}
+
+/**
  * Save Status - Download and save status media to inbox
  * Command: .save
  * Reply to a status update to save the media to your inbox
@@ -70,15 +84,11 @@ module.exports = {
         const text = content.extendedTextMessage.text || "";
         if (text) {
           // Get sudo's JID for inbox
-          const sudoNumber = config.SUDO.split(",")[0].trim();
-          if (!sudoNumber) {
+          const targetJid = getSudoJid();
+          if (!targetJid) {
             await message.react("❌");
             return await message.reply(getLang("plugins.save.no_sudo"));
           }
-
-          const targetJid = sudoNumber.includes("@")
-            ? sudoNumber
-            : `${sudoNumber}@s.whatsapp.net`;
 
           // Send text status to inbox
           const sender = message.quoted.sender || "Unknown";
@@ -170,15 +180,11 @@ module.exports = {
       }
 
       // Get sudo's JID for inbox
-      const sudoNumber = config.SUDO.split(",")[0].trim();
-      if (!sudoNumber) {
+      const targetJid = getSudoJid();
+      if (!targetJid) {
         await message.react("❌");
         return await message.reply(getLang("plugins.save.no_sudo"));
       }
-
-      const targetJid = sudoNumber.includes("@")
-        ? sudoNumber
-        : `${sudoNumber}@s.whatsapp.net`;
 
       // Prepare caption with sender info
       const sender = message.quoted.sender || "Unknown";

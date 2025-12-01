@@ -316,15 +316,15 @@
       "error": "❌ Weather error: {0}"
     },
     "save": {
-      "desc": "Save status to your inbox",
-      "reply_required": "❌ Please reply to a status to save it.",
-      "no_message": "❌ No message found to save.",
-      "no_media": "❌ No media found in this status.",
-      "no_sudo": "❌ SUDO not configured. Please add SUDO in config.env.",
-      "download_failed": "❌ Failed to download media.",
-      "saved": "✅ Status saved to your inbox!",
-      "status_from": "Status from",
-      "error": "❌ Error: {0}"
+      "desc": "स्टेटस को अपने इनबॉक्स में सहेजें",
+      "reply_required": "❌ सहेजने के लिए किसी स्टेटस का जवाब दें।",
+      "no_message": "❌ सहेजने के लिए कोई संदेश नहीं मिला।",
+      "no_media": "❌ इस स्टेटस में कोई मीडिया नहीं मिला।",
+      "no_sudo": "❌ SUDO कॉन्फ़िगर नहीं है। कृपया config.env में SUDO जोड़ें।",
+      "download_failed": "❌ मीडिया डाउनलोड करने में विफल।",
+      "saved": "✅ स्टेटस आपके इनबॉक्स में सहेजा गया!",
+      "status_from": "स्टेटस प्रेषक",
+      "error": "❌ त्रुटि: {0}"
     },
     "common": {
       "not_admin": "❌ Bot must be admin to perform this action.",

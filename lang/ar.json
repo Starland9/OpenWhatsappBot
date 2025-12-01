@@ -316,15 +316,15 @@
       "error": "❌ Weather error: {0}"
     },
     "save": {
-      "desc": "Save status to your inbox",
-      "reply_required": "❌ Please reply to a status to save it.",
-      "no_message": "❌ No message found to save.",
-      "no_media": "❌ No media found in this status.",
-      "no_sudo": "❌ SUDO not configured. Please add SUDO in config.env.",
-      "download_failed": "❌ Failed to download media.",
-      "saved": "✅ Status saved to your inbox!",
-      "status_from": "Status from",
-      "error": "❌ Error: {0}"
+      "desc": "حفظ الحالة في صندوق الوارد الخاص بك",
+      "reply_required": "❌ يرجى الرد على حالة لحفظها.",
+      "no_message": "❌ لم يتم العثور على رسالة لحفظها.",
+      "no_media": "❌ لم يتم العثور على وسائط في هذه الحالة.",
+      "no_sudo": "❌ لم يتم تكوين SUDO. يرجى إضافة SUDO في config.env.",
+      "download_failed": "❌ فشل تحميل الوسائط.",
+      "saved": "✅ تم حفظ الحالة في صندوق الوارد الخاص بك!",
+      "status_from": "حالة من",
+      "error": "❌ خطأ: {0}"
     },
     "common": {
       "not_admin": "❌ Bot must be admin to perform this action.",

@@ -330,6 +330,16 @@
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ مفعل",
       "status_disabled": "❌ معطل"
+    },
+    "socialdl": {
+      "desc": "تحميل الوسائط من Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "usage": "*محمل وسائل التواصل الاجتماعي*\n\n.dl <url> - كشف تلقائي وتحميل\n\n*المنصات المدعومة:*\n• Instagram (منشورات، ريلز، قصص)\n• YouTube (فيديو/صوت)\n• TikTok\n• Spotify\n• Facebook\n• Pinterest\n\n*خيارات YouTube:*\n.dl <url> audio - تحميل الصوت فقط\n.dl <url> 720p - تحديد الجودة (240p, 360p, 480p, 720p, 1080p)",
+      "invalid_url": "❌ يرجى تقديم رابط صالح.",
+      "unsupported": "❌ منصة غير مدعومة. المدعومة: Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "downloading": "⏳ جاري التحميل من *{0}*...",
+      "failed": "❌ فشل التحميل. قد يكون المحتوى خاصاً أو غير متاح.",
+      "success": "✅ تم التحميل من *{0}*",
+      "error": "❌ خطأ: {0}"
     }
   },
   "extra": {

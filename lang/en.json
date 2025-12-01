@@ -342,6 +342,16 @@
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ Enabled",
       "status_disabled": "❌ Disabled"
+    },
+    "socialdl": {
+      "desc": "Download media from Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "usage": "*Social Media Downloader*\n\n.dl <url> - Auto-detect and download\n\n*Supported platforms:*\n• Instagram (posts, reels, stories)\n• YouTube (video/audio)\n• TikTok\n• Spotify\n• Facebook\n• Pinterest\n\n*YouTube options:*\n.dl <url> audio - Download audio only\n.dl <url> 720p - Specify quality (240p, 360p, 480p, 720p, 1080p)",
+      "invalid_url": "❌ Please provide a valid URL.",
+      "unsupported": "❌ Unsupported platform. Supported: Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "downloading": "⏳ Downloading from *{0}*...",
+      "failed": "❌ Download failed. The content may be private or unavailable.",
+      "success": "✅ Downloaded from *{0}*",
+      "error": "❌ Error: {0}"
     }
   },
   "extra": {

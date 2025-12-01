@@ -330,6 +330,16 @@
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ Etkin",
       "status_disabled": "❌ Devre Dışı"
+    },
+    "socialdl": {
+      "desc": "Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest'den medya indir",
+      "usage": "*Sosyal Medya İndirici*\n\n.dl <url> - Otomatik algıla ve indir\n\n*Desteklenen platformlar:*\n• Instagram (gönderiler, reels, hikayeler)\n• YouTube (video/ses)\n• TikTok\n• Spotify\n• Facebook\n• Pinterest\n\n*YouTube seçenekleri:*\n.dl <url> audio - Sadece ses indir\n.dl <url> 720p - Kalite belirt (240p, 360p, 480p, 720p, 1080p)",
+      "invalid_url": "❌ Lütfen geçerli bir URL girin.",
+      "unsupported": "❌ Desteklenmeyen platform. Desteklenen: Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest",
+      "downloading": "⏳ *{0}* üzerinden indiriliyor...",
+      "failed": "❌ İndirme başarısız. İçerik özel veya mevcut olmayabilir.",
+      "success": "✅ *{0}* üzerinden indirildi",
+      "error": "❌ Hata: {0}"
     }
   },
   "extra": {

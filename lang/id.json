@@ -315,6 +315,17 @@
       "location_not_found": "❌ Location not found.",
       "error": "❌ Weather error: {0}"
     },
+    "save": {
+      "desc": "Simpan status ke kotak masuk Anda",
+      "reply_required": "❌ Silakan balas status untuk menyimpannya.",
+      "no_message": "❌ Tidak ada pesan yang ditemukan untuk disimpan.",
+      "no_media": "❌ Tidak ada media yang ditemukan dalam status ini.",
+      "no_sudo": "❌ SUDO tidak dikonfigurasi. Silakan tambahkan SUDO di config.env.",
+      "download_failed": "❌ Gagal mengunduh media.",
+      "saved": "✅ Status disimpan ke kotak masuk Anda!",
+      "status_from": "Status dari",
+      "error": "❌ Error: {0}"
+    },
     "common": {
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ Diaktifkan",

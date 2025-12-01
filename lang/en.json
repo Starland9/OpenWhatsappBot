@@ -327,6 +327,17 @@
       "location_not_found": "❌ Location not found.",
       "error": "❌ Weather error: {0}"
     },
+    "save": {
+      "desc": "Save status to your inbox",
+      "reply_required": "❌ Please reply to a status to save it.",
+      "no_message": "❌ No message found to save.",
+      "no_media": "❌ No media found in this status.",
+      "no_sudo": "❌ SUDO not configured. Please add SUDO in config.env.",
+      "download_failed": "❌ Failed to download media.",
+      "saved": "✅ Status saved to your inbox!",
+      "status_from": "Status from",
+      "error": "❌ Error: {0}"
+    },
     "common": {
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ Enabled",

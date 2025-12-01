@@ -315,6 +315,17 @@
       "location_not_found": "❌ Location not found.",
       "error": "❌ Weather error: {0}"
     },
+    "save": {
+      "desc": "Durumu gelen kutunuza kaydedin",
+      "reply_required": "❌ Kaydetmek için lütfen bir duruma yanıt verin.",
+      "no_message": "❌ Kaydedilecek mesaj bulunamadı.",
+      "no_media": "❌ Bu durumda medya bulunamadı.",
+      "no_sudo": "❌ SUDO yapılandırılmamış. Lütfen config.env'ye SUDO ekleyin.",
+      "download_failed": "❌ Medya indirilemedi.",
+      "saved": "✅ Durum gelen kutunuza kaydedildi!",
+      "status_from": "Şu kişiden durum",
+      "error": "❌ Hata: {0}"
+    },
     "common": {
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ Etkin",

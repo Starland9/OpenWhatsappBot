@@ -315,6 +315,17 @@
       "location_not_found": "❌ Location not found.",
       "error": "❌ Weather error: {0}"
     },
+    "save": {
+      "desc": "Guardar estado en tu bandeja de entrada",
+      "reply_required": "❌ Por favor responde a un estado para guardarlo.",
+      "no_message": "❌ No se encontró ningún mensaje para guardar.",
+      "no_media": "❌ No se encontró ningún medio en este estado.",
+      "no_sudo": "❌ SUDO no configurado. Por favor añade SUDO en config.env.",
+      "download_failed": "❌ Error al descargar el medio.",
+      "saved": "✅ ¡Estado guardado en tu bandeja de entrada!",
+      "status_from": "Estado de",
+      "error": "❌ Error: {0}"
+    },
     "common": {
       "not_admin": "❌ Bot must be admin to perform this action."
     }

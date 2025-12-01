@@ -315,6 +315,17 @@
       "location_not_found": "❌ Location not found.",
       "error": "❌ Weather error: {0}"
     },
+    "save": {
+      "desc": "Сохранить статус во входящие",
+      "reply_required": "❌ Пожалуйста, ответьте на статус, чтобы сохранить его.",
+      "no_message": "❌ Сообщение для сохранения не найдено.",
+      "no_media": "❌ Медиа не найдено в этом статусе.",
+      "no_sudo": "❌ SUDO не настроен. Пожалуйста, добавьте SUDO в config.env.",
+      "download_failed": "❌ Не удалось загрузить медиа.",
+      "saved": "✅ Статус сохранён во входящие!",
+      "status_from": "Статус от",
+      "error": "❌ Ошибка: {0}"
+    },
     "common": {
       "not_admin": "❌ Bot must be admin to perform this action.",
       "status_enabled": "✅ Включено",

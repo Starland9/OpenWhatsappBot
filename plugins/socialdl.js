@@ -1,38 +1,24 @@
 const { getLang } = require("../lib/utils/language");
 const axios = require("axios");
-const cheerio = require("cheerio");
+const config = require("../config");
 
 /**
  * Multi-Social Media Downloader Plugin
  * Download content from Instagram, YouTube, TikTok, Spotify, Facebook, Pinterest
+ * Uses a backend proxy API for reliable downloads
  */
 
-// User agents for requests
-const USER_AGENTS = [
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-];
-
-function getRandomUserAgent() {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-}
-
-function getRandomIP() {
-  const gen = () => Math.floor(Math.random() * 190) + 10;
-  return `${gen()}.${gen()}.${gen()}.${gen()}`;
-}
+const BACKEND_URL = config.BACKEND_URL || "https://api.socialdl.starland9.dev";
 
 // Platform detection using proper URL parsing
 function detectPlatform(url) {
   if (!url) return null;
-  
+
   let hostname;
   try {
     const parsedUrl = new URL(url);
     hostname = parsedUrl.hostname.toLowerCase();
   } catch {
-    // If URL parsing fails, return null
     return null;
   }
 
@@ -45,7 +31,7 @@ function detectPlatform(url) {
   ) {
     return "instagram";
   }
-  
+
   // Check YouTube
   if (
     hostname === "youtube.com" ||
@@ -55,7 +41,7 @@ function detectPlatform(url) {
   ) {
     return "youtube";
   }
-  
+
   // Check TikTok
   if (
     hostname === "tiktok.com" ||
@@ -65,7 +51,7 @@ function detectPlatform(url) {
   ) {
     return "tiktok";
   }
-  
+
   // Check Spotify
   if (
     hostname === "spotify.com" ||
@@ -74,7 +60,7 @@ function detectPlatform(url) {
   ) {
     return "spotify";
   }
-  
+
   // Check Facebook
   if (
     hostname === "facebook.com" ||
@@ -86,7 +72,7 @@ function detectPlatform(url) {
   ) {
     return "facebook";
   }
-  
+
   // Check Pinterest
   if (
     hostname === "pinterest.com" ||
@@ -106,387 +92,69 @@ function extractUrl(text) {
   return matches ? matches[0] : null;
 }
 
-// Instagram Downloader
+// Generic proxy POST function
+async function proxyPost(path, body) {
+  try {
+    const url = `${BACKEND_URL}${path}`;
+    const resp = await axios.post(url, body, { timeout: 30000 });
+    return resp.data;
+  } catch (err) {
+    if (err.response) {
+      return err.response.data || { status: "failed", reason: "backend error" };
+    }
+    return { status: "failed", reason: err.message || "internal error" };
+  }
+}
+
+// Instagram Downloader via proxy
 async function downloadInstagram(url) {
-  try {
-    const session = axios.create({
-      headers: {
-        "User-Agent": getRandomUserAgent(),
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-      },
-      timeout: 30000,
-    });
-
-    // Get session token
-    const tokenResponse = await session.get("https://indown.io/reels");
-    if (tokenResponse.status !== 200) {
-      throw new Error("Failed to get session token");
-    }
-
-    const $ = cheerio.load(tokenResponse.data);
-    const token = $('input[name="_token"]').val();
-
-    if (!token) {
-      throw new Error("Could not extract session token");
-    }
-
-    // Download request
-    const downloadResponse = await session.post(
-      "https://indown.io/download",
-      new URLSearchParams({
-        referer: "https://indown.io/reels",
-        locale: "en",
-        _token: token,
-        link: url,
-        p: "i",
-      }),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Referer: "https://indown.io/reels",
-        },
-        maxRedirects: 5,
-      }
-    );
-
-    if (downloadResponse.status !== 200) {
-      throw new Error("Download request failed");
-    }
-
-    const $dl = cheerio.load(downloadResponse.data);
-    const videoSource = $dl("video.img-fluid source").attr("src");
-
-    if (videoSource) {
-      return { url: videoSource, type: "video" };
-    }
-
-    // Try to find image
-    const imageUrl = $dl("a.download-button").attr("href");
-    if (imageUrl) {
-      return { url: imageUrl, type: "image" };
-    }
-
-    throw new Error("Could not extract media URL");
-  } catch (error) {
-    console.error("Instagram download error:", error.message);
+  const result = await proxyPost("/insta", { url });
+  if (result.status === "failed") {
     return null;
   }
+  return result;
 }
 
-// YouTube Downloader
+// YouTube Downloader via proxy
 async function downloadYoutube(url, type = "video", quality = "720p") {
-  try {
-    const session = axios.create({
-      headers: {
-        "User-Agent": getRandomUserAgent(),
-        Accept: "*/*",
-      },
-      timeout: 30000,
-    });
-
-    // Get initial page
-    const initResponse = await session.get("https://ytdown.to/en2/");
-    if (initResponse.status !== 200) {
-      return { status: "failed", reason: "Failed to initialize" };
-    }
-
-    // Request download
-    const response = await session.post("https://ytdown.to/proxy.php", {
-      url: url,
-    });
-
-    if (response.status !== 200) {
-      return { status: "failed", reason: "Request failed" };
-    }
-
-    if (
-      typeof response.data === "string" &&
-      response.data.includes("Media unavailable")
-    ) {
-      return { status: "failed", reason: "The Link is unavailable" };
-    }
-
-    if (
-      typeof response.data === "string" &&
-      response.data.includes("Too many requests")
-    ) {
-      return { status: "failed", reason: "Too many requests" };
-    }
-
-    if (response.data && response.data.api && response.data.api.mediaItems) {
-      const mediaItems = response.data.api.mediaItems;
-      const isVideo = type.toLowerCase() === "video";
-      const isAudio = type.toLowerCase() === "audio";
-
-      for (const item of mediaItems) {
-        if (item.type === "Video" && isVideo) {
-          const validQualities = ["1080p", "720p", "480p", "360p", "240p"];
-          if (!validQualities.includes(quality.toLowerCase())) {
-            return {
-              status: "failed",
-              reason: "Invalid quality. Use: 1080p, 720p, 480p, 360p, 240p",
-            };
-          }
-          if (
-            item.mediaUrl &&
-            item.mediaUrl.toLowerCase().includes(quality.toLowerCase())
-          ) {
-            return {
-              status: "success",
-              url: item.mediaUrl,
-              type: "video",
-              quality: quality,
-            };
-          }
-        } else if (item.type === "Audio" && isAudio) {
-          if (item.mediaUrl) {
-            return {
-              status: "success",
-              url: item.mediaUrl,
-              type: "audio",
-            };
-          }
-        }
-      }
-    }
-
-    return { status: "failed", reason: "Could not find media" };
-  } catch (error) {
-    console.error("YouTube download error:", error.message);
-    return { status: "failed", reason: error.message };
-  }
+  const result = await proxyPost("/yt", { url, type, quality });
+  return result;
 }
 
-// TikTok Downloader
+// TikTok Downloader via proxy
 async function downloadTiktok(url) {
-  try {
-    const session = axios.create({
-      headers: {
-        "User-Agent": getRandomUserAgent(),
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-      },
-      timeout: 30000,
-    });
-
-    const randomIP = getRandomIP();
-
-    // Get initial download URL
-    const response = await session.post(
-      "https://ssstik.io/abc",
-      new URLSearchParams({
-        id: url,
-        locale: "en",
-        tt: "cEd5alY4",
-        debug: `ab=0&loc=USA&ip=${randomIP}`,
-      }),
-      {
-        params: { url: "dl" },
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-
-    if (response.status !== 200) {
-      throw new Error("Initial request failed");
-    }
-
-    const $ = cheerio.load(response.data);
-    const hdDownloadUrl = $("#hd_download").attr("data-directurl");
-
-    if (!hdDownloadUrl) {
-      throw new Error("Could not find download URL");
-    }
-
-    // Get final URL
-    const tt = new URLSearchParams(hdDownloadUrl.split("?")[1]).get("tt");
-    const finalResponse = await session.post(
-      `https://ssstik.io${hdDownloadUrl}`,
-      new URLSearchParams({ tt: tt }),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        maxRedirects: 0,
-        validateStatus: (status) => status >= 200 && status < 400,
-      }
-    );
-
-    if (finalResponse.headers["hx-redirect"]) {
-      let redirectUrl = finalResponse.headers["hx-redirect"];
-
-      // Decode base64 if needed
-      if (redirectUrl.includes("tikcdn.io/ssstik/")) {
-        const base64Part = redirectUrl.replace(
-          "https://tikcdn.io/ssstik/",
-          ""
-        );
-        try {
-          const decoded = Buffer.from(base64Part, "base64").toString("utf8");
-          return { url: decoded, type: "video" };
-        } catch {
-          return { url: redirectUrl, type: "video" };
-        }
-      }
-
-      return { url: redirectUrl, type: "video" };
-    }
-
-    throw new Error("Could not get final download URL");
-  } catch (error) {
-    console.error("TikTok download error:", error.message);
+  const result = await proxyPost("/tiktok", { url });
+  if (result.status === "failed") {
     return null;
   }
+  return result;
 }
 
-// Spotify Downloader
+// Spotify Downloader via proxy
 async function downloadSpotify(url) {
-  try {
-    const session = axios.create({
-      headers: {
-        "User-Agent": getRandomUserAgent(),
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-      },
-      timeout: 30000,
-    });
-
-    // Get CSRF token
-    const tokenResponse = await session.get("https://spotmate.online/en1");
-    if (tokenResponse.status !== 200) {
-      throw new Error("Failed to get CSRF token");
-    }
-
-    const $ = cheerio.load(tokenResponse.data);
-    const csrfToken = $('meta[name="csrf-token"]').attr("content");
-
-    if (!csrfToken) {
-      throw new Error("Could not extract CSRF token");
-    }
-
-    // Request conversion
-    const convertResponse = await session.post(
-      "https://spotmate.online/convert",
-      { urls: url },
-      {
-        headers: {
-          "X-Csrf-Token": csrfToken,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (convertResponse.status === 200 && convertResponse.data.url) {
-      return {
-        url: convertResponse.data.url.replace(/\\/g, ""),
-        type: "audio",
-      };
-    }
-
-    throw new Error("Conversion failed");
-  } catch (error) {
-    console.error("Spotify download error:", error.message);
+  const result = await proxyPost("/spotify", { url });
+  if (result.status === "failed") {
     return null;
   }
+  return result;
 }
 
-// Facebook Downloader
+// Facebook Downloader via proxy
 async function downloadFacebook(url) {
-  try {
-    const response = await axios.post(
-      "https://fdown.net/download.php",
-      new URLSearchParams({ URLz: url }),
-      {
-        headers: {
-          "User-Agent": getRandomUserAgent(),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        timeout: 30000,
-      }
-    );
-
-    if (response.status !== 200) {
-      throw new Error("Request failed");
-    }
-
-    const $ = cheerio.load(response.data);
-    const downloadUrl = $("a.btn.btn-primary.btn-sm").attr("href");
-
-    if (downloadUrl) {
-      return { url: downloadUrl, type: "video" };
-    }
-
-    throw new Error("Could not find download URL");
-  } catch (error) {
-    console.error("Facebook download error:", error.message);
+  const result = await proxyPost("/facebook", { url });
+  if (result.status === "failed") {
     return null;
   }
+  return result;
 }
 
-// Pinterest Downloader
+// Pinterest Downloader via proxy
 async function downloadPinterest(url) {
-  try {
-    const session = axios.create({
-      headers: {
-        "User-Agent": getRandomUserAgent(),
-      },
-      timeout: 30000,
-    });
-
-    // Get CSRF token
-    const tokenResponse = await session.get(
-      `https://klickpin.com/get-csrf-token.php?t=${Date.now()}`
-    );
-
-    if (
-      tokenResponse.status !== 200 ||
-      !tokenResponse.data ||
-      !tokenResponse.data.csrf_token
-    ) {
-      throw new Error("Failed to get CSRF token");
-    }
-
-    const csrfToken = tokenResponse.data.csrf_token;
-
-    // Request download
-    const downloadResponse = await session.post(
-      "https://klickpin.com/download",
-      new URLSearchParams({
-        url: url,
-        csrf_token: csrfToken,
-      }),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-
-    if (downloadResponse.status !== 200) {
-      throw new Error("Download request failed");
-    }
-
-    const $ = cheerio.load(downloadResponse.data);
-
-    // Check for image
-    const imageUrl = $("a.custom-button-style3").attr("href");
-    if (imageUrl) {
-      return { url: imageUrl, type: "image" };
-    }
-
-    // Check for video
-    const videoUrl = $("video#myVideo").attr("src");
-    if (videoUrl) {
-      return { url: videoUrl, type: "video" };
-    }
-
-    throw new Error("Could not find media URL");
-  } catch (error) {
-    console.error("Pinterest download error:", error.message);
+  const result = await proxyPost("/pinterest", { url });
+  if (result.status === "failed") {
     return null;
   }
+  return result;
 }
 
 // Main plugin export
@@ -578,9 +246,6 @@ module.exports = {
         responseType: "arraybuffer",
         timeout: 120000,
         maxContentLength: 100 * 1024 * 1024, // 100MB max
-        headers: {
-          "User-Agent": getRandomUserAgent(),
-        },
       });
 
       const buffer = Buffer.from(mediaResponse.data);

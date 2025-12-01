@@ -79,6 +79,9 @@ module.exports = {
   SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || "",
   SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || "",
 
+  // Social DL Backend
+  BACKEND_URL: process.env.BACKEND_URL || "https://api.socialdl.starland9.dev",
+
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || "info",
   BAILEYS_LOG_LVL: process.env.BAILEYS_LOG_LVL || "silent",

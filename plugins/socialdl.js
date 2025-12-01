@@ -118,6 +118,8 @@ async function downloadInstagram(url) {
 // YouTube Downloader via proxy
 async function downloadYoutube(url, type = "video", quality = "720p") {
   const result = await proxyPost("/yt", { url, type, quality });
+  // YouTube returns status: "success" or "failed" with reason
+  // We return the full result for caller to handle
   return result;
 }
 

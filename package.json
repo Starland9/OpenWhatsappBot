@@ -8,6 +8,8 @@
     "dev": "node index.js",
     "docker": "pm2-runtime start . --name open-whatsapp-bot",
     "stop": "pm2 stop open-whatsapp-bot",
+    "panel": "node panel.js",
+    "panel:pm2": "pm2 start panel.js --attach --name open-whatsapp-bot-panel",
     "postinstall": "node -e \"try { require('sharp') } catch (e) { process.exit(1); }\" || yarn add --ignore-engines sharp@0.33.5"
   },
   "author": "Landry Simo",

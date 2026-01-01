@@ -716,6 +716,300 @@ module.exports = {
   },
 
   /**
+   * Hosting page - Bot-hosting.net deployment guide
+   */
+  hosting() {
+    return `
+            <section class="section">
+                <div class="container">
+                    <div class="content-container">
+                        <h1 style="margin-bottom: var(--space-2);">🌐 Déploiement sur Bot-Hosting.net</h1>
+                        <p style="font-size: var(--text-lg); color: var(--text-secondary); margin-bottom: var(--space-8);">
+                            Guide complet pour déployer OpenWhatsappBot sur les plateformes d'hébergement avec panel
+                        </p>
+
+                        <!-- Why Panel -->
+                        <div class="alert alert-info" style="margin-bottom: var(--space-8);">
+                            <span class="alert-icon">💡</span>
+                            <div class="alert-content">
+                                <div class="alert-title">Pourquoi panel.js ?</div>
+                                <p style="margin: 0;">Le fichier panel.js fournit un serveur HTTP avec des endpoints de monitoring, nécessaires pour les plateformes qui vérifient la disponibilité via HTTP.</p>
+                            </div>
+                        </div>
+
+                        <!-- Prerequisites -->
+                        <h2 style="margin-bottom: var(--space-4);">📋 Prérequis</h2>
+                        <div class="card" style="margin-bottom: var(--space-8);">
+                            <div class="feature-list">
+                                ${Components.featureItem(
+                                  "Compte sur bot-hosting.net ou plateforme similaire"
+                                )}
+                                ${Components.featureItem(
+                                  "Plan avec support Node.js 20+"
+                                )}
+                                ${Components.featureItem(
+                                  "Accès au gestionnaire de fichiers"
+                                )}
+                                ${Components.featureItem("Compte WhatsApp actif")}
+                            </div>
+                        </div>
+
+                        <!-- Steps -->
+                        <h2 style="margin-bottom: var(--space-6);">🚀 Déploiement Étape par Étape</h2>
+                        <div class="steps-container" style="margin-bottom: var(--space-12);">
+                            <div class="steps-line"></div>
+                            
+                            <div class="step">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h3 class="step-title">Créer un Service</h3>
+                                    <p class="step-desc">Sur votre dashboard, créez un nouveau service Node.js</p>
+                                </div>
+                            </div>
+
+                            <div class="step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h3 class="step-title">Cloner le Repository</h3>
+                                    <p class="step-desc">Dans le terminal du panel, exécutez :</p>
+                                    ${Components.codeBlock(
+                                      "bash",
+                                      "git clone https://github.com/Starland9/OpenWhatsappBot ."
+                                    )}
+                                </div>
+                            </div>
+
+                            <div class="step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h3 class="step-title">Installer les Dépendances</h3>
+                                    <p class="step-desc">Installez toutes les librairies nécessaires :</p>
+                                    ${Components.codeBlock("bash", "yarn install")}
+                                </div>
+                            </div>
+
+                            <div class="step">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <h3 class="step-title">Configurer l'Environnement</h3>
+                                    <p class="step-desc">Créez et éditez config.env :</p>
+                                    ${Components.codeBlock(
+                                      "bash",
+                                      "cp config.env.example config.env"
+                                    )}
+                                    <p class="step-desc" style="margin-top: var(--space-3);">Configuration minimale :</p>
+                                    ${Components.codeBlock(
+                                      "env",
+                                      "PREFIX=.\nSUDO=33612345678\nPANEL_ENABLED=true\nPANEL_PORT=3000\nGEMINI_API_KEY=votre_cle"
+                                    )}
+                                </div>
+                            </div>
+
+                            <div class="step">
+                                <div class="step-number">5</div>
+                                <div class="step-content">
+                                    <h3 class="step-title">Configurer le Démarrage</h3>
+                                    <p class="step-desc">Dans les paramètres du service, définissez la commande :</p>
+                                    ${Components.codeBlock("bash", "node panel.js")}
+                                    <p class="step-desc" style="margin-top: var(--space-3);">Ou avec PM2 :</p>
+                                    ${Components.codeBlock(
+                                      "bash",
+                                      "pm2 start panel.js --name bot"
+                                    )}
+                                </div>
+                            </div>
+
+                            <div class="step">
+                                <div class="step-number">6</div>
+                                <div class="step-content">
+                                    <h3 class="step-title">Scanner le QR Code</h3>
+                                    <p class="step-desc">Démarrez le service, consultez les logs et scannez le QR code avec WhatsApp</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel Features -->
+                        <h2 style="margin-bottom: var(--space-4);">✨ Fonctionnalités du Panel</h2>
+                        <div class="grid-2" style="margin-bottom: var(--space-8);">
+                            ${Components.featureCard(
+                              "🏥",
+                              "Health Check",
+                              "Endpoint /health pour le monitoring de disponibilité"
+                            )}
+                            ${Components.featureCard(
+                              "📊",
+                              "Métriques",
+                              "Endpoint /metrics avec statistiques CPU, RAM et bot"
+                            )}
+                            ${Components.featureCard(
+                              "🔄",
+                              "Keep-Alive",
+                              "Ping automatique pour maintenir le service actif"
+                            )}
+                            ${Components.featureCard(
+                              "🌐",
+                              "Page Statut",
+                              "Interface web accessible via navigateur"
+                            )}
+                        </div>
+
+                        <!-- API Endpoints -->
+                        <h2 style="margin-bottom: var(--space-4);">📡 Endpoints API</h2>
+                        <div class="table-wrapper" style="margin-bottom: var(--space-8);">
+                            <table class="table-enhanced">
+                                <thead>
+                                    <tr>
+                                        <th>Endpoint</th>
+                                        <th>Méthode</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td><code>/health</code></td><td>GET</td><td>Vérifie l'état de santé du bot</td></tr>
+                                    <tr><td><code>/status</code></td><td>GET</td><td>Retourne le statut détaillé</td></tr>
+                                    <tr><td><code>/ping</code></td><td>GET</td><td>Test simple de disponibilité</td></tr>
+                                    <tr><td><code>/metrics</code></td><td>GET</td><td>Métriques système et bot</td></tr>
+                                    <tr><td><code>/api/info</code></td><td>GET</td><td>Informations sur le bot</td></tr>
+                                    <tr><td><code>/api/restart</code></td><td>POST</td><td>Déclenche un redémarrage</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Environment Variables -->
+                        <h2 style="margin-bottom: var(--space-4);">🔐 Variables Panel</h2>
+                        <div class="table-wrapper" style="margin-bottom: var(--space-8);">
+                            <table class="table-enhanced">
+                                <thead>
+                                    <tr>
+                                        <th>Variable</th>
+                                        <th>Description</th>
+                                        <th>Défaut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td><code>PANEL_ENABLED</code></td><td>Active le mode panel</td><td>false</td></tr>
+                                    <tr><td><code>PANEL_PORT</code></td><td>Port du serveur HTTP</td><td>3000</td></tr>
+                                    <tr><td><code>PANEL_HOST</code></td><td>Adresse d'écoute</td><td>0.0.0.0</td></tr>
+                                    <tr><td><code>KEEP_ALIVE_INTERVAL</code></td><td>Intervalle ping (ms)</td><td>60000</td></tr>
+                                    <tr><td><code>PORT</code></td><td>Port alternatif</td><td>3000</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Troubleshooting -->
+                        <h2 style="margin-bottom: var(--space-4);">🔧 Dépannage</h2>
+                        <div class="accordion" style="margin-bottom: var(--space-8);">
+                            <div class="accordion-item">
+                                <button class="accordion-header">
+                                    <span>Le bot ne démarre pas</span>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M6 9l6 6 6-6"></path>
+                                    </svg>
+                                </button>
+                                <div class="accordion-content">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Vérifiez que Node.js 20+ est utilisé (<code>node --version</code>)</li>
+                                            <li>Réinstallez les dépendances (<code>rm -rf node_modules && yarn install</code>)</li>
+                                            <li>Consultez les logs pour identifier l'erreur</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <button class="accordion-header">
+                                    <span>QR Code non affiché</span>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M6 9l6 6 6-6"></path>
+                                    </svg>
+                                </button>
+                                <div class="accordion-content">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Vérifiez que vous utilisez <code>panel.js</code> et non <code>index.js</code></li>
+                                            <li>Consultez les logs en temps réel</li>
+                                            <li>Attendez quelques secondes après le démarrage</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item">
+                                <button class="accordion-header">
+                                    <span>Le bot se déconnecte souvent</span>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M6 9l6 6 6-6"></path>
+                                    </svg>
+                                </button>
+                                <div class="accordion-content">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Augmentez <code>KEEP_ALIVE_INTERVAL</code> si nécessaire</li>
+                                            <li>Vérifiez les limites de mémoire de votre plan</li>
+                                            <li>Consultez <code>/metrics</code> pour le diagnostic</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item">
+                                <button class="accordion-header">
+                                    <span>Erreur "Port already in use"</span>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M6 9l6 6 6-6"></path>
+                                    </svg>
+                                </button>
+                                <div class="accordion-content">
+                                    <div class="accordion-body">
+                                        Changez le port dans <code>config.env</code> :
+                                        <pre><code>PANEL_PORT=3001</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comparison -->
+                        <h2 style="margin-bottom: var(--space-4);">📊 Comparaison index.js vs panel.js</h2>
+                        <div class="table-wrapper" style="margin-bottom: var(--space-8);">
+                            <table class="table-enhanced">
+                                <thead>
+                                    <tr>
+                                        <th>Aspect</th>
+                                        <th>index.js</th>
+                                        <th>panel.js</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>Serveur HTTP</td><td>❌ Non</td><td>✅ Oui (port 3000)</td></tr>
+                                    <tr><td>Health Check</td><td>❌ Non</td><td>✅ Oui</td></tr>
+                                    <tr><td>Métriques</td><td>❌ Non</td><td>✅ Oui</td></tr>
+                                    <tr><td>Page de Statut</td><td>❌ Non</td><td>✅ Oui</td></tr>
+                                    <tr><td>Usage recommandé</td><td>VPS/Local</td><td>bot-hosting.net</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="alert alert-success">
+                            <span class="alert-icon">✅</span>
+                            <div class="alert-content">
+                                <div class="alert-title">Compatible Partout</div>
+                                <p style="margin: 0;">panel.js fonctionne aussi sur VPS et en local. Utilisez-le si vous voulez monitorer votre bot via HTTP.</p>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: var(--space-8);">
+                            <a href="https://github.com/Starland9/OpenWhatsappBot/blob/master/docs/BOT_HOSTING_GUIDE.md" target="_blank" class="btn btn-primary btn-lg">
+                                📄 Guide Complet (Markdown) →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        `;
+  },
+
+  /**
    * 404 Not Found page
    */
   notFound() {

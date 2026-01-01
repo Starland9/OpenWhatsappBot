@@ -227,7 +227,32 @@ See [AUTO_RESPONDER_GUIDE.md](AUTO_RESPONDER_GUIDE.md) for detailed documentatio
 
 ## ☁️ Deployment
 
-### PM2 (Recommended)
+### Bot-Hosting.net / Panel Hosting (NEW!)
+
+For panel-based hosting platforms like bot-hosting.net:
+
+```bash
+# Clone and install
+git clone https://github.com/Starland9/OpenWhatsappBot .
+yarn install
+
+# Configure
+cp config.env.example config.env
+# Edit config.env with PANEL_ENABLED=true
+
+# Start with panel server
+node panel.js
+```
+
+The `panel.js` file provides:
+- 🏥 Health check endpoint (`/health`)
+- 📊 Metrics endpoint (`/metrics`)
+- 🔄 Keep-alive ping mechanism
+- 🌐 Status page accessible via browser
+
+See [Bot-Hosting Guide](docs/BOT_HOSTING_GUIDE.md) for detailed instructions.
+
+### PM2 (Recommended for VPS)
 
 ```bash
 pm2 start ecosystem.config.js

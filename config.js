@@ -158,4 +158,11 @@ module.exports = {
   MEMORY_CLEANUP_INTERVAL:
     parseInt(process.env.MEMORY_CLEANUP_INTERVAL) || 900000, // 15 minutes
   MEMORY_WARN_THRESHOLD: parseInt(process.env.MEMORY_WARN_THRESHOLD) || 400, // MB
+
+  // Panel Configuration (for bot-hosting.net and similar platforms)
+  PANEL_PORT: parseInt(process.env.PANEL_PORT) || parseInt(process.env.PORT) || 3000,
+  PANEL_HOST: process.env.PANEL_HOST || process.env.HOST || "0.0.0.0",
+  KEEP_ALIVE_INTERVAL:
+    parseInt(process.env.KEEP_ALIVE_INTERVAL) || 60000, // 60 seconds
+  PANEL_ENABLED: toBool(process.env.PANEL_ENABLED),
 };

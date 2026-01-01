@@ -18,7 +18,7 @@ const { Message } = require('./lib/classes/Message');
 const PluginLoader = require('./lib/plugins/loader');
 const { executeCommand, getPlugin } = require('./lib/plugins/registry');
 const { DATABASE, sync, StickerCommand } = require('./lib/database');
-const { VERSION, PREFIX } = require('./config');
+const config = require('./config');
 const autoResponderHandler = require('./lib/utils/autoResponderHandler');
 const viewOnceHandler = require('./lib/utils/viewOnceHandler');
 const antiDeleteHandler = require('./lib/utils/antiDeleteHandler');
@@ -38,10 +38,15 @@ const logger = pino({
   },
 });
 
-// Configuration
-const PORT = parseInt(process.env.PORT) || parseInt(process.env.PANEL_PORT) || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
-const KEEP_ALIVE_INTERVAL = parseInt(process.env.KEEP_ALIVE_INTERVAL) || 60000; // 60 seconds
+// Cache config values at module level for better performance
+const VERSION = config.VERSION;
+const PREFIX = config.PREFIX;
+const MESSAGE_CONCURRENCY_LIMIT = config.MESSAGE_CONCURRENCY_LIMIT;
+
+// Configuration - Use config.js values when available
+const PORT = config.PANEL_PORT || parseInt(process.env.PORT) || 3000;
+const HOST = config.PANEL_HOST || '0.0.0.0';
+const KEEP_ALIVE_INTERVAL = config.KEEP_ALIVE_INTERVAL || 60000; // 60 seconds
 
 // Bot state tracking
 let botState = {
@@ -460,6 +465,11 @@ function startKeepAlive() {
 
 /**
  * Process a single message
+ * 
+ * Note: setImmediate is used for anti-delete caching to make the operation
+ * non-blocking. This allows the main message processing to continue without
+ * waiting for caching. Any errors in caching are handled by the antiDeleteHandler
+ * internally and won't affect message processing.
  */
 async function processMessage(msg, client) {
   try {
@@ -474,6 +484,7 @@ async function processMessage(msg, client) {
     const message = new Message(client, msg);
 
     // Cache message for anti-delete functionality (non-blocking)
+    // Uses setImmediate to defer caching to next event loop tick
     setImmediate(() => antiDeleteHandler.cacheMessage(message));
 
     // Handle view-once messages first
@@ -501,7 +512,7 @@ async function processMessage(msg, client) {
 
           if (stickerCmd) {
             logger.debug(`Executing sticker command: ${stickerCmd.command}`);
-            message.body = require('./config').PREFIX + stickerCmd.command;
+            message.body = PREFIX + stickerCmd.command;
             await executeCommand(message);
             return;
           }
@@ -512,7 +523,8 @@ async function processMessage(msg, client) {
     }
 
     // Try auto-responder first (only for non-command messages)
-    const isCommand = message.body.startsWith(require('./config').PREFIX);
+    // Uses cached PREFIX value for better performance
+    const isCommand = message.body.startsWith(PREFIX);
 
     if (!isCommand && !message.fromMe) {
       const autoResponded = await autoResponderHandler.handleMessage(message);
@@ -565,10 +577,10 @@ async function startBot() {
     botState.client = client;
 
     // Handle incoming messages
+    // Uses cached MESSAGE_CONCURRENCY_LIMIT for better performance
     client.on('messages', async (messages) => {
-      const concurrencyLimit = require('./config').MESSAGE_CONCURRENCY_LIMIT;
-      for (let i = 0; i < messages.length; i += concurrencyLimit) {
-        const batch = messages.slice(i, i + concurrencyLimit);
+      for (let i = 0; i < messages.length; i += MESSAGE_CONCURRENCY_LIMIT) {
+        const batch = messages.slice(i, i + MESSAGE_CONCURRENCY_LIMIT);
         await Promise.allSettled(batch.map((msg) => processMessage(msg, client)));
       }
     });

@@ -3,37 +3,51 @@
 ## Problèmes Identifiés et Résolus
 
 ### 1. Double Gestion des Événements (CRITIQUE)
+
 **Problème:** Le client avait deux listeners `messages.upsert` qui traitaient tous les messages deux fois
+
 - Impact CPU: ~50% de réduction
 - Solution: Consolidation en un seul listener
 
 ### 2. Requêtes de Base de Données Non Mise en Cache
+
 **Problème:** Chaque message déclenchait 2-3 requêtes pour récupérer les paramètres
+
 - Impact CPU: ~30% de réduction
 - Solution: Cache en mémoire avec TTL de 5 minutes via `settingsCache.js`
 
 ### 3. Fuites de Mémoire dans le Cache
+
 **Problème:** Le cache de messages anti-delete ne nettoyait jamais les anciens messages
+
 - Impact Mémoire: Croissance illimitée
 - Solution: Nettoyage automatique toutes les 10 minutes, limite d'âge de 1 heure
 
 ### 4. Opérations de Base de Données Synchrones
+
 **Problème:** Les mises à jour de contexte de conversation étaient immédiates
+
 - Impact CPU: ~15% de réduction
 - Solution: Debouncing avec écriture par lot toutes les 2 secondes
 
 ### 5. Chargement Séquentiel des Plugins
+
 **Problème:** Les plugins se chargeaient un par un au démarrage
+
 - Impact Démarrage: ~40% plus rapide
 - Solution: Chargement parallèle avec `Promise.allSettled()`
 
 ### 6. Pool de Connexions Non Optimisé
+
 **Problème:** Pas de configuration de pool pour SQLite/PostgreSQL
+
 - Impact: Meilleure gestion des connexions concurrentes
 - Solution: Pool configuré avec min/max/acquire/idle
 
 ### 7. Traitement Séquentiel des Messages
+
 **Problème:** Les messages étaient traités un par un dans une boucle
+
 - Impact CPU: ~20% de réduction
 - Solution: Traitement par lots avec limite de concurrence (5 messages à la fois)
 
@@ -90,6 +104,7 @@ module.exports = {
 ```
 
 **Note sur --expose-gc:**
+
 - Le flag `--expose-gc` expose la fonction `global.gc()` pour permettre le garbage collection manuel
 - Utilisé par le `memoryManager` pour optimiser la gestion de la mémoire
 - À utiliser uniquement dans des environnements contrôlés (production, VPS)
@@ -113,6 +128,7 @@ pm2 logs --lines 100
 ### Vider les Caches Périodiquement
 
 Le bot nettoie automatiquement:
+
 - Cache de messages: toutes les 10 minutes
 - Cache de paramètres: TTL de 5 minutes
 - Contexte de conversation: écritures par lot toutes les 2 secondes
@@ -130,19 +146,24 @@ VACUUM;
 ## Optimisations Additionnelles (Optionnelles)
 
 ### 1. Limiter les Plugins Actifs
+
 Désactiver ou supprimer les plugins inutilisés dans `/plugins`
 
 ### 2. Ajuster les Timeouts
+
 Dans `autoResponderHandler.js`:
+
 - `AUTO_RESPONDER_MIN_DELAY`: Augmenter pour réduire la charge
 - `AUTO_RESPONDER_MAX_TYPING_TIME`: Réduire pour des réponses plus rapides
 
 ### 3. Utiliser Redis pour le Cache
+
 Pour un déploiement multi-instance, remplacer `settingsCache.js` par Redis
 
 ## Résultats Attendus
 
 Avec toutes les optimisations:
+
 - **Réduction CPU:** ~70-80% en moyenne
 - **Réduction Mémoire:** ~40-50%
 - **Démarrage:** 40% plus rapide
@@ -152,6 +173,7 @@ Avec toutes les optimisations:
 ## Support
 
 Si les problèmes de CPU persistent:
+
 1. Vérifier `pm2 monit` pour identifier le goulot d'étranglement
 2. Augmenter `LOG_LEVEL=debug` temporairement
 3. Vérifier les plugins personnalisés

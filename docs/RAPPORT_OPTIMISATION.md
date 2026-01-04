@@ -69,17 +69,20 @@ Le bot consommait énormément de CPU, rendant le serveur lent et peu réactif. 
 ## Nouveaux Modules Créés
 
 ### 1. `lib/utils/settingsCache.js`
+
 - Cache en mémoire avec TTL de 5 minutes
 - Réduit les requêtes DB de ~90%
 - Invalidation manuelle possible
 
 ### 2. `lib/utils/memoryManager.js`
+
 - Nettoyage périodique de la mémoire (15 minutes)
 - Monitoring de l'utilisation mémoire
 - Alertes si seuil dépassé (400MB par défaut)
 - Support du garbage collection manuel
 
 ### 3. Documentation
+
 - `CPU_OPTIMIZATION_GUIDE.md` - Guide complet
 - `OPTIMIZATION_SUMMARY.md` - Résumé détaillé
 - Section performance dans README.md
@@ -111,16 +114,19 @@ MEMORY_WARN_THRESHOLD=400          # Seuil alerte (MB)
 ## Tests de Validation
 
 ### Tests de Syntaxe ✅
+
 - Tous les fichiers modifiés ont été vérifiés
 - Aucune erreur de syntaxe détectée
 
 ### Code Review ✅
+
 - 6 commentaires de review adressés
 - Logging uniformisé
 - Paramètres rendus configurables
 - Documentation améliorée
 
 ### Sécurité (CodeQL) ✅
+
 - 0 vulnérabilité détectée
 - Aucun problème de sécurité introduit
 
@@ -135,6 +141,7 @@ MEMORY_WARN_THRESHOLD=400          # Seuil alerte (MB)
 ## Fichiers Modifiés
 
 ### Fichiers Core (11)
+
 1. `config.js` - Pool DB + paramètres d'optimisation
 2. `ecosystem.config.js` - Configuration PM2 optimisée
 3. `index.js` - Traitement parallèle des messages
@@ -148,6 +155,7 @@ MEMORY_WARN_THRESHOLD=400          # Seuil alerte (MB)
 11. `lib/utils/memoryManager.js` - Gestion mémoire
 
 ### Nouveaux Fichiers (5)
+
 1. `lib/utils/settingsCache.js` - ⭐ Cache settings
 2. `lib/utils/memoryManager.js` - ⭐ Gestion mémoire
 3. `CPU_OPTIMIZATION_GUIDE.md` - 📚 Guide
@@ -157,12 +165,14 @@ MEMORY_WARN_THRESHOLD=400          # Seuil alerte (MB)
 ## Recommandations de Déploiement
 
 ### Configuration Minimale
+
 ```bash
 yarn install
 yarn start
 ```
 
 ### Configuration Optimale
+
 ```env
 LOG_LEVEL=warn
 BAILEYS_LOG_LVL=silent
@@ -171,6 +181,7 @@ MESSAGE_CONCURRENCY_LIMIT=5
 ```
 
 ### Monitoring
+
 ```bash
 pm2 monit
 pm2 logs --lines 100
@@ -179,18 +190,22 @@ pm2 logs --lines 100
 ## Support et Maintenance
 
 ### Monitoring Automatique
+
 - Logs mémoire toutes les 15 minutes
 - Alertes si mémoire > 400MB
 - Nettoyage automatique du cache
 
 ### Actions Recommandées
+
 1. Surveiller `pm2 monit` après déploiement
 2. Vérifier les logs pour les alertes mémoire
 3. Ajuster les paramètres si nécessaire
 4. Désactiver les fonctionnalités non utilisées
 
 ### Troubleshooting
+
 Si CPU toujours élevé:
+
 1. Vérifier `pm2 monit` pour identifier le goulot
 2. Augmenter `LOG_LEVEL=debug` temporairement
 3. Désactiver les fonctionnalités une par une

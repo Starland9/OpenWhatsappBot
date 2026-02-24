@@ -52,12 +52,20 @@ module.exports = {
 
     for (const [type, cmds] of Object.entries(grouped)) {
       const icon = icons[type] || icons.misc;
-      body += `\n${icon} *${type.toUpperCase()}* — ${cmds.length}\n`;
-      for (const c of cmds) {
-        const name = c.pattern.split("|")[0];
-        const desc = c.desc || "-";
-        body += ` - ${config.PREFIX}${name} — ${desc}\n`;
+      const title = `${icon} ${type.toUpperCase()} (${cmds.length})`;
+
+      // Build compact command list (only names), arranged in rows
+      const cmdNames = cmds.map(
+        (c) => `${config.PREFIX}${c.pattern.split("|")[0]}`,
+      );
+      const rows = [];
+      const PER_ROW = 6;
+      for (let i = 0; i < cmdNames.length; i += PER_ROW) {
+        rows.push(cmdNames.slice(i, i + PER_ROW).join("  "));
       }
+
+      body += `\n${title}\n`;
+      body += "```\n" + (rows.join("\n") || "-") + "\n```\n";
     }
 
     const footer = `\n_Tapez ${config.PREFIX}help <commande> pour plus de détails_`;

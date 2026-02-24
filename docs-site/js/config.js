@@ -47,6 +47,12 @@ const COMMANDS_DATA = {
         usage: ".menu",
         example: ".menu",
       },
+      {
+        name: "statussave",
+        desc: "Gérer l'auto-save des statuses (on/off/add/rm/list)",
+        usage: ".statussave on|off|add|rm|list",
+        example: ".statussave add 33612345678",
+      },
     ],
   },
   ai: {

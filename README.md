@@ -1,6 +1,6 @@
 # Open Whatsapp Bot
 
-A powerful and modern open-source community WhatsApp bot built with **@whiskeysockets/baileys v6.7.9+** featuring clean architecture, modular plugins, and production-ready deployment options.
+A powerful and modern open-source community WhatsApp bot built with **baileys v6.7.9+** featuring clean architecture, modular plugins, and production-ready deployment options.
 
 ## ✨ Features
 

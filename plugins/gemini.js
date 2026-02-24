@@ -1,6 +1,6 @@
 const { getLang } = require("../lib/utils/language");
 const { GoogleGenAI } = require("@google/genai");
-const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+const { downloadMedia } = require("../lib/baileys/mediaAdapter");
 const config = require("../config");
 
 /**
@@ -30,14 +30,14 @@ module.exports = {
       let imageBuffer = null;
 
       if (message.quoted && message.quoted.message?.imageMessage) {
-        imageBuffer = await downloadMediaMessage(
-          message.quoted,
+        const quotedShape = {
+          key: message.quoted.key,
+          message: message.quoted.message,
+        };
+        imageBuffer = await downloadMedia(
+          message.client.getSocket(),
+          quotedShape,
           "buffer",
-          {},
-          {
-            logger: { info() {}, error() {}, warn() {} },
-            reuploadRequest: message.client.getSocket().updateMediaMessage,
-          }
         );
         hasImage = true;
       } else if (message.hasMedia && message.type === "imageMessage") {

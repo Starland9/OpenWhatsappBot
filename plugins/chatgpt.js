@@ -1,5 +1,5 @@
 const { getLang } = require("../lib/utils/language");
-const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+const { downloadMedia } = require("../lib/baileys/mediaAdapter");
 const OpenAI = require("openai");
 const config = require("../config");
 
@@ -16,7 +16,7 @@ module.exports = {
   async execute(message, query) {
     if (!config.OPENAI_API_KEY) {
       return await message.reply(
-        "❌ OpenAI API key not configured. Set OPENAI_API_KEY in config.env"
+        "❌ OpenAI API key not configured. Set OPENAI_API_KEY in config.env",
       );
     }
 
@@ -37,14 +37,19 @@ module.exports = {
       let imageBuffer = null;
 
       if (message.quoted && message.quoted.message?.imageMessage) {
-        imageBuffer = await downloadMediaMessage(
-          message.quoted,
+        // Normalize quoted message shape
+        const quotedMessage = {
+          key: {
+            remoteJid: message.jid,
+            id: message.quoted.id,
+          },
+          message: message.quoted.message,
+        };
+
+        imageBuffer = await downloadMedia(
+          message.client.getSocket(),
+          quotedMessage,
           "buffer",
-          {},
-          {
-            logger: { info() {}, error() {}, warn() {} },
-            reuploadRequest: message.client.getSocket().updateMediaMessage,
-          }
         );
         hasImage = true;
       } else if (message.hasMedia && message.type === "imageMessage") {
@@ -85,7 +90,7 @@ module.exports = {
         // Text-only query
         if (!query) {
           return await message.reply(
-            "❌ Please provide a question or reply to an image\n\nExample: .gpt What is Node.js?"
+            "❌ Please provide a question or reply to an image\n\nExample: .gpt What is Node.js?",
           );
         }
 

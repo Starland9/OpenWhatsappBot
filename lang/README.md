@@ -106,6 +106,7 @@ node index.js
 ## Fallback Behavior
 
 If a translation key is not found in the selected language:
+
 1. The system tries to load it from `en.json` (English)
 2. If still not found, the key itself is returned
 

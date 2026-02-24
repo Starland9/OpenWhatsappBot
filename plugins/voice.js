@@ -34,7 +34,7 @@ module.exports = {
       await message.react("❌");
       console.error("Voice processing error:", error);
       await message.reply(
-        `❌ ${getLang("plugins.voice.error")}: ${error.message}`
+        `❌ ${getLang("plugins.voice.error")}: ${error.message}`,
       );
     }
   },
@@ -45,9 +45,16 @@ async function handleTranscription(message) {
   let audioBuffer;
 
   if (message.quoted && message.quoted.message?.audioMessage) {
-    audioBuffer = await message.client
-      .getSocket()
-      .downloadMediaMessage(message.quoted);
+    const quotedShape = {
+      key: message.quoted.key,
+      message: message.quoted.message,
+    };
+    const { downloadMedia } = require("../lib/baileys/mediaAdapter");
+    audioBuffer = await downloadMedia(
+      message.client.getSocket(),
+      quotedShape,
+      "buffer",
+    );
   } else if (message.hasMedia && message.type === "audioMessage") {
     audioBuffer = await message.downloadMedia();
   } else {
@@ -56,7 +63,7 @@ async function handleTranscription(message) {
 
   if (!audioBuffer) {
     return await message.reply(
-      `❌ ${getLang("plugins.voice.download_failed")}`
+      `❌ ${getLang("plugins.voice.download_failed")}`,
     );
   }
 
@@ -76,7 +83,7 @@ async function handleTranscription(message) {
 
     // Convert to MP3 for OpenAI Whisper
     await execAsync(
-      `ffmpeg -i ${tempAudio} -ar 16000 -ac 1 -c:a libmp3lame ${tempMp3}`
+      `ffmpeg -i ${tempAudio} -ar 16000 -ac 1 -c:a libmp3lame ${tempMp3}`,
     );
 
     const OpenAI = require("openai");
@@ -90,7 +97,7 @@ async function handleTranscription(message) {
 
     await message.react("✅");
     await message.reply(
-      `🎤 *${getLang("plugins.voice.transcription")}*\n\n${transcription.text}`
+      `🎤 *${getLang("plugins.voice.transcription")}*\n\n${transcription.text}`,
     );
   } finally {
     await fs.unlink(tempAudio).catch(() => {});
@@ -148,7 +155,7 @@ async function handleTextToSpeech(message, text) {
     console.error("TTS error:", error);
     await message.react("❌");
     await message.reply(
-      `❌ ${getLang("plugins.voice.tts_error")}: ${error.message}`
+      `❌ ${getLang("plugins.voice.tts_error")}: ${error.message}`,
     );
   }
 }

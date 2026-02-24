@@ -1,6 +1,6 @@
 const { getLang } = require("../lib/utils/language");
 const { convertImage, resizeImage } = require("../lib/utils/media");
-const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+const { downloadMedia } = require("../lib/baileys/mediaAdapter");
 const sharp = require("sharp");
 const { exec } = require("child_process");
 const { promisify } = require("util");
@@ -58,14 +58,19 @@ module.exports = {
           return await message.reply(getLang("plugins.convert.reply_media"));
         }
 
-        buffer = await downloadMediaMessage(
-          message.quoted,
+        // Build a quoted message shape expected by the adapter
+        const quotedMessage = {
+          key: {
+            remoteJid: message.jid,
+            id: message.quoted.id,
+          },
+          message: quotedMsg,
+        };
+
+        buffer = await downloadMedia(
+          message.client.getSocket(),
+          quotedMessage,
           "buffer",
-          {},
-          {
-            logger: { info() {}, error() {}, warn() {} },
-            reuploadRequest: message.client.getSocket().updateMediaMessage,
-          }
         );
 
         mediaType = quotedType.replace("Message", "");
@@ -78,7 +83,7 @@ module.exports = {
 
       if (!buffer) {
         return await message.reply(
-          `❌ ${getLang("plugins.convert.download_failed")}`
+          `❌ ${getLang("plugins.convert.download_failed")}`,
         );
       }
 
@@ -96,7 +101,7 @@ module.exports = {
         convertedBuffer = await convertImage(buffer, targetFormat);
         fileName = `converted.${targetFormat}`;
         caption = `✅ ${getLang(
-          "plugins.convert.success"
+          "plugins.convert.success",
         )} → ${targetFormat.toUpperCase()}`;
 
         await message.react("✅");
@@ -150,7 +155,7 @@ module.exports = {
           await fs.writeFile(tempInput, buffer);
 
           await execAsync(
-            `ffmpeg -i ${tempInput} -vn -acodec libmp3lame -q:a 2 ${tempOutput}`
+            `ffmpeg -i ${tempInput} -vn -acodec libmp3lame -q:a 2 ${tempOutput}`,
           );
 
           convertedBuffer = await fs.readFile(tempOutput);
@@ -174,7 +179,7 @@ module.exports = {
         const tempInput = path.join("/tmp", `audio_in_${Date.now()}.tmp`);
         const tempOutput = path.join(
           "/tmp",
-          `audio_out_${Date.now()}.${targetFormat}`
+          `audio_out_${Date.now()}.${targetFormat}`,
         );
 
         try {
@@ -187,7 +192,7 @@ module.exports = {
           };
 
           await execAsync(
-            `ffmpeg -i ${tempInput} -acodec ${codecMap[targetFormat]} ${tempOutput}`
+            `ffmpeg -i ${tempInput} -acodec ${codecMap[targetFormat]} ${tempOutput}`,
           );
 
           convertedBuffer = await fs.readFile(tempOutput);
@@ -195,7 +200,7 @@ module.exports = {
           await message.react("✅");
           await message.sendAudio(convertedBuffer, {
             caption: `✅ ${getLang(
-              "plugins.convert.success"
+              "plugins.convert.success",
             )} → ${targetFormat.toUpperCase()}`,
           });
         } finally {
@@ -212,7 +217,7 @@ module.exports = {
       await message.react("❌");
       console.error("Convert error:", error);
       await message.reply(
-        `❌ ${getLang("plugins.convert.error")}: ${error.message}`
+        `❌ ${getLang("plugins.convert.error")}: ${error.message}`,
       );
     }
   },

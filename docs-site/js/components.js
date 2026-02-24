@@ -900,6 +900,8 @@ module.exports = {
                                     <tr><td><code>AUTO_STATUS_SAVE</code></td><td>Activer la sauvegarde automatique des status</td><td>false</td></tr>
                                     <tr><td><code>STATUS_SAVE_LIST</code></td><td>Liste de numéros (séparés par ,) à surveiller pour sauvegarder les status</td><td>(vide)</td></tr>
                                     <tr><td><code>STATUS_SAVE_FOLDER</code></td><td>Dossier local pour stocker les status sauvegardés</td><td>media/status</td></tr>
+                                    <tr><td><code>GEMINI_MODEL</code></td><td>Nom du modèle Gemini pour requêtes textuelles (ex: gemini-2.5-flash)</td><td>gemini-2.5-flash</td></tr>
+                                    <tr><td><code>GEMINI_VISION_MODEL</code></td><td>Nom du modèle Gemini pour analyse d'images (si différent)</td><td>— (tombe sur GEMINI_MODEL)</td></tr>
                                 </tbody>
                             </table>
                         </div>

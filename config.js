@@ -56,6 +56,10 @@ module.exports = {
   AUTO_READ: toBool(process.env.AUTO_READ),
   AUTO_STATUS_VIEW: toBool(process.env.AUTO_STATUS_VIEW),
   AUTO_STATUS_REACT: toBool(process.env.AUTO_STATUS_REACT),
+  // Auto Status Save (save statuses from specified numbers)
+  AUTO_STATUS_SAVE: toBool(process.env.AUTO_STATUS_SAVE),
+  STATUS_SAVE_LIST: process.env.STATUS_SAVE_LIST || "",
+  STATUS_SAVE_FOLDER: process.env.STATUS_SAVE_FOLDER || "media/status",
   ANTI_DELETE: toBool(process.env.ANTI_DELETE),
   // Message reactions (enable/disable message reaction feature)
   ENABLE_MESSAGE_REACTIONS: toBool(process.env.ENABLE_MESSAGE_REACTIONS),
@@ -160,9 +164,9 @@ module.exports = {
   MEMORY_WARN_THRESHOLD: parseInt(process.env.MEMORY_WARN_THRESHOLD) || 400, // MB
 
   // Panel Configuration (for bot-hosting.net and similar platforms)
-  PANEL_PORT: parseInt(process.env.PANEL_PORT) || parseInt(process.env.PORT) || 3000,
+  PANEL_PORT:
+    parseInt(process.env.PANEL_PORT) || parseInt(process.env.PORT) || 3000,
   PANEL_HOST: process.env.PANEL_HOST || process.env.HOST || "0.0.0.0",
-  KEEP_ALIVE_INTERVAL:
-    parseInt(process.env.KEEP_ALIVE_INTERVAL) || 60000, // 60 seconds
+  KEEP_ALIVE_INTERVAL: parseInt(process.env.KEEP_ALIVE_INTERVAL) || 60000, // 60 seconds
   PANEL_ENABLED: toBool(process.env.PANEL_ENABLED),
 };

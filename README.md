@@ -67,25 +67,30 @@ Scan the QR code with WhatsApp to authenticate.
 ## 📱 Available Commands
 
 ### General
+
 - `.ping` - Check bot latency
 - `.help` - Display all commands
 - `.alive` - Show bot status
 
 ### AI
+
 - `.gpt <query>` - Chat with ChatGPT
 - `.gemini <query>` - Chat with Google Gemini
 
 ### Group Management
+
 - `.tag <text>` - Tag all members
 - `.kick @user` - Remove member (admin only)
 - `.promote @user` - Promote to admin (admin only)
 - `.demote @user` - Demote from admin (admin only)
 
 ### Media
+
 - `.sticker` - Create sticker from image/video (reply to media)
 - `.qr <text>` - Generate QR code
 
 ### Downloads
+
 - `.ytdl <url>` - Download YouTube video
 - `.yta <url>` - Download YouTube audio
 
@@ -182,6 +187,7 @@ const metadata = await message.getGroupMetadata()
 Automatically view and/or react to WhatsApp statuses with random emojis.
 
 **Configuration:**
+
 ```env
 AUTO_STATUS_VIEW=true      # Auto-view statuses
 AUTO_STATUS_REACT=false    # Auto-react to statuses
@@ -189,6 +195,7 @@ STATUS_EMOJIS=😀,👍,❤️,🔥,💯,✨,🎉,👏,💪,🙌
 ```
 
 **Features:**
+
 - `AUTO_STATUS_VIEW`: Automatically mark statuses as viewed
 - `AUTO_STATUS_REACT`: Automatically react to statuses with random emojis from the configured list
 - Both features can be enabled independently
@@ -199,6 +206,7 @@ STATUS_EMOJIS=😀,👍,❤️,🔥,💯,✨,🎉,👏,💪,🙌
 Intelligent auto-responder that uses Google Gemini AI with conversation context management.
 
 **Configuration:**
+
 ```env
 AUTO_RESPONDER_ENABLED=true
 AUTO_RESPONDER_IGNORE_NUMBERS=1234567890,0987654321
@@ -207,6 +215,7 @@ GEMINI_API_KEY=your_gemini_api_key
 ```
 
 **Commands:**
+
 - `.ar status` - View current settings
 - `.ar on/off` - Enable/disable auto-responder
 - `.ar ignore add <number>` - Add number to ignore list
@@ -216,6 +225,7 @@ GEMINI_API_KEY=your_gemini_api_key
 - `.ar personality <text>` - Set AI personality
 
 **Features:**
+
 - Context-aware conversations (remembers last 10 messages)
 - 30-minute context timeout
 - Customizable AI personality
@@ -245,6 +255,7 @@ node panel.js
 ```
 
 The `panel.js` file provides:
+
 - 🏥 Health check endpoint (`/health`)
 - 📊 Metrics endpoint (`/metrics`)
 - 🔄 Keep-alive ping mechanism
@@ -364,10 +375,12 @@ pm2 logs --lines 100
 ## 📝 Database
 
 The bot uses Sequelize ORM with support for:
+
 - **SQLite** (default) - For development and small deployments
 - **PostgreSQL** - For production deployments
 
 Models:
+
 - `User` - User data and AFK status
 - `Group` - Group settings (antilink, mute, welcome)
 - `Filter` - Auto-reply filters
@@ -408,4 +421,3 @@ MIT License - see LICENSE file
 ---
 
 **Note**: This is an unofficial WhatsApp bot. Use responsibly and in accordance with WhatsApp's Terms of Service.
-

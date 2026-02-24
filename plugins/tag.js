@@ -30,7 +30,7 @@ module.exports = {
       }
 
       const participants = (metadata.participants || []).map((p) => p.id);
-      const messageText = text || "📢 *Group Tag*";
+      const messageText = text || "📢 *Group Tagall*";
 
       console.log(`Tag: group=${message.jid} members=${participants.length}`);
 
@@ -70,10 +70,10 @@ module.exports = {
           console.error("Failed to send tag chunk:", err);
         }
       }
-      // Provide feedback
-      await message.reply(
-        `✅ Mentionné ${participants.length} membres en ${sentChunks} messages`,
-      );
+      // // Provide feedback
+      // await message.reply(
+      //   `✅ Mentionné ${participants.length} membres en ${sentChunks} messages`,
+      // );
     } catch (error) {
       console.error("Tag error:", error);
       await message.reply(`❌ Error: ${error.message}`);

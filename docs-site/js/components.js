@@ -57,32 +57,32 @@ const Pages = {
                         ${Components.featureCard(
                           "🤖",
                           "IA Avancée",
-                          "Discutez avec ChatGPT et Gemini, analysez des images, générez du contenu."
+                          "Discutez avec ChatGPT et Gemini, analysez des images, générez du contenu.",
                         )}
                         ${Components.featureCard(
                           "📥",
                           "Téléchargements",
-                          "YouTube, Instagram, TikTok, Facebook... Téléchargez depuis toutes les plateformes."
+                          "YouTube, Instagram, TikTok, Facebook... Téléchargez depuis toutes les plateformes.",
                         )}
                         ${Components.featureCard(
                           "🎨",
                           "Création de Stickers",
-                          "Transformez vos photos et vidéos en stickers personnalisés."
+                          "Transformez vos photos et vidéos en stickers personnalisés.",
                         )}
                         ${Components.featureCard(
                           "🌍",
                           "Traduction",
-                          "Traduisez instantanément dans plus de 100 langues."
+                          "Traduisez instantanément dans plus de 100 langues.",
                         )}
                         ${Components.featureCard(
                           "👥",
                           "Gestion de Groupes",
-                          "Modérez, créez des sondages, envoyez des annonces."
+                          "Modérez, créez des sondages, envoyez des annonces.",
                         )}
                         ${Components.featureCard(
                           "⏰",
                           "Productivité",
-                          "Tâches, rappels, notifications personnalisées."
+                          "Tâches, rappels, notifications personnalisées.",
                         )}
                     </div>
                 </div>
@@ -97,7 +97,7 @@ const Pages = {
                     </div>
                     <div class="profiles-grid">
                         ${USER_PROFILES.map((p) =>
-                          Components.profileCard(p)
+                          Components.profileCard(p),
                         ).join("")}
                     </div>
                 </div>
@@ -115,17 +115,17 @@ const Pages = {
                             ${Components.step(
                               1,
                               "Installez le bot",
-                              "Clonez le dépôt et installez les dépendances avec yarn install."
+                              "Clonez le dépôt et installez les dépendances avec yarn install.",
                             )}
                             ${Components.step(
                               2,
                               "Configurez",
-                              "Copiez config.env.example vers config.env et ajoutez vos clés API."
+                              "Copiez config.env.example vers config.env et ajoutez vos clés API.",
                             )}
                             ${Components.step(
                               3,
                               "Lancez !",
-                              "Démarrez avec yarn start et scannez le QR code avec WhatsApp."
+                              "Démarrez avec yarn start et scannez le QR code avec WhatsApp.",
                             )}
                         </div>
                         <div style="text-align: center; margin-top: var(--space-8);">
@@ -175,11 +175,11 @@ const Pages = {
                         <div class="card" style="margin-bottom: var(--space-8);">
                             <div class="feature-list">
                                 ${Components.featureItem(
-                                  "Node.js 20 ou supérieur"
+                                  "Node.js 20 ou supérieur",
                                 )}
                                 ${Components.featureItem("Git installé")}
                                 ${Components.featureItem(
-                                  "FFmpeg (pour le traitement média)"
+                                  "FFmpeg (pour le traitement média)",
                                 )}
                                 ${Components.featureItem("Un compte WhatsApp")}
                             </div>
@@ -197,7 +197,7 @@ const Pages = {
                                     <p class="step-desc">Téléchargez le code source depuis GitHub</p>
                                     ${Components.codeBlock(
                                       "bash",
-                                      "git clone https://github.com/Starland9/OpenWhatsappBot\ncd OpenWhatsappBot"
+                                      "git clone https://github.com/Starland9/OpenWhatsappBot\ncd OpenWhatsappBot",
                                     )}
                                 </div>
                             </div>
@@ -209,7 +209,7 @@ const Pages = {
                                     <p class="step-desc">Installez toutes les librairies nécessaires</p>
                                     ${Components.codeBlock(
                                       "bash",
-                                      "yarn install"
+                                      "yarn install",
                                     )}
                                 </div>
                             </div>
@@ -221,12 +221,12 @@ const Pages = {
                                     <p class="step-desc">Créez votre fichier de configuration</p>
                                     ${Components.codeBlock(
                                       "bash",
-                                      "cp config.env.example config.env"
+                                      "cp config.env.example config.env",
                                     )}
                                     <p class="step-desc" style="margin-top: var(--space-3);">Éditez ensuite config.env avec vos paramètres :</p>
                                     ${Components.codeBlock(
                                       "env",
-                                      "PREFIX=.\nSUDO=33612345678\nGEMINI_API_KEY=votre_cle_api\nBOT_LANG=fr"
+                                      "PREFIX=.\nSUDO=33612345678\nGEMINI_API_KEY=votre_cle_api\nBOT_LANG=fr",
                                     )}
                                 </div>
                             </div>
@@ -238,7 +238,7 @@ const Pages = {
                                     <p class="step-desc">Démarrez le bot et scannez le QR code</p>
                                     ${Components.codeBlock(
                                       "bash",
-                                      "yarn dev    # Mode développement\nyarn start  # Mode production (PM2)"
+                                      "yarn dev    # Mode développement\nyarn start  # Mode production (PM2)",
                                     )}
                                 </div>
                             </div>
@@ -251,19 +251,19 @@ const Pages = {
                         <div class="grid-2" style="margin-bottom: var(--space-8);">
                             ${Components.commandQuick(
                               ".ping",
-                              "Vérifie que le bot répond"
+                              "Vérifie que le bot répond",
                             )}
                             ${Components.commandQuick(
                               ".help",
-                              "Affiche l'aide"
+                              "Affiche l'aide",
                             )}
                             ${Components.commandQuick(
                               ".menu",
-                              "Liste toutes les commandes"
+                              "Liste toutes les commandes",
                             )}
                             ${Components.commandQuick(
                               ".gemini Bonjour !",
-                              "Discute avec l'IA"
+                              "Discute avec l'IA",
                             )}
                         </div>
 
@@ -319,7 +319,7 @@ const Pages = {
                                         <span>${data.icon}</span>
                                         <span>${data.title}</span>
                                     </a>
-                                `
+                                `,
                                   )
                                   .join("")}
                             </nav>
@@ -347,7 +347,7 @@ const Pages = {
                                       .map((cmd) => Components.commandCard(cmd))
                                       .join("")}
                                 </div>
-                            `
+                            `,
                               )
                               .join("")}
                         </div>
@@ -379,21 +379,21 @@ const Pages = {
                             <p>Le bot peut répondre automatiquement à vos messages privés avec une IA intelligente (Gemini).</p>
                             <div class="feature-list" style="margin: var(--space-4) 0;">
                                 ${Components.featureItem(
-                                  "Réponses contextuelles (se souvient des 10 derniers messages)"
+                                  "Réponses contextuelles (se souvient des 10 derniers messages)",
                                 )}
                                 ${Components.featureItem(
-                                  "Personnalité personnalisable"
+                                  "Personnalité personnalisable",
                                 )}
                                 ${Components.featureItem(
-                                  "Liste d'ignorés pour certains contacts"
+                                  "Liste d'ignorés pour certains contacts",
                                 )}
                                 ${Components.featureItem(
-                                  "Anti-ban intégré (délais naturels, simulation de frappe)"
+                                  "Anti-ban intégré (délais naturels, simulation de frappe)",
                                 )}
                             </div>
                             ${Components.codeBlock(
                               "text",
-                              ".ar on                    # Activer\n.ar personality Tu es...  # Personnaliser\n.ar ignore add 336...     # Ignorer un numéro"
+                              ".ar on                    # Activer\n.ar personality Tu es...  # Personnaliser\n.ar ignore add 336...     # Ignorer un numéro",
                             )}
                         </div>
 
@@ -406,7 +406,7 @@ const Pages = {
                             <p>Récupérez les messages que les gens suppriment avant que vous ne les lisiez.</p>
                             ${Components.codeBlock(
                               "text",
-                              ".antidelete p     # Envoyer vers votre chat privé\n.antidelete g     # Garder dans le même groupe\n.antidelete null  # Désactiver"
+                              ".antidelete p     # Envoyer vers votre chat privé\n.antidelete g     # Garder dans le même groupe\n.antidelete null  # Désactiver",
                             )}
                         </div>
 
@@ -419,13 +419,13 @@ const Pages = {
                             <p>Le bot peut automatiquement voir et réagir aux statuts WhatsApp.</p>
                             <div class="feature-list" style="margin: var(--space-4) 0;">
                                 ${Components.featureItem(
-                                  "Vue automatique de tous les statuts"
+                                  "Vue automatique de tous les statuts",
                                 )}
                                 ${Components.featureItem(
-                                  "Réaction avec emojis aléatoires"
+                                  "Réaction avec emojis aléatoires",
                                 )}
                                 ${Components.featureItem(
-                                  "Configurable via config.env"
+                                  "Configurable via config.env",
                                 )}
                             </div>
                         </div>
@@ -439,7 +439,7 @@ const Pages = {
                             <p>Associez des commandes à vos stickers favoris pour les exécuter d'un simple envoi.</p>
                             ${Components.codeBlock(
                               "text",
-                              "# Répondre à un sticker avec:\n.setcmd .ping\n\n# Maintenant ce sticker exécute .ping !"
+                              "# Répondre à un sticker avec:\n.setcmd .ping\n\n# Maintenant ce sticker exécute .ping !",
                             )}
                         </div>
 
@@ -452,7 +452,7 @@ const Pages = {
                             <p>Créez des réponses automatiques pour des mots-clés spécifiques.</p>
                             ${Components.codeBlock(
                               "text",
-                              ".filter salut Bonjour ! Comment puis-je aider ?\n.filter règles 📜 Voici les règles du groupe...\n.delfilter salut  # Supprimer un filtre"
+                              ".filter salut Bonjour ! Comment puis-je aider ?\n.filter règles 📜 Voici les règles du groupe...\n.delfilter salut  # Supprimer un filtre",
                             )}
                         </div>
 
@@ -501,7 +501,7 @@ const Pages = {
                         <div class="card" style="margin-bottom: var(--space-8);">
                             ${Components.codeBlock(
                               "text",
-                              "OpenWhatsappBot/\n├── index.js              # Point d'entrée\n├── config.js             # Gestion de la configuration\n├── config.env            # Variables d'environnement\n├── lib/\n│   ├── baileys/\n│   │   └── client.js     # Client WhatsApp\n│   ├── classes/\n│   │   └── Message.js    # Abstraction des messages\n│   ├── database/\n│   │   └── models/       # Modèles Sequelize\n│   ├── plugins/\n│   │   ├── loader.js     # Chargement des plugins\n│   │   └── registry.js   # Registre des commandes\n│   └── utils/            # Utilitaires divers\n├── plugins/              # Tous les plugins/commandes\n└── lang/                 # Fichiers de traduction"
+                              "OpenWhatsappBot/\n├── index.js              # Point d'entrée\n├── config.js             # Gestion de la configuration\n├── config.env            # Variables d'environnement\n├── lib/\n│   ├── baileys/\n│   │   └── client.js     # Client WhatsApp\n│   ├── classes/\n│   │   └── Message.js    # Abstraction des messages\n│   ├── database/\n│   │   └── models/       # Modèles Sequelize\n│   ├── plugins/\n│   │   ├── loader.js     # Chargement des plugins\n│   │   └── registry.js   # Registre des commandes\n│   └── utils/            # Utilitaires divers\n├── plugins/              # Tous les plugins/commandes\n└── lang/                 # Fichiers de traduction",
                             )}
                         </div>
 
@@ -533,7 +533,7 @@ module.exports = {
     // await message.sendSticker(buffer);
     // await message.react("👍");
   }
-};`
+};`,
                         )}
 
                         <!-- Message Class -->
@@ -597,19 +597,19 @@ module.exports = {
                             <div class="tab-content" id="deploy-pm2">
                                 ${Components.codeBlock(
                                   "bash",
-                                  "# Démarrer avec PM2\nyarn start\n\n# Voir les logs\npm2 logs\n\n# Arrêter\nyarn stop"
+                                  "# Démarrer avec PM2\nyarn start\n\n# Voir les logs\npm2 logs\n\n# Arrêter\nyarn stop",
                                 )}
                             </div>
                             <div class="tab-content" id="deploy-docker" style="display: none;">
                                 ${Components.codeBlock(
                                   "bash",
-                                  "# Construire et lancer\ndocker-compose up -d\n\n# Voir les logs\ndocker-compose logs -f\n\n# Arrêter\ndocker-compose down"
+                                  "# Construire et lancer\ndocker-compose up -d\n\n# Voir les logs\ndocker-compose logs -f\n\n# Arrêter\ndocker-compose down",
                                 )}
                             </div>
                             <div class="tab-content" id="deploy-heroku" style="display: none;">
                                 ${Components.codeBlock(
                                   "bash",
-                                  "# Créer l'app Heroku\nheroku create mon-bot\n\n# Configurer les variables\nheroku config:set GEMINI_API_KEY=xxx\n\n# Déployer\ngit push heroku master"
+                                  "# Créer l'app Heroku\nheroku create mon-bot\n\n# Configurer les variables\nheroku config:set GEMINI_API_KEY=xxx\n\n# Déployer\ngit push heroku master",
                                 )}
                             </div>
                         </div>
@@ -650,7 +650,7 @@ module.exports = {
                                         </div>
                                     </div>
                                 </div>
-                            `
+                            `,
                             ).join("")}
                         </div>
 
@@ -742,13 +742,13 @@ module.exports = {
                         <div class="card" style="margin-bottom: var(--space-8);">
                             <div class="feature-list">
                                 ${Components.featureItem(
-                                  "Compte sur bot-hosting.net ou plateforme similaire"
+                                  "Compte sur bot-hosting.net ou plateforme similaire",
                                 )}
                                 ${Components.featureItem(
-                                  "Plan avec support Node.js 20+"
+                                  "Plan avec support Node.js 20+",
                                 )}
                                 ${Components.featureItem(
-                                  "Accès au gestionnaire de fichiers"
+                                  "Accès au gestionnaire de fichiers",
                                 )}
                                 ${Components.featureItem("Compte WhatsApp actif")}
                             </div>
@@ -774,7 +774,7 @@ module.exports = {
                                     <p class="step-desc">Dans le terminal du panel, exécutez :</p>
                                     ${Components.codeBlock(
                                       "bash",
-                                      "git clone https://github.com/Starland9/OpenWhatsappBot ."
+                                      "git clone https://github.com/Starland9/OpenWhatsappBot .",
                                     )}
                                 </div>
                             </div>
@@ -795,12 +795,12 @@ module.exports = {
                                     <p class="step-desc">Créez et éditez config.env :</p>
                                     ${Components.codeBlock(
                                       "bash",
-                                      "cp config.env.example config.env"
+                                      "cp config.env.example config.env",
                                     )}
                                     <p class="step-desc" style="margin-top: var(--space-3);">Configuration minimale :</p>
                                     ${Components.codeBlock(
                                       "env",
-                                      "PREFIX=.\nSUDO=33612345678\nPANEL_ENABLED=true\nPANEL_PORT=3000\nGEMINI_API_KEY=votre_cle"
+                                      "PREFIX=.\nSUDO=33612345678\nPANEL_ENABLED=true\nPANEL_PORT=3000\nGEMINI_API_KEY=votre_cle",
                                     )}
                                 </div>
                             </div>
@@ -814,7 +814,7 @@ module.exports = {
                                     <p class="step-desc" style="margin-top: var(--space-3);">Ou avec PM2 :</p>
                                     ${Components.codeBlock(
                                       "bash",
-                                      "pm2 start panel.js --name bot"
+                                      "pm2 start panel.js --name bot",
                                     )}
                                 </div>
                             </div>
@@ -834,23 +834,28 @@ module.exports = {
                             ${Components.featureCard(
                               "🏥",
                               "Health Check",
-                              "Endpoint /health pour le monitoring de disponibilité"
+                              "Endpoint /health pour le monitoring de disponibilité",
                             )}
                             ${Components.featureCard(
                               "📊",
                               "Métriques",
-                              "Endpoint /metrics avec statistiques CPU, RAM et bot"
+                              "Endpoint /metrics avec statistiques CPU, RAM et bot",
                             )}
                             ${Components.featureCard(
                               "🔄",
                               "Keep-Alive",
-                              "Ping automatique pour maintenir le service actif"
+                              "Ping automatique pour maintenir le service actif",
                             )}
                             ${Components.featureCard(
                               "🌐",
                               "Page Statut",
-                              "Interface web accessible via navigateur"
+                              "Interface web accessible via navigateur",
                             )}
+                                                        ${Components.featureCard(
+                                                          "💾",
+                                                          "Auto Status Save",
+                                                          "Enregistre automatiquement les status définis dans la liste et les envoie à l'administrateur",
+                                                        )}
                         </div>
 
                         <!-- API Endpoints -->
@@ -892,6 +897,9 @@ module.exports = {
                                     <tr><td><code>PANEL_HOST</code></td><td>Adresse d'écoute</td><td>0.0.0.0</td></tr>
                                     <tr><td><code>KEEP_ALIVE_INTERVAL</code></td><td>Intervalle ping (ms)</td><td>60000</td></tr>
                                     <tr><td><code>PORT</code></td><td>Port alternatif</td><td>3000</td></tr>
+                                    <tr><td><code>AUTO_STATUS_SAVE</code></td><td>Activer la sauvegarde automatique des status</td><td>false</td></tr>
+                                    <tr><td><code>STATUS_SAVE_LIST</code></td><td>Liste de numéros (séparés par ,) à surveiller pour sauvegarder les status</td><td>(vide)</td></tr>
+                                    <tr><td><code>STATUS_SAVE_FOLDER</code></td><td>Dossier local pour stocker les status sauvegardés</td><td>media/status</td></tr>
                                 </tbody>
                             </table>
                         </div>

@@ -165,15 +165,13 @@ module.exports = {
           }
         }
 
-        await message.reply(
-          `✅ Alerted ${participants.length} membres en ${sentChunks} messages (mode silencieux)`,
-        );
+        // await message.reply(
+        //   `✅ Alerted ${participants.length} membres en ${sentChunks} messages (mode silencieux)`,
+        // );
         return;
       }
       // // Provide feedback
-      // await message.reply(
-      //   `✅ Mentionné ${participants.length} membres en ${sentChunks} messages`,
-      // );
+      await message.reply(`✅`);
     } catch (error) {
       console.error("Tag error:", error);
       await message.reply(`❌ Error: ${error.message}`);

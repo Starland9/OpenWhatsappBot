@@ -46,65 +46,25 @@ module.exports = {
       misc: "•",
     };
 
-    const header = `*OpenWhatsappBot* — v${config.VERSION}\nPrefix: ${config.PREFIX} — ${commands.length} commandes`;
-
-    let body = "";
+    // Build geek / terminal style menu text
+    let menuText = `╔════════════════════╗\n`;
+    menuText += `║  ⚡ SYSTEM: ONLINE   ║\n`;
+    menuText += `╚════════════════════╝\n`;
+    menuText += `> Version: ${config.VERSION}\n`;
+    menuText += `> Prefix:  ${config.PREFIX}\n`;
+    menuText += `> CMDs:    ${commands.length}\n\n`;
 
     for (const [type, cmds] of Object.entries(grouped)) {
-      const icon = icons[type] || icons.misc;
-      const title = `${icon} ${type.toUpperCase()} (${cmds.length})`;
+      const typeLabel = `[ ${type.toUpperCase()} ]`;
+      menuText += `${typeLabel}\n`;
 
-      // Build compact command list (only names), arranged in rows
-      const cmdNames = cmds.map(
-        (c) => `${config.PREFIX}${c.pattern.split("|")[0]}`,
-      );
-      const rows = [];
-      const PER_ROW = 6;
-      for (let i = 0; i < cmdNames.length; i += PER_ROW) {
-        rows.push(cmdNames.slice(i, i + PER_ROW).join("  "));
-      }
-
-      body += `\n${title}\n`;
-      body += "```\n" + (rows.join("\n") || "-") + "\n```\n";
+      // Tri et affichage compact sans espaces excessifs
+      const names = cmds.map((c) => c.pattern.split("|")[0]);
+      menuText += `└─ ${names.join(", ")}\n\n`;
     }
 
-    const footer = `\n_Tapez ${config.PREFIX}help <commande> pour plus de détails_`;
-    const caption = `${header}\n${body}${footer}`;
+    menuText += `_Utilisez ${config.PREFIX}help <cmd> pour le manuel._`;
 
-    // Try multiple reliable image providers as preview (Picsum primary)
-    const imageCandidates = [
-      "https://picsum.photos/800/600",
-      "https://loremflickr.com/800/600/technology",
-      "https://placeimg.com/800/600/tech",
-    ];
-
-    const tryFetchImage = async () => {
-      for (const url of imageCandidates) {
-        try {
-          const resp = await axios.get(url, {
-            responseType: "arraybuffer",
-            timeout: 8000,
-          });
-          const buf = Buffer.from(resp.data);
-          if (buf && buf.length > 1000) return buf;
-        } catch (e) {
-          // continue to next provider
-        }
-      }
-      return null;
-    };
-
-    try {
-      const buffer = await tryFetchImage();
-      if (buffer && typeof message.sendImage === "function") {
-        await message.sendImage(buffer, caption);
-        return;
-      }
-    } catch (e) {
-      // ignore and fallback to text
-    }
-
-    // Fallback: send text-only menu
-    await message.reply(caption);
+    await message.reply(menuText);
   },
 };

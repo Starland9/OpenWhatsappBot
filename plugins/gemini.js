@@ -45,12 +45,18 @@ module.exports = {
         hasImage = true;
       }
 
+      // Allow overriding models via env for compatibility
+      const MODEL_TEXT = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+      const MODEL_VISION =
+        process.env.GEMINI_VISION_MODEL ||
+        process.env.GEMINI_MODEL ||
+        "gemini-2.5-flash";
+
       if (hasImage && imageBuffer) {
         // Use Gemini Vision for image analysis
         const base64Image = imageBuffer.toString("base64");
-
         const response = await genAI.models.generateContent({
-          model: "gemini-2.0-flash-exp",
+          model: MODEL_VISION,
           contents: [
             {
               role: "user",
@@ -69,7 +75,7 @@ module.exports = {
           ],
         });
 
-        const text = response.text;
+        const text = response?.text;
         await message.react("✅");
         await message.reply(`🌟 *Gemini Vision*\n\n${text}`);
       } else {
@@ -79,18 +85,28 @@ module.exports = {
         }
 
         const response = await genAI.models.generateContent({
-          model: "gemini-2.5-flash-lite",
+          model: MODEL_TEXT,
           contents: query,
         });
 
-        const text = response.text;
+        const text = response?.text;
         await message.react("✅");
         await message.reply(`🌟 *Gemini*\n\n${text}`);
       }
     } catch (error) {
       await message.react("❌");
       console.error("Gemini error:", error);
-      await message.reply(`❌ Error: ${error.message}`);
+      // If model not found, give actionable hint
+      if (
+        error?.status === 404 ||
+        (error?.message && error.message.includes("not found"))
+      ) {
+        await message.reply(
+          `❌ Gemini model not found. Vérifie la variable GEMINI_MODEL ou GEMINI_VISION_MODEL. Erreur: ${error.message}`,
+        );
+      } else {
+        await message.reply(`❌ Error: ${error.message}`);
+      }
     }
   },
 };

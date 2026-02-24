@@ -1,13 +1,14 @@
 const { getCommands } = require("../lib/plugins/registry");
 const config = require("../config");
+const axios = require("axios");
 
 /**
- * Menu command - Display simple list of available commands
+ * Menu command - improved UI/UX with preview image
  */
 module.exports = {
   command: {
     pattern: "menu",
-    desc: "Display list of available commands",
+    desc: "Afficher les commandes disponibles (UI améliorée)",
     type: "general",
   },
 
@@ -21,30 +22,59 @@ module.exports = {
       return acc;
     }, {});
 
-    let menuText = `╭━━━『 *OPEN WHATSAPP BOT* 』━━━
-│
-│ *Version:* ${config.VERSION}
-│ *Prefix:* ${config.PREFIX}
-│ *Commands:* ${commands.length}
-│
-╰━━━━━━━━━━━━━━━━━━━
+    // Small icons per category (fallback to •)
+    const icons = {
+      general: "🎯",
+      ai: "🤖",
+      downloads: "📥",
+      music: "🎵",
+      media: "🎨",
+      info: "📰",
+      search: "🔍",
+      group: "👥",
+      games: "🎮",
+      productivity: "⏰",
+    };
 
-`;
+    // Build caption (short and readable)
+    const header = `*OpenWhatsappBot* — v${config.VERSION}\nPrefix: ${config.PREFIX} — ${commands.length} commandes`;
 
-    // Display commands by category (only command names, no descriptions)
+    let body = "";
     for (const [type, cmds] of Object.entries(grouped)) {
-      menuText += `╭━━━『 *${type.toUpperCase()}* 』━━━\n`;
-
-      for (const cmd of cmds) {
-        const prefix = config.PREFIX;
-        menuText += `│ *${prefix}${cmd.pattern}*\n`;
-      }
-
-      menuText += `╰━━━━━━━━━━━━━━━━━━━\n\n`;
+      const icon = icons[type] || "•";
+      body += `\n${icon} *${type.toUpperCase()}* — ${cmds.length}\n`;
+      // show up to 6 commands per category as examples
+      const exampleCmds = cmds.slice(0, 6).map((c) => {
+        // show only first alias (pattern may contain |)
+        const name = c.pattern.split("|")[0];
+        return `\n  ${config.PREFIX}${name}`;
+      });
+      body += exampleCmds.join(" ") + "\n";
     }
 
-    menuText += `_Type ${config.PREFIX}help <command> for detailed help_`;
+    const footer = `\n_Tapez ${config.PREFIX}help <commande> pour plus de détails_`;
 
-    await message.reply(menuText);
+    const caption = `${header}\n${body}${footer}`;
+
+    // Attempt to fetch a preview image (Unsplash random tech). If it fails, fallback to text-only.
+    const imageUrl = "https://source.unsplash.com/800x600/?technology,geek";
+
+    try {
+      const resp = await axios.get(imageUrl, {
+        responseType: "arraybuffer",
+        timeout: 10000,
+      });
+      const buffer = Buffer.from(resp.data);
+      // Use message.sendImage if available, otherwise fallback to reply text
+      if (typeof message.sendImage === "function") {
+        await message.sendImage(buffer, caption);
+        return;
+      }
+    } catch (e) {
+      // ignore image errors and fallback to text
+    }
+
+    // Fallback: send text menu
+    await message.reply(caption);
   },
 };

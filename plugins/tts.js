@@ -1,10 +1,7 @@
 const { getLang } = require("../lib/utils/language");
 const gtts = require("google-tts-api");
 const axios = require("axios");
-const {
-  extractMessageContent,
-  getContentType,
-} = require("@whiskeysockets/baileys");
+const { extractMessageContent, getContentType } = require("baileys");
 const translate = require("@vitalets/google-translate-api");
 const config = require("../config");
 const ffmpeg = require("fluent-ffmpeg");
@@ -72,7 +69,7 @@ pt - Portuguese
 hi - Hindi
 ja - Japanese
 ko - Korean
-ar - Arabic`
+ar - Arabic`,
       );
     }
 
@@ -116,7 +113,7 @@ ar - Arabic`
       if (text.length > maxLength) {
         text = text.substring(0, maxLength);
         await message.reply(
-          `*Text too long! Truncated to ${maxLength} characters.*`
+          `*Text too long! Truncated to ${maxLength} characters.*`,
         );
       }
 
@@ -143,7 +140,7 @@ ar - Arabic`
               timeout: 30000,
             });
             return Buffer.from(response.data);
-          })
+          }),
         );
 
         // If only one chunk, no need to concatenate
@@ -220,11 +217,11 @@ ar - Arabic`
 
       if (error.message && error.message.includes("language")) {
         await message.reply(
-          "*Invalid language code!*\n\nUse standard 2-letter ISO codes (en, es, fr, etc.)"
+          "*Invalid language code!*\n\nUse standard 2-letter ISO codes (en, es, fr, etc.)",
         );
       } else {
         await message.reply(
-          "*TTS failed!*\n\nPlease try again with shorter text or different language."
+          "*TTS failed!*\n\nPlease try again with shorter text or different language.",
         );
       }
 

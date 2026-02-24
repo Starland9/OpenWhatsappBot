@@ -1,9 +1,6 @@
 const { getLang } = require("../lib/utils/language");
-const {
-  downloadMediaMessage,
-  extractMessageContent,
-  getContentType,
-} = require("@whiskeysockets/baileys");
+const { extractMessageContent, getContentType } = require("baileys");
+const { downloadMedia } = require("../lib/baileys/mediaAdapter");
 const config = require("../config");
 
 /**
@@ -15,9 +12,7 @@ function getSudoJid() {
   if (!sudoNumber) {
     return null;
   }
-  return sudoNumber.includes("@")
-    ? sudoNumber
-    : `${sudoNumber}@s.whatsapp.net`;
+  return sudoNumber.includes("@") ? sudoNumber : `${sudoNumber}@s.whatsapp.net`;
 }
 
 /**
@@ -161,17 +156,15 @@ module.exports = {
       }
 
       // Download the media using the correct message structure
-      const buffer = await downloadMediaMessage(
-        {
-          key: message.quoted.key,
-          message: { [messageType + "Message"]: mediaMessage },
-        },
+      const quotedShape = {
+        key: message.quoted.key,
+        message: { [messageType + "Message"]: mediaMessage },
+      };
+
+      const buffer = await downloadMedia(
+        message.client.getSocket(),
+        quotedShape,
         "buffer",
-        {},
-        {
-          logger: { info() {}, error() {}, warn() {} },
-          reuploadRequest: message.client.getSocket().updateMediaMessage,
-        }
       );
 
       if (!buffer) {
@@ -227,7 +220,7 @@ module.exports = {
       await message.react("❌");
       console.error("Save status error:", error);
       // await message.reply(
-        // getLang("plugins.save.error").replace("{0}", error.message)
+      // getLang("plugins.save.error").replace("{0}", error.message)
       // );
     }
   },

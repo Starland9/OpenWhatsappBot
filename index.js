@@ -56,7 +56,7 @@ async function start() {
       for (let i = 0; i < messages.length; i += concurrencyLimit) {
         const batch = messages.slice(i, i + concurrencyLimit);
         await Promise.allSettled(
-          batch.map((msg) => processMessage(msg, client))
+          batch.map((msg) => processMessage(msg, client)),
         );
       }
     });

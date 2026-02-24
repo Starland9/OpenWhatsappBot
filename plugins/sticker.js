@@ -1,5 +1,5 @@
 const { getLang } = require("../lib/utils/language");
-const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+const { downloadMedia } = require("../lib/baileys/mediaAdapter");
 const sharp = require("sharp");
 const { exec } = require("child_process");
 const { promisify } = require("util");
@@ -45,14 +45,10 @@ module.exports = {
           message: quotedMsg,
         };
 
-        buffer = await downloadMediaMessage(
+        buffer = await downloadMedia(
+          message.client.getSocket(),
           quotedMessage,
           "buffer",
-          {},
-          {
-            logger: console,
-            reuploadRequest: message.client.getSocket().updateMediaMessage,
-          }
         );
       } else if (message.hasMedia) {
         buffer = await message.downloadMedia();
@@ -81,7 +77,7 @@ module.exports = {
 
         // Use ffmpeg to convert video to animated webp sticker with transparency
         await execAsync(
-          `ffmpeg -i ${tempInput} -vcodec libwebp -vf "scale=512:512:force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=0x00000000,format=yuva420p" -loop 0 -preset default -an -vsync 0 -lossless 0 -compression_level 6 -q:v 50 ${tempOutput}`
+          `ffmpeg -i ${tempInput} -vcodec libwebp -vf "scale=512:512:force_original_aspect_ratio=decrease,fps=15,pad=512:512:-1:-1:color=0x00000000,format=yuva420p" -loop 0 -preset default -an -vsync 0 -lossless 0 -compression_level 6 -q:v 50 ${tempOutput}`,
         );
 
         stickerBuffer = await fs.readFile(tempOutput);

@@ -1,5 +1,5 @@
 const { getLang } = require("../lib/utils/language");
-const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+const { downloadMedia } = require("../lib/baileys/mediaAdapter");
 const { ViewOnce } = require("../lib/database");
 const config = require("../config");
 
@@ -85,17 +85,15 @@ module.exports = {
       }
 
       // Télécharger le média en utilisant la structure correcte
-      const buffer = await downloadMediaMessage(
-        {
-          key: message.quoted.key,
-          message: { [messageType + "Message"]: mediaMessage },
-        },
+      const quotedShape = {
+        key: message.quoted.key,
+        message: { [messageType + "Message"]: mediaMessage },
+      };
+
+      const buffer = await downloadMedia(
+        message.client.getSocket(),
+        quotedShape,
         "buffer",
-        {},
-        {
-          logger: { info() {}, error() {}, warn() {} },
-          reuploadRequest: message.client.getSocket().updateMediaMessage,
-        }
       );
 
       if (!buffer) {

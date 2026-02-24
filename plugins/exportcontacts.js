@@ -1,4 +1,4 @@
-const { jidNormalizedUser } = require("@whiskeysockets/baileys");
+const { jidNormalizedUser } = require("baileys");
 
 module.exports = {
   command: {
@@ -15,12 +15,12 @@ module.exports = {
     // Only allow bot owners (ownerOnly handled by registry but double-check)
     if (!message.isSudo()) {
       return await message.reply(
-        "❌ Vous devez être propriétaire du bot pour utiliser cette commande."
+        "❌ Vous devez être propriétaire du bot pour utiliser cette commande.",
       );
     }
 
     await message.reply(
-      "🔎 Récupération des contacts, ceci peut prendre une seconde..."
+      "🔎 Récupération des contacts, ceci peut prendre une seconde...",
     );
 
     try {
@@ -84,7 +84,7 @@ module.exports = {
 
       if (!contactsArray || contactsArray.length === 0) {
         return await message.reply(
-          "ℹ️ Aucun contact trouvé dans le store. Assurez-vous que le client est connecté et synchronisé."
+          "ℹ️ Aucun contact trouvé dans le store. Assurez-vous que le client est connecté et synchronisé.",
         );
       }
 
@@ -99,8 +99,8 @@ module.exports = {
             (c) =>
               `${c.jid.replace(/,/g, "")},"${(c.displayName || "").replace(
                 /"/g,
-                '""'
-              )}"`
+                '""',
+              )}"`,
           )
           .join("\n");
         const csv = header + rows;
@@ -122,7 +122,7 @@ module.exports = {
 
       const jsonBuffer = Buffer.from(
         JSON.stringify(exportPayload, null, 2),
-        "utf8"
+        "utf8",
       );
       await message.sendDocument(jsonBuffer, {
         fileName: "contacts.json",
@@ -132,7 +132,7 @@ module.exports = {
     } catch (error) {
       console.error("exportcontacts error:", error);
       await message.reply(
-        "❌ Une erreur est survenue lors de l'export des contacts."
+        "❌ Une erreur est survenue lors de l'export des contacts.",
       );
     }
   },

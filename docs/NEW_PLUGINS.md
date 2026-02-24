@@ -151,7 +151,7 @@ Potential additions based on WhatsBixby:
 ## Notes
 
 - All plugins follow OpenWhatsappBot architecture
-- Compatible with @whiskeysockets/baileys
+- Compatible with baileys
 - Use existing Message class methods
 - Integrated with existing database models
 - Language support via getLang() utility

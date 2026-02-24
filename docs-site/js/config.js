@@ -78,6 +78,12 @@ const COMMANDS_DATA = {
         usage: ".imagen <description>",
         example: ".imagen Un chat astronaute sur la lune",
       },
+      {
+        name: "gemini",
+        desc: "Poser des questions à Gemini (texte + images). Le bot accepte une image citée et le texte cité comme contexte.",
+        usage: ".gemini <question> (ou quote image + .gemini <question>)",
+        example: ".gemini Décris cette image",
+      },
     ],
   },
   downloads: {

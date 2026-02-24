@@ -1,6 +1,7 @@
 const { getLang } = require("../lib/utils/language");
 const { GoogleGenAI } = require("@google/genai");
 const { downloadMedia } = require("../lib/baileys/mediaAdapter");
+const FileType = require("file-type");
 const config = require("../config");
 
 /**
@@ -28,6 +29,18 @@ module.exports = {
       // Check for image in quoted message or current message
       let hasImage = false;
       let imageBuffer = null;
+      let quotedText = "";
+
+      // Extract quoted text if present (various message shapes)
+      if (message.quoted) {
+        const q = message.quoted.message || {};
+        quotedText =
+          q.conversation ||
+          q.extendedTextMessage?.text ||
+          q.imageMessage?.caption ||
+          q.videoMessage?.caption ||
+          "";
+      }
 
       if (message.quoted && message.quoted.message?.imageMessage) {
         const quotedShape = {
@@ -55,21 +68,32 @@ module.exports = {
       if (hasImage && imageBuffer) {
         // Use Gemini Vision for image analysis
         const base64Image = imageBuffer.toString("base64");
+
+        // Detect mime type from buffer when possible
+        let detectedMime = "image/jpeg";
+        try {
+          const ft = await FileType.fromBuffer(imageBuffer);
+          if (ft && ft.mime) detectedMime = ft.mime;
+        } catch (e) {
+          // ignore detection errors, fallback to jpeg
+        }
+
+        // Build prompt: include quoted text (if any) then the user's query
+        const promptText = [
+          quotedText,
+          query || "What's in this image? Describe it in detail.",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+
         const response = await genAI.models.generateContent({
           model: MODEL_VISION,
           contents: [
             {
               role: "user",
               parts: [
-                {
-                  text: query || "What's in this image? Describe it in detail.",
-                },
-                {
-                  inlineData: {
-                    mimeType: "image/jpeg",
-                    data: base64Image,
-                  },
-                },
+                { text: promptText },
+                { inlineData: { mimeType: detectedMime, data: base64Image } },
               ],
             },
           ],
@@ -80,13 +104,18 @@ module.exports = {
         await message.reply(`🌟 *Gemini Vision*\n\n${text}`);
       } else {
         // Text-only query
-        if (!query) {
+        if (!query && !quotedText) {
           return await message.reply(getLang("plugins.gemini.example"));
         }
 
+        // If quoted text exists, use it as context and append user's query
+        const fullText = quotedText
+          ? [quotedText, query].filter(Boolean).join("\n\n")
+          : query;
+
         const response = await genAI.models.generateContent({
           model: MODEL_TEXT,
-          contents: query,
+          contents: fullText,
         });
 
         const text = response?.text;

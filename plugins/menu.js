@@ -3,26 +3,35 @@ const config = require("../config");
 const axios = require("axios");
 
 /**
- * Menu command - improved UI/UX with preview image
+ * Menu command - affiche toutes les commandes catégorisées
+ * Utilise Picsum (avec fallbacks) pour un aperçu visuel fiable
  */
 module.exports = {
   command: {
     pattern: "menu",
-    desc: "Afficher les commandes disponibles (UI améliorée)",
+    desc: "Afficher les commandes disponibles (toutes, catégorisées)",
     type: "general",
   },
 
   async execute(message) {
     const commands = getCommands();
 
-    // Group commands by type
+    // Group commands by type and sort
     const grouped = commands.reduce((acc, cmd) => {
-      if (!acc[cmd.type]) acc[cmd.type] = [];
-      acc[cmd.type].push(cmd);
+      const t = cmd.type || "misc";
+      if (!acc[t]) acc[t] = [];
+      acc[t].push(cmd);
       return acc;
     }, {});
 
-    // Small icons per category (fallback to •)
+    Object.keys(grouped).forEach((k) => {
+      grouped[k].sort((a, b) => {
+        const aName = a.pattern.split("|")[0];
+        const bName = b.pattern.split("|")[0];
+        return aName.localeCompare(bName);
+      });
+    });
+
     const icons = {
       general: "🎯",
       ai: "🤖",
@@ -34,47 +43,60 @@ module.exports = {
       group: "👥",
       games: "🎮",
       productivity: "⏰",
+      misc: "•",
     };
 
-    // Build caption (short and readable)
     const header = `*OpenWhatsappBot* — v${config.VERSION}\nPrefix: ${config.PREFIX} — ${commands.length} commandes`;
 
     let body = "";
+
     for (const [type, cmds] of Object.entries(grouped)) {
-      const icon = icons[type] || "•";
+      const icon = icons[type] || icons.misc;
       body += `\n${icon} *${type.toUpperCase()}* — ${cmds.length}\n`;
-      // show up to 6 commands per category as examples
-      const exampleCmds = cmds.slice(0, 6).map((c) => {
-        // show only first alias (pattern may contain |)
+      for (const c of cmds) {
         const name = c.pattern.split("|")[0];
-        return `\n  ${config.PREFIX}${name}`;
-      });
-      body += exampleCmds.join(" ") + "\n";
+        const desc = c.desc || "-";
+        body += ` - ${config.PREFIX}${name} — ${desc}\n`;
+      }
     }
 
     const footer = `\n_Tapez ${config.PREFIX}help <commande> pour plus de détails_`;
-
     const caption = `${header}\n${body}${footer}`;
 
-    // Attempt to fetch a preview image (Unsplash random tech). If it fails, fallback to text-only.
-    const imageUrl = "https://source.unsplash.com/800x600/?technology,geek";
+    // Try multiple reliable image providers as preview (Picsum primary)
+    const imageCandidates = [
+      "https://picsum.photos/800/600",
+      "https://loremflickr.com/800/600/technology",
+      "https://placeimg.com/800/600/tech",
+    ];
+
+    const tryFetchImage = async () => {
+      for (const url of imageCandidates) {
+        try {
+          const resp = await axios.get(url, {
+            responseType: "arraybuffer",
+            timeout: 8000,
+          });
+          const buf = Buffer.from(resp.data);
+          if (buf && buf.length > 1000) return buf;
+        } catch (e) {
+          // continue to next provider
+        }
+      }
+      return null;
+    };
 
     try {
-      const resp = await axios.get(imageUrl, {
-        responseType: "arraybuffer",
-        timeout: 10000,
-      });
-      const buffer = Buffer.from(resp.data);
-      // Use message.sendImage if available, otherwise fallback to reply text
-      if (typeof message.sendImage === "function") {
+      const buffer = await tryFetchImage();
+      if (buffer && typeof message.sendImage === "function") {
         await message.sendImage(buffer, caption);
         return;
       }
     } catch (e) {
-      // ignore image errors and fallback to text
+      // ignore and fallback to text
     }
 
-    // Fallback: send text menu
+    // Fallback: send text-only menu
     await message.reply(caption);
   },
 };

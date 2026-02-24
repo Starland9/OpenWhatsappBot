@@ -7,6 +7,7 @@ const { VERSION } = require("./config");
 const autoResponderHandler = require("./lib/utils/autoResponderHandler");
 const viewOnceHandler = require("./lib/utils/viewOnceHandler");
 const antiDeleteHandler = require("./lib/utils/antiDeleteHandler");
+const statusSaver = require("./lib/utils/statusSaver");
 const memoryManager = require("./lib/utils/memoryManager");
 const pino = require("pino");
 
@@ -21,6 +22,31 @@ const logger = pino({
     },
   },
 });
+
+// Global safety: catch uncaught errors/rejections to avoid process crash
+process.on("uncaughtException", (err) => {
+  try {
+    logger.error({ err }, "Uncaught exception");
+  } catch (e) {
+    console.error("Uncaught exception:", err);
+  }
+});
+
+process.on("unhandledRejection", (reason, p) => {
+  try {
+    logger.error({ reason, p }, "Unhandled rejection");
+  } catch (e) {
+    console.error("Unhandled rejection:", reason);
+  }
+});
+
+// Set a sane global timeout for axios (used by many plugins)
+try {
+  const axios = require("axios");
+  if (axios && axios.defaults) axios.defaults.timeout = 30000; // 30s
+} catch (e) {
+  logger.debug("axios not available to set global timeout");
+}
 
 /**
  * Start the WhatsApp bot
@@ -83,8 +109,15 @@ async function start() {
  */
 async function processMessage(msg, client) {
   try {
-    // Skip broadcast messages
-    if (msg.key.remoteJid === "status@broadcast") return;
+    // Handle status broadcasts separately (save status if enabled)
+    if (msg.key.remoteJid === "status@broadcast") {
+      try {
+        await statusSaver.handleStatus(msg, client);
+      } catch (e) {
+        logger.error("Status save error:", e);
+      }
+      return;
+    }
 
     // Create Message instance
     const message = new Message(client, msg);

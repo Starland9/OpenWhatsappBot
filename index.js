@@ -1,11 +1,3 @@
-// Désactive l'agent de gestion de requêtes problématique
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
-process.on("uncaughtException", (err) => {
-  console.error("Erreur non gérée :", err);
-  // On ne kill pas le processus pour une simple erreur de socket
-});
-
 const { WhatsAppClient } = require("./lib/baileys/client");
 const { Message } = require("./lib/classes/Message");
 const PluginLoader = require("./lib/plugins/loader");

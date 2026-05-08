@@ -22,7 +22,7 @@
     "@vitalets/google-translate-api": "^9.2.1",
     "audio-decode": "^2.2.3",
     "axios": "^1.13.5",
-    "baileys": "^7.0.0",
+    "baileys": "^7.0.0-rc.9",
     "browser-id3-writer": "^6.3.1",
     "cheerio": "^1.2.0",
     "cookie": "^1.1.1",

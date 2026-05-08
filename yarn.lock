@@ -1042,7 +1042,7 @@ axios@^1.13.5:
     form-data "^4.0.5"
     proxy-from-env "^1.1.0"
 
-baileys@^7.0.0:
+baileys@^7.0.0-rc.9:
   version "7.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/baileys/-/baileys-7.0.0-rc.9.tgz#fd1ad83e9bfef275b2d93627841bdb85d00993d8"
   integrity sha512-Txd2dZ9MHbojvsHckeuCnAKPO/bQjKxua/0tQSJwOKXffK5vpS82k4eA/Nb46K0cK0Bx+fyY0zhnQHYMBriQcw==
@@ -1974,7 +1974,7 @@ gauge@^4.0.3:
     strip-ansi "^6.0.1"
     wide-align "^1.1.5"
 
-gaxios@^7.0.0, gaxios@^7.0.0-rc.4:
+gaxios@7.1.3, gaxios@^7.0.0, gaxios@^7.0.0-rc.4:
   version "7.1.3"
   resolved "https://registry.yarnpkg.com/gaxios/-/gaxios-7.1.3.tgz#c5312f4254abc1b8ab53aef30c22c5229b80b1e1"
   integrity sha512-YGGyuEdVIjqxkxVH1pUTMY/XtmmsApXrCVv5EU25iX6inEPbV+VakJfLealkBtJN69AQmh1eGOdCl9Sm1UP6XQ==
@@ -1984,7 +1984,7 @@ gaxios@^7.0.0, gaxios@^7.0.0-rc.4:
     node-fetch "^3.3.2"
     rimraf "^5.0.1"
 
-gcp-metadata@^8.0.0:
+gcp-metadata@8.1.2:
   version "8.1.2"
   resolved "https://registry.yarnpkg.com/gcp-metadata/-/gcp-metadata-8.1.2.tgz#e62e3373ddf41fc727ccc31c55c687b798bee898"
   integrity sha512-zV/5HKTfCeKWnxG0Dmrw51hEWFGfcF2xiXqcA3+J90WDuP0SvoiSO5ORvcBsifmx/FoIjgQN3oNOGaQ5PhLFkg==
@@ -2086,19 +2086,18 @@ glob@^7.1.3, glob@^7.1.4:
     path-is-absolute "^1.0.0"
 
 google-auth-library@^10.1.0, google-auth-library@^10.2.0, google-auth-library@^10.3.0:
-  version "10.5.0"
-  resolved "https://registry.yarnpkg.com/google-auth-library/-/google-auth-library-10.5.0.tgz#3f0ebd47173496b91d2868f572bb8a8180c4b561"
-  integrity sha512-7ABviyMOlX5hIVD60YOfHw4/CxOfBhyduaYB+wbFWCWoni4N7SLcV46hrVRktuBbZjFC9ONyqamZITN7q3n32w==
+  version "10.6.1"
+  resolved "https://registry.yarnpkg.com/google-auth-library/-/google-auth-library-10.6.1.tgz#91339f45dc5fecad164a58fa30bdd5db4fe5332a"
+  integrity sha512-5awwuLrzNol+pFDmKJd0dKtZ0fPLAtoA5p7YO4ODsDu6ONJUVqbYwvv8y2ZBO5MBNp9TJXigB19710kYpBPdtA==
   dependencies:
     base64-js "^1.3.0"
     ecdsa-sig-formatter "^1.0.11"
-    gaxios "^7.0.0"
-    gcp-metadata "^8.0.0"
-    google-logging-utils "^1.0.0"
-    gtoken "^8.0.0"
+    gaxios "7.1.3"
+    gcp-metadata "8.1.2"
+    google-logging-utils "1.1.3"
     jws "^4.0.0"
 
-google-logging-utils@^1.0.0:
+google-logging-utils@1.1.3, google-logging-utils@^1.0.0:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/google-logging-utils/-/google-logging-utils-1.1.3.tgz#17b71f1f95d266d2ddd356b8f00178433f041b17"
   integrity sha512-eAmLkjDjAFCVXg7A1unxHsLf961m6y17QFqXqAXGj/gVkKFrEICfStRfwUlGNfeCEjNRa32JEWOUTlYXPyyKvA==
@@ -2138,14 +2137,6 @@ graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.6:
   version "4.2.11"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.11.tgz#4183e4e8bf08bb6e05bbb2f7d2e0c8f712ca40e3"
   integrity sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==
-
-gtoken@^8.0.0:
-  version "8.0.0"
-  resolved "https://registry.yarnpkg.com/gtoken/-/gtoken-8.0.0.tgz#d67a0e346dd441bfb54ad14040ddc3b632886575"
-  integrity sha512-+CqsMbHPiSTdtSO14O51eMNlrp9N79gmeqmXeouJOhfucAedHw9noVe/n5uJk3tbKE6a+6ZCQg3RPhVhHByAIw==
-  dependencies:
-    gaxios "^7.0.0"
-    jws "^4.0.0"
 
 has-flag@^4.0.0:
   version "4.0.0"
@@ -2667,16 +2658,16 @@ miniget@^4.2.2, miniget@^4.2.3:
   integrity sha512-SjbDPDICJ1zT+ZvQwK0hUcRY4wxlhhNpHL9nJOB2MEAXRGagTljsO8MEDzQMTFf0Q8g4QNi8P9lEm/g7e+qgzA==
 
 minimatch@^3.1.1:
-  version "3.1.3"
-  resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-3.1.3.tgz#6a5cba9b31f503887018f579c89f81f61162e624"
-  integrity sha512-M2GCs7Vk83NxkUyQV1bkABc4yxgz9kILhHImZiBPAZ9ybuvCb0/H7lEl5XvIg3g+9d4eNotkZA5IWwYl0tibaA==
+  version "3.1.4"
+  resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-3.1.4.tgz#89d910ea3970a77ac8edfd30340ccd038b758079"
+  integrity sha512-twmL+S8+7yIsE9wsqgzU3E8/LumN3M3QELrBZ20OdmQ9jB2JvW5oZtBEmft84k/Gs5CG9mqtWc6Y9vW+JEzGxw==
   dependencies:
     brace-expansion "^1.1.7"
 
 minimatch@^9.0.4:
-  version "9.0.6"
-  resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-9.0.6.tgz#a7e3bccfcb3d78ec1bf8d51c9ba749080237a5c8"
-  integrity sha512-kQAVowdR33euIqeA0+VZTDqU+qo1IeVY+hrKYtZMio3Pg0P0vuh/kwRylLUddJhB6pf3q/botcOvRtx4IN1wqQ==
+  version "9.0.7"
+  resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-9.0.7.tgz#d76c4d0b3b527877016d6cc1b9922fc8e0ffe7b0"
+  integrity sha512-MOwgjc8tfrpn5QQEvjijjmDVtMw2oL88ugTevzxQnzRLm6l3fVEF2gzU0kYeYYKD8C66+IdGX6peJ4MyUlUnPg==
   dependencies:
     brace-expansion "^5.0.2"
 

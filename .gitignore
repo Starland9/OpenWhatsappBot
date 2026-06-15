@@ -29,3 +29,4 @@ AGENT_PLUGIN.md
 media/temp
 
 data
+data/status_save.json

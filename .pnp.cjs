@@ -281,14 +281,14 @@ const RAW_RUNTIME_STATE =
     ]],\
     ["@google/genai", [\
       ["npm:2.8.0", {\
-        "packageLocation": "../../../.yarn/berry/cache/@google-genai-npm-2.8.0-fde9b2443a-10c0.zip/node_modules/@google/genai/",\
+        "packageLocation": "./.yarn/unplugged/@google-genai-virtual-f4b098ff42/node_modules/@google/genai/",\
         "packageDependencies": [\
           ["@google/genai", "npm:2.8.0"]\
         ],\
         "linkType": "SOFT"\
       }],\
       ["virtual:b0ac570d07ed0f517ae6f02f6eb40f390ca5fecdda99cdab485117e3bbdbe47482de8e30ff6cd72483ede8f87b6e26b665c5e889abf65dc5f6c405653688bb84#npm:2.8.0", {\
-        "packageLocation": "./.yarn/__virtual__/@google-genai-virtual-f4b098ff42/4/.yarn/berry/cache/@google-genai-npm-2.8.0-fde9b2443a-10c0.zip/node_modules/@google/genai/",\
+        "packageLocation": "./.yarn/unplugged/@google-genai-virtual-f4b098ff42/node_modules/@google/genai/",\
         "packageDependencies": [\
           ["@google/genai", "virtual:b0ac570d07ed0f517ae6f02f6eb40f390ca5fecdda99cdab485117e3bbdbe47482de8e30ff6cd72483ede8f87b6e26b665c5e889abf65dc5f6c405653688bb84#npm:2.8.0"],\
           ["@modelcontextprotocol/sdk", null],\
@@ -1684,14 +1684,14 @@ const RAW_RUNTIME_STATE =
     ]],\
     ["baileys", [\
       ["npm:7.0.0-rc13", {\
-        "packageLocation": "../../../.yarn/berry/cache/baileys-npm-7.0.0-rc13-19eabe2950-10c0.zip/node_modules/baileys/",\
+        "packageLocation": "./.yarn/unplugged/baileys-virtual-25a61ee7a3/node_modules/baileys/",\
         "packageDependencies": [\
           ["baileys", "npm:7.0.0-rc13"]\
         ],\
         "linkType": "SOFT"\
       }],\
       ["virtual:b0ac570d07ed0f517ae6f02f6eb40f390ca5fecdda99cdab485117e3bbdbe47482de8e30ff6cd72483ede8f87b6e26b665c5e889abf65dc5f6c405653688bb84#npm:7.0.0-rc13", {\
-        "packageLocation": "./.yarn/__virtual__/baileys-virtual-25a61ee7a3/4/.yarn/berry/cache/baileys-npm-7.0.0-rc13-19eabe2950-10c0.zip/node_modules/baileys/",\
+        "packageLocation": "./.yarn/unplugged/baileys-virtual-25a61ee7a3/node_modules/baileys/",\
         "packageDependencies": [\
           ["@cacheable/node-cache", "npm:1.7.6"],\
           ["@hapi/boom", "npm:9.1.4"],\
@@ -1705,6 +1705,7 @@ const RAW_RUNTIME_STATE =
           ["jimp", "npm:1.6.1"],\
           ["libsignal", "npm:6.0.0"],\
           ["link-preview-js", "npm:4.0.3"],\
+          ["long", "npm:5.3.2"],\
           ["lru-cache", "npm:11.5.1"],\
           ["music-metadata", "npm:11.13.0"],\
           ["p-queue", "npm:9.3.0"],\
@@ -4944,7 +4945,7 @@ const RAW_RUNTIME_STATE =
     ]],\
     ["protobufjs", [\
       ["npm:7.6.4", {\
-        "packageLocation": "../../../.yarn/berry/cache/protobufjs-npm-7.6.4-97603a5239-10c0.zip/node_modules/protobufjs/",\
+        "packageLocation": "./.yarn/unplugged/protobufjs-npm-7.6.4-97603a5239/node_modules/protobufjs/",\
         "packageDependencies": [\
           ["@protobufjs/aspromise", "npm:1.1.2"],\
           ["@protobufjs/base64", "npm:1.1.2"],\

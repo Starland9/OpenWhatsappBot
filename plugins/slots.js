@@ -47,7 +47,9 @@ module.exports = {
 
     if (now - lastSpin < COOLDOWN_MS) {
       const remaining = Math.ceil((COOLDOWN_MS - (now - lastSpin)) / 1000);
-      return await message.reply(`⏱️ Attendez encore *${remaining}s* avant de rejouer.`);
+      return await message.reply(
+        `⏱️ Attendez encore *${remaining}s* avant de rejouer.`,
+      );
     }
 
     cooldowns.set(message.sender, now);
@@ -57,7 +59,10 @@ module.exports = {
     const combo = COMBOS[key];
 
     // Check for two same
-    const hasPair = result[0] === result[1] || result[1] === result[2] || result[0] === result[2];
+    const hasPair =
+      result[0] === result[1] ||
+      result[1] === result[2] ||
+      result[0] === result[2];
 
     let responseText = `*🎰 Machine à Sous*\n\n`;
     responseText += `╔═══════════════╗\n`;

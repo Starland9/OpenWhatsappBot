@@ -30,7 +30,7 @@ module.exports = {
     if (sub === "on") {
       await group.update({ antilink: true });
       return await message.reply(
-        "✅ *Anti-Link activé !*\n\nTous les liens seront supprimés automatiquement.\nLes admins sont exemptés.\nAprès 3 avertissements → expulsion."
+        "✅ *Anti-Link activé !*\n\nTous les liens seront supprimés automatiquement.\nLes admins sont exemptés.\nAprès 3 avertissements → expulsion.",
       );
     }
 
@@ -42,7 +42,7 @@ module.exports = {
     // Show status
     const status = group.antilink ? "✅ Activé" : "❌ Désactivé";
     return await message.reply(
-      `*🔗 Anti-Link*\n\nStatut : ${status}\n\n*Usage :*\n.antilink on → activer\n.antilink off → désactiver`
+      `*🔗 Anti-Link*\n\nStatut : ${status}\n\n*Usage :*\n.antilink on → activer\n.antilink off → désactiver`,
     );
   },
 };

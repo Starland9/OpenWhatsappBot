@@ -24,7 +24,9 @@ module.exports = {
 
     if (sub === "start") {
       if (activeSessions.has(message.jid)) {
-        return await message.reply("⚠️ Une session est déjà en cours ! Utilisez *.roulette join* pour participer.");
+        return await message.reply(
+          "⚠️ Une session est déjà en cours ! Utilisez *.roulette join* pour participer.",
+        );
       }
 
       const session = {
@@ -52,18 +54,20 @@ module.exports = {
 
       return await message.reply(
         `🎯 *Roulette Russe — Session Ouverte !*\n\n` +
-        `@${num} a ouvert la session !\n\n` +
-        `Utilisez *.roulette join* pour participer.\n` +
-        `La roulette sera tirée automatiquement dans 2 minutes ou quand *.roulette spin* est appelé.\n\n` +
-        `_Joueurs actuels : @${num}_`,
-        { mentions: [message.sender] }
+          `@${num} a ouvert la session !\n\n` +
+          `Utilisez *.roulette join* pour participer.\n` +
+          `La roulette sera tirée automatiquement dans 2 minutes ou quand *.roulette spin* est appelé.\n\n` +
+          `_Joueurs actuels : @${num}_`,
+        { mentions: [message.sender] },
       );
     }
 
     if (sub === "join") {
       const session = activeSessions.get(message.jid);
       if (!session) {
-        return await message.reply("❌ Aucune session ouverte. Utilisez *.roulette start* pour démarrer.");
+        return await message.reply(
+          "❌ Aucune session ouverte. Utilisez *.roulette start* pour démarrer.",
+        );
       }
       if (session.participants.includes(message.sender)) {
         return await message.reply("⚠️ Vous participez déjà !");
@@ -75,7 +79,7 @@ module.exports = {
 
       return await message.reply(
         `✅ @${message.sender.split("@")[0]} a rejoint la roulette !\n\n*Joueurs (${mentions.length}) :* ${playerList}`,
-        { mentions }
+        { mentions },
       );
     }
 
@@ -83,11 +87,19 @@ module.exports = {
       const session = activeSessions.get(message.jid);
       if (!session) return await message.reply("❌ Aucune session ouverte.");
       const isAdmin = await message.isSenderAdmin();
-      if (session.startedBy !== message.sender && !isAdmin && !message.isSudo()) {
-        return await message.reply("❌ Seul l'organisateur ou un admin peut tirer la roulette.");
+      if (
+        session.startedBy !== message.sender &&
+        !isAdmin &&
+        !message.isSudo()
+      ) {
+        return await message.reply(
+          "❌ Seul l'organisateur ou un admin peut tirer la roulette.",
+        );
       }
       if (session.participants.length < MIN_PLAYERS) {
-        return await message.reply(`❌ Il faut au moins ${MIN_PLAYERS} joueurs. (${session.participants.length} actuellement)`);
+        return await message.reply(
+          `❌ Il faut au moins ${MIN_PLAYERS} joueurs. (${session.participants.length} actuellement)`,
+        );
       }
       clearTimeout(session.timeout);
       await fireSpin(message.jid, message.client);
@@ -103,7 +115,7 @@ module.exports = {
     }
 
     return await message.reply(
-      `*🎯 Roulette Russe*\n\n*Usage :*\n.roulette start → ouvrir une session\n.roulette join → rejoindre\n.roulette spin → tirer la roulette\n.roulette stop → annuler\n\n_Un joueur sera sélectionné aléatoirement comme "perdant" (juste pour le fun !)_`
+      `*🎯 Roulette Russe*\n\n*Usage :*\n.roulette start → ouvrir une session\n.roulette join → rejoindre\n.roulette spin → tirer la roulette\n.roulette stop → annuler\n\n_Un joueur sera sélectionné aléatoirement comme "perdant" (juste pour le fun !)_`,
     );
   },
 };

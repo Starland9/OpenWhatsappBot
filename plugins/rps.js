@@ -17,7 +17,8 @@ function getResult(player, bot) {
     (player === "rock" && bot === "scissors") ||
     (player === "paper" && bot === "rock") ||
     (player === "scissors" && bot === "paper")
-  ) return "win";
+  )
+    return "win";
   return "lose";
 }
 
@@ -37,16 +38,19 @@ module.exports = {
   async execute(message, args) {
     const choice = (args || "").toLowerCase().trim();
     const choiceMap = {
-      rock: "rock", pierre: "rock",
-      paper: "paper", papier: "paper",
-      scissors: "scissors", ciseaux: "scissors",
+      rock: "rock",
+      pierre: "rock",
+      paper: "paper",
+      papier: "paper",
+      scissors: "scissors",
+      ciseaux: "scissors",
     };
 
     const playerChoice = choiceMap[choice];
 
     if (!playerChoice) {
       return await message.reply(
-        `*🪨📄✂️ Pierre-Papier-Ciseaux*\n\n*Usage :*\n.rps pierre\n.rps papier\n.rps ciseaux\n\n.rps rock|paper|scissors (anglais ok aussi)`
+        `*🪨📄✂️ Pierre-Papier-Ciseaux*\n\n*Usage :*\n.rps pierre\n.rps papier\n.rps ciseaux\n\n.rps rock|paper|scissors (anglais ok aussi)`,
       );
     }
 
@@ -90,11 +94,11 @@ module.exports = {
 
     return await message.reply(
       `*🪨📄✂️ Pierre-Papier-Ciseaux*\n\n` +
-      `Vous : ${playerEmoji} *${FR[playerChoice]}*\n` +
-      `Bot : ${botEmoji} *${FR[botChoice]}*\n\n` +
-      `${resultText}\n` +
-      `${points > 0 ? `+${points}` : points} points`,
-      { mentions: [message.sender] }
+        `Vous : ${playerEmoji} *${FR[playerChoice]}*\n` +
+        `Bot : ${botEmoji} *${FR[botChoice]}*\n\n` +
+        `${resultText}\n` +
+        `${points > 0 ? `+${points}` : points} points`,
+      { mentions: [message.sender] },
     );
   },
 };

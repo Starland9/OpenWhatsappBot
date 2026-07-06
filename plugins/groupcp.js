@@ -55,17 +55,41 @@ module.exports = {
                 {
                   title: "Protection",
                   rows: [
-                    { id: "gcp_antilink", title: `Anti-Link ${group.antilink ? on : off}`, description: "Bloquer les liens externes" },
-                    { id: "gcp_antiflood", title: `Anti-Flood ${group.antiflood ? on : off}`, description: "Limiter les messages rapides" },
-                    { id: "gcp_antibot", title: `Anti-Bot ${group.antibot ? on : off}`, description: "Empêcher les bots de rejoindre" },
-                    { id: "gcp_captcha", title: `Captcha ${group.captchaEnabled ? on : off}`, description: "Vérifier les nouveaux membres" },
+                    {
+                      id: "gcp_antilink",
+                      title: `Anti-Link ${group.antilink ? on : off}`,
+                      description: "Bloquer les liens externes",
+                    },
+                    {
+                      id: "gcp_antiflood",
+                      title: `Anti-Flood ${group.antiflood ? on : off}`,
+                      description: "Limiter les messages rapides",
+                    },
+                    {
+                      id: "gcp_antibot",
+                      title: `Anti-Bot ${group.antibot ? on : off}`,
+                      description: "Empêcher les bots de rejoindre",
+                    },
+                    {
+                      id: "gcp_captcha",
+                      title: `Captcha ${group.captchaEnabled ? on : off}`,
+                      description: "Vérifier les nouveaux membres",
+                    },
                   ],
                 },
                 {
                   title: "Messages",
                   rows: [
-                    { id: "gcp_welcome", title: `Bienvenue ${group.welcome ? on : off}`, description: "Message d'accueil pour nouveaux" },
-                    { id: "gcp_mute", title: `Mute Bot ${group.mute ? on : off}`, description: "Désactiver les réponses bot" },
+                    {
+                      id: "gcp_welcome",
+                      title: `Bienvenue ${group.welcome ? on : off}`,
+                      description: "Message d'accueil pour nouveaux",
+                    },
+                    {
+                      id: "gcp_mute",
+                      title: `Mute Bot ${group.mute ? on : off}`,
+                      description: "Désactiver les réponses bot",
+                    },
                   ],
                 },
               ],
@@ -75,7 +99,10 @@ module.exports = {
       });
     } catch (_) {
       // Fallback si les boutons ne fonctionnent pas
-      await message.reply(statusText + "\n\n_Utilisez .antilink, .antiflood, .captcha, etc. pour modifier._");
+      await message.reply(
+        statusText +
+          "\n\n_Utilisez .antilink, .antiflood, .captcha, etc. pour modifier._",
+      );
     }
   },
 

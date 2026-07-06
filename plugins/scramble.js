@@ -9,16 +9,36 @@ const GAME = "scramble";
 const ROUND_DURATION_MS = 30_000;
 
 const WORDS = [
-  ["ordinateur", "Technologie"], ["musique", "Art"], ["papillon", "Nature"],
-  ["chocolat", "Nourriture"], ["bibliothèque", "Lieu"], ["aventure", "Action"],
-  ["télévision", "Technologie"], ["girafe", "Animal"], ["pyramide", "Architecture"],
-  ["football", "Sport"], ["princesse", "Conte"], ["baleine", "Animal"],
-  ["champignon", "Nature"], ["journaliste", "Métier"], ["microscope", "Science"],
-  ["révolution", "Histoire"], ["mathématiques", "École"], ["philosophie", "Savoir"],
-  ["harmonie", "Musique"], ["démocratie", "Politique"], ["astronomie", "Science"],
-  ["architecture", "Art"], ["laboratoire", "Science"], ["magnifique", "Adjectif"],
-  ["intelligence", "Qualité"], ["crocodile", "Animal"], ["fantastique", "Adjectif"],
-  ["photographie", "Art"], ["électricité", "Science"], ["thermomètre", "Outil"],
+  ["ordinateur", "Technologie"],
+  ["musique", "Art"],
+  ["papillon", "Nature"],
+  ["chocolat", "Nourriture"],
+  ["bibliothèque", "Lieu"],
+  ["aventure", "Action"],
+  ["télévision", "Technologie"],
+  ["girafe", "Animal"],
+  ["pyramide", "Architecture"],
+  ["football", "Sport"],
+  ["princesse", "Conte"],
+  ["baleine", "Animal"],
+  ["champignon", "Nature"],
+  ["journaliste", "Métier"],
+  ["microscope", "Science"],
+  ["révolution", "Histoire"],
+  ["mathématiques", "École"],
+  ["philosophie", "Savoir"],
+  ["harmonie", "Musique"],
+  ["démocratie", "Politique"],
+  ["astronomie", "Science"],
+  ["architecture", "Art"],
+  ["laboratoire", "Science"],
+  ["magnifique", "Adjectif"],
+  ["intelligence", "Qualité"],
+  ["crocodile", "Animal"],
+  ["fantastique", "Adjectif"],
+  ["photographie", "Art"],
+  ["électricité", "Science"],
+  ["thermomètre", "Outil"],
 ];
 
 // Active rounds: groupJid → { word, hint, timeout, startedBy }
@@ -46,14 +66,22 @@ module.exports = {
 
   async execute(message, args) {
     if (activeRounds.has(message.jid)) {
-      return await message.reply("⚠️ Un mot est déjà en cours ! Trouvez-le d'abord.");
+      return await message.reply(
+        "⚠️ Un mot est déjà en cours ! Trouvez-le d'abord.",
+      );
     }
 
     const [word, category] = WORDS[Math.floor(Math.random() * WORDS.length)];
     const shuffled = scramble(word);
     const hint = category;
 
-    const round = { word, shuffled, hint, startedBy: message.sender, timeout: null };
+    const round = {
+      word,
+      shuffled,
+      hint,
+      startedBy: message.sender,
+      timeout: null,
+    };
     activeRounds.set(message.jid, round);
 
     const jid = message.jid;
@@ -70,10 +98,10 @@ module.exports = {
 
     return await message.reply(
       `*🔤 Scramble — Nouveau Mot !*\n\n` +
-      `*Mot mélangé :* \`${shuffled.toUpperCase()}\`\n` +
-      `*Catégorie :* ${hint}\n` +
-      `*Lettres :* ${word.length}\n\n` +
-      `_Répondez avec le bon mot en 30 secondes !_`
+        `*Mot mélangé :* \`${shuffled.toUpperCase()}\`\n` +
+        `*Catégorie :* ${hint}\n` +
+        `*Lettres :* ${word.length}\n\n` +
+        `_Répondez avec le bon mot en 30 secondes !_`,
     );
   },
 
@@ -83,7 +111,8 @@ module.exports = {
 
     const guess = message.body.trim().toLowerCase();
     // Only handle if it looks like a word attempt (no prefix, reasonable length)
-    if (guess.startsWith(".") || guess.length < 3 || guess.length > 20) return false;
+    if (guess.startsWith(".") || guess.length < 3 || guess.length > 20)
+      return false;
     if (guess !== round.word) return false;
 
     // Correct answer!
@@ -102,7 +131,7 @@ module.exports = {
 
     await message.reply(
       `🎉 *@${num} a trouvé !*\n\nLe mot était : *${round.word.toUpperCase()}*\n\n+10 points ! 🏆`,
-      { mentions: [message.sender] }
+      { mentions: [message.sender] },
     );
 
     return true;

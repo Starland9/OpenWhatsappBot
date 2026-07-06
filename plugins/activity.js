@@ -40,7 +40,9 @@ async function handleTopActive(message, args) {
   });
 
   if (records.length === 0) {
-    return await message.reply("📊 Aucune donnée d'activité pour ce groupe.\n\nEnvoyez des messages pour commencer à comptabiliser !");
+    return await message.reply(
+      "📊 Aucune donnée d'activité pour ce groupe.\n\nEnvoyez des messages pour commencer à comptabiliser !",
+    );
   }
 
   const medals = ["🥇", "🥈", "🥉"];
@@ -73,13 +75,17 @@ async function handleTopInactive(message, args) {
   });
 
   if (records.length === 0) {
-    return await message.reply("✅ Tous les membres ont été actifs ces 7 derniers jours !");
+    return await message.reply(
+      "✅ Tous les membres ont été actifs ces 7 derniers jours !",
+    );
   }
 
   let text = `*😴 Top ${limit} Membres Inactifs (>7 jours)*\n\n`;
   records.forEach((r, i) => {
     const num = r.jid.split("@")[0];
-    const daysAgo = Math.floor((Date.now() - new Date(r.lastActive).getTime()) / 86400000);
+    const daysAgo = Math.floor(
+      (Date.now() - new Date(r.lastActive).getTime()) / 86400000,
+    );
     text += `${i + 1}. @${num} — inactif depuis ${daysAgo} jour(s)\n`;
   });
 
@@ -96,7 +102,9 @@ async function handleRank(message) {
   const myRecord = allRecords.find((r) => r.jid === message.sender);
 
   if (!myRecord) {
-    return await message.reply("📊 Aucune activité enregistrée pour vous. Envoyez un message !");
+    return await message.reply(
+      "📊 Aucune activité enregistrée pour vous. Envoyez un message !",
+    );
   }
 
   const num = message.sender.split("@")[0];
@@ -105,14 +113,14 @@ async function handleRank(message) {
 
   return await message.reply(
     `*📊 Votre Rang d'Activité*\n\n` +
-    `👤 @${num}\n` +
-    `🏆 Rang : *#${rank}* sur ${total} membres\n` +
-    `📈 Percentile : Top ${100 - percentile}%\n\n` +
-    `💬 Messages : ${myRecord.messageCount}\n` +
-    `📸 Médias : ${myRecord.mediaCount}\n` +
-    `🎭 Stickers : ${myRecord.stickerCount}\n` +
-    `🎙️ Vocaux : ${myRecord.voiceCount}`,
-    { mentions: [message.sender] }
+      `👤 @${num}\n` +
+      `🏆 Rang : *#${rank}* sur ${total} membres\n` +
+      `📈 Percentile : Top ${100 - percentile}%\n\n` +
+      `💬 Messages : ${myRecord.messageCount}\n` +
+      `📸 Médias : ${myRecord.mediaCount}\n` +
+      `🎭 Stickers : ${myRecord.stickerCount}\n` +
+      `🎙️ Vocaux : ${myRecord.voiceCount}`,
+    { mentions: [message.sender] },
   );
 }
 
@@ -122,7 +130,9 @@ async function handleMyStats(message) {
   });
 
   if (!record) {
-    return await message.reply("📊 Aucune statistique pour vous encore. Envoyez des messages !");
+    return await message.reply(
+      "📊 Aucune statistique pour vous encore. Envoyez des messages !",
+    );
   }
 
   const lastActive = record.lastActive
@@ -135,14 +145,14 @@ async function handleMyStats(message) {
   const num = message.sender.split("@")[0];
   return await message.reply(
     `*📊 Mes Statistiques d'Activité*\n\n` +
-    `👤 @${num}\n\n` +
-    `💬 Messages envoyés : *${record.messageCount}*\n` +
-    `📸 Médias partagés : *${record.mediaCount}*\n` +
-    `🎭 Stickers envoyés : *${record.stickerCount}*\n` +
-    `🎙️ Messages vocaux : *${record.voiceCount}*\n\n` +
-    `📅 Première activité : ${joinDate}\n` +
-    `⏰ Dernière activité : ${lastActive}`,
-    { mentions: [message.sender] }
+      `👤 @${num}\n\n` +
+      `💬 Messages envoyés : *${record.messageCount}*\n` +
+      `📸 Médias partagés : *${record.mediaCount}*\n` +
+      `🎭 Stickers envoyés : *${record.stickerCount}*\n` +
+      `🎙️ Messages vocaux : *${record.voiceCount}*\n\n` +
+      `📅 Première activité : ${joinDate}\n` +
+      `⏰ Dernière activité : ${lastActive}`,
+    { mentions: [message.sender] },
   );
 }
 
@@ -152,8 +162,10 @@ async function handleReset(message) {
     return await message.reply("❌ Réservé aux admins du groupe.");
   }
 
-  const deleted = await UserActivity.destroy({ where: { groupJid: message.jid } });
+  const deleted = await UserActivity.destroy({
+    where: { groupJid: message.jid },
+  });
   return await message.reply(
-    `✅ *Statistiques réinitialisées !*\n\n${deleted} enregistrement(s) supprimé(s).`
+    `✅ *Statistiques réinitialisées !*\n\n${deleted} enregistrement(s) supprimé(s).`,
   );
 }

@@ -30,7 +30,7 @@ module.exports = {
     if (sub === "on") {
       await group.update({ antiflood: true });
       return await message.reply(
-        "✅ *Anti-Flood activé !*\n\nSeuils :\n• 5 messages / 5s → avertissement\n• 10 messages / 5s → expulsion\n\nLes admins sont exemptés."
+        "✅ *Anti-Flood activé !*\n\nSeuils :\n• 5 messages / 5s → avertissement\n• 10 messages / 5s → expulsion\n\nLes admins sont exemptés.",
       );
     }
 
@@ -41,7 +41,7 @@ module.exports = {
 
     const status = group.antiflood ? "✅ Activé" : "❌ Désactivé";
     return await message.reply(
-      `*🌊 Anti-Flood*\n\nStatut : ${status}\n\n*Usage :*\n.antiflood on → activer\n.antiflood off → désactiver`
+      `*🌊 Anti-Flood*\n\nStatut : ${status}\n\n*Usage :*\n.antiflood on → activer\n.antiflood off → désactiver`,
     );
   },
 };

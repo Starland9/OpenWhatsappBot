@@ -39,7 +39,7 @@ module.exports = {
   async execute(message, args) {
     if (!args || args.trim().length < 3) {
       return await message.reply(
-        `*🎱 Boule Magique*\n\n*Usage :* .8ball <votre question>\n\n*Exemple :* .8ball Est-ce que demain sera une bonne journée ?`
+        `*🎱 Boule Magique*\n\n*Usage :* .8ball <votre question>\n\n*Exemple :* .8ball Est-ce que demain sera une bonne journée ?`,
       );
     }
 
@@ -52,13 +52,11 @@ module.exports = {
         title: "🎱 Boule Magique",
         text: `*Question :* _${question}_\n\n${response}`,
         footer: "La boule magique a parlé",
-        buttons: [
-          { id: "8ball_again", text: "🎱 Poser à nouveau" },
-        ],
+        buttons: [{ id: "8ball_again", text: "🎱 Poser à nouveau" }],
       });
     } catch (_) {
       await message.reply(
-        `*🎱 Boule Magique*\n\n*Question :* _${question}_\n\n${response}`
+        `*🎱 Boule Magique*\n\n*Question :* _${question}_\n\n${response}`,
       );
     }
   },

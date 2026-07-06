@@ -142,7 +142,12 @@ async function processMessage(msg, client) {
           const fields = { messageCount: 1 };
           if (message.type === "audioMessage") fields.voiceCount = 1;
           else if (message.type === "stickerMessage") fields.stickerCount = 1;
-          else if (["imageMessage", "videoMessage", "documentMessage"].includes(message.type)) fields.mediaCount = 1;
+          else if (
+            ["imageMessage", "videoMessage", "documentMessage"].includes(
+              message.type,
+            )
+          )
+            fields.mediaCount = 1;
 
           const [record] = await UserActivity.findOrCreate({
             where: { jid: message.sender, groupJid: message.jid },

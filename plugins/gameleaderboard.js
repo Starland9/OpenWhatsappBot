@@ -44,7 +44,11 @@ module.exports = {
                   {
                     title: "Jeux disponibles",
                     rows: [
-                      { id: "glb_all", title: "🏆 Tous les jeux", description: "Classement global" },
+                      {
+                        id: "glb_all",
+                        title: "🏆 Tous les jeux",
+                        description: "Classement global",
+                      },
                       ...Object.entries(GAME_NAMES).map(([k, v]) => ({
                         id: `glb_${k}`,
                         title: v,
@@ -74,11 +78,18 @@ async function showLeaderboard(message, game) {
   if (game && game !== "all") where.game = game;
 
   // Aggregate: sum scores by jid+game (or all games if no filter)
-  const scores = await GameScore.findAll({ where, order: [["score", "DESC"]], limit: 50 });
+  const scores = await GameScore.findAll({
+    where,
+    order: [["score", "DESC"]],
+    limit: 50,
+  });
 
   if (scores.length === 0) {
-    const gameName = game && game !== "all" ? GAME_NAMES[game] || game : "tous les jeux";
-    return await message.reply(`📊 Aucun score enregistré pour *${gameName}* dans ce groupe.`);
+    const gameName =
+      game && game !== "all" ? GAME_NAMES[game] || game : "tous les jeux";
+    return await message.reply(
+      `📊 Aucun score enregistré pour *${gameName}* dans ce groupe.`,
+    );
   }
 
   // Aggregate by jid when showing all games
@@ -96,7 +107,8 @@ async function showLeaderboard(message, game) {
     ranked = scores.slice(0, 10);
   }
 
-  const gameName = game && game !== "all" ? GAME_NAMES[game] || game : "Tous les jeux";
+  const gameName =
+    game && game !== "all" ? GAME_NAMES[game] || game : "Tous les jeux";
   const medals = ["🥇", "🥈", "🥉"];
 
   let text = `*🏆 Classement — ${gameName}*\n\n`;

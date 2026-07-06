@@ -18,13 +18,17 @@ module.exports = {
   async execute(message, args) {
     const metadata = await message.getGroupMetadata();
     if (!metadata) {
-      return await message.reply("❌ Impossible de récupérer les infos du groupe.");
+      return await message.reply(
+        "❌ Impossible de récupérer les infos du groupe.",
+      );
     }
 
     const sub = (args || "").toLowerCase().trim();
     const excludeAdmins = sub === "member" || sub === "members";
 
-    let participants = metadata.participants.map((p) => jidNormalizedUser(p.id));
+    let participants = metadata.participants.map((p) =>
+      jidNormalizedUser(p.id),
+    );
 
     if (excludeAdmins) {
       const adminJids = metadata.participants
@@ -38,10 +42,13 @@ module.exports = {
     participants = participants.filter((p) => p !== botJid);
 
     if (participants.length === 0) {
-      return await message.reply("❌ Aucun membre disponible pour la sélection.");
+      return await message.reply(
+        "❌ Aucun membre disponible pour la sélection.",
+      );
     }
 
-    const chosen = participants[Math.floor(Math.random() * participants.length)];
+    const chosen =
+      participants[Math.floor(Math.random() * participants.length)];
     const num = chosen.split("@")[0];
 
     const sock = message.client.getSocket();
@@ -50,14 +57,12 @@ module.exports = {
         title: "🎲 Membre Aléatoire",
         text: `🎯 Le sort a désigné... @${num} !`,
         footer: `Parmi ${participants.length} membre(s)`,
-        buttons: [
-          { id: "random_again", text: "🎲 Relancer" },
-        ],
+        buttons: [{ id: "random_again", text: "🎲 Relancer" }],
       });
     } catch (_) {
       await message.reply(
         `🎲 *Membre Aléatoire*\n\nLe sort a désigné : @${num} 🎯\n\n_Parmi ${participants.length} membre(s)_`,
-        { mentions: [chosen] }
+        { mentions: [chosen] },
       );
     }
   },

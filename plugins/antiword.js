@@ -32,7 +32,10 @@ module.exports = {
 
     if (sub === "add" && word) {
       const current = group.bannedWords
-        ? group.bannedWords.split(",").map((w) => w.trim()).filter(Boolean)
+        ? group.bannedWords
+            .split(",")
+            .map((w) => w.trim())
+            .filter(Boolean)
         : [];
       if (current.includes(word)) {
         return await message.reply(`❌ *"${word}"* est déjà dans la liste.`);
@@ -40,12 +43,17 @@ module.exports = {
       current.push(word);
       await group.update({ bannedWords: current.join(",") });
       invalidateCache(message.jid);
-      return await message.reply(`✅ Mot *"${word}"* ajouté à la liste des mots bannis.`);
+      return await message.reply(
+        `✅ Mot *"${word}"* ajouté à la liste des mots bannis.`,
+      );
     }
 
     if (sub === "remove" && word) {
       const current = group.bannedWords
-        ? group.bannedWords.split(",").map((w) => w.trim()).filter(Boolean)
+        ? group.bannedWords
+            .split(",")
+            .map((w) => w.trim())
+            .filter(Boolean)
         : [];
       const filtered = current.filter((w) => w !== word);
       if (filtered.length === current.length) {
@@ -58,13 +66,16 @@ module.exports = {
 
     if (sub === "list") {
       const words = group.bannedWords
-        ? group.bannedWords.split(",").map((w) => w.trim()).filter(Boolean)
+        ? group.bannedWords
+            .split(",")
+            .map((w) => w.trim())
+            .filter(Boolean)
         : [];
       if (words.length === 0) {
         return await message.reply("📋 Aucun mot banni dans ce groupe.");
       }
       return await message.reply(
-        `*📋 Mots bannis (${words.length}) :*\n\n${words.map((w, i) => `${i + 1}. ${w}`).join("\n")}`
+        `*📋 Mots bannis (${words.length}) :*\n\n${words.map((w, i) => `${i + 1}. ${w}`).join("\n")}`,
       );
     }
 
@@ -75,7 +86,7 @@ module.exports = {
     }
 
     return await message.reply(
-      `*🚫 Anti-Word*\n\n*Usage :*\n.antiword add <mot> → ajouter\n.antiword remove <mot> → retirer\n.antiword list → afficher la liste\n.antiword clear → tout effacer`
+      `*🚫 Anti-Word*\n\n*Usage :*\n.antiword add <mot> → ajouter\n.antiword remove <mot> → retirer\n.antiword list → afficher la liste\n.antiword clear → tout effacer`,
     );
   },
 };

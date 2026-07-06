@@ -30,7 +30,7 @@ module.exports = {
     if (sub === "on") {
       await group.update({ captchaEnabled: true });
       return await message.reply(
-        "✅ *Captcha activé !*\n\nLes nouveaux membres devront résoudre un calcul simple.\nS'ils ne répondent pas en 60s → expulsion automatique."
+        "✅ *Captcha activé !*\n\nLes nouveaux membres devront résoudre un calcul simple.\nS'ils ne répondent pas en 60s → expulsion automatique.",
       );
     }
 
@@ -41,7 +41,7 @@ module.exports = {
 
     const status = group.captchaEnabled ? "✅ Activé" : "❌ Désactivé";
     return await message.reply(
-      `*🔐 Captcha*\n\nStatut : ${status}\n\n*Usage :*\n.captcha on → activer\n.captcha off → désactiver`
+      `*🔐 Captcha*\n\nStatut : ${status}\n\n*Usage :*\n.captcha on → activer\n.captcha off → désactiver`,
     );
   },
 };

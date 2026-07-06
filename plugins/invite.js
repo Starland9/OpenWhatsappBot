@@ -17,7 +17,9 @@ module.exports = {
     const isBotAdmin = await message.isBotAdmin();
 
     if (!isBotAdmin) {
-      return await message.reply("❌ Le bot doit être admin pour gérer les liens d'invitation.");
+      return await message.reply(
+        "❌ Le bot doit être admin pour gérer les liens d'invitation.",
+      );
     }
 
     const sub = (args || "").toLowerCase().trim();
@@ -30,7 +32,7 @@ module.exports = {
         await message.groupRevokeInvite();
         const newCode = await message.groupInviteCode();
         return await message.reply(
-          `🔄 *Lien révoqué et nouveau lien généré :*\n\nhttps://chat.whatsapp.com/${newCode}`
+          `🔄 *Lien révoqué et nouveau lien généré :*\n\nhttps://chat.whatsapp.com/${newCode}`,
         );
       } catch (err) {
         return await message.reply(`❌ Erreur : ${err.message}`);
@@ -41,10 +43,12 @@ module.exports = {
     try {
       const code = await message.groupInviteCode();
       return await message.reply(
-        `🔗 *Lien d'invitation du groupe :*\n\nhttps://chat.whatsapp.com/${code}\n\n_Utilisez .invite reset pour révoquer et générer un nouveau lien._`
+        `🔗 *Lien d'invitation du groupe :*\n\nhttps://chat.whatsapp.com/${code}\n\n_Utilisez .invite reset pour révoquer et générer un nouveau lien._`,
       );
     } catch (err) {
-      return await message.reply(`❌ Impossible d'obtenir le lien : ${err.message}`);
+      return await message.reply(
+        `❌ Impossible d'obtenir le lien : ${err.message}`,
+      );
     }
   },
 };

@@ -54,7 +54,9 @@ module.exports = {
 
   async execute(message) {
     if (activeVotes.has(message.jid)) {
-      return await message.reply("⚠️ Un vote est déjà en cours ! Attendez qu'il se termine.");
+      return await message.reply(
+        "⚠️ Un vote est déjà en cours ! Attendez qu'il se termine.",
+      );
     }
 
     const scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
@@ -81,13 +83,19 @@ module.exports = {
         text: `*Préféreriez-vous…*\n\n🅰️ *${a}*\n\n— ou —\n\n🅱️ *${b}*\n\n_Vote ouvert pendant 30 secondes !_`,
         footer: "Tapez A ou B pour voter !",
         buttons: [
-          { id: `${voteId}_A`, text: `🅰️ ${a.slice(0, 20)}${a.length > 20 ? "…" : ""}` },
-          { id: `${voteId}_B`, text: `🅱️ ${b.slice(0, 20)}${b.length > 20 ? "…" : ""}` },
+          {
+            id: `${voteId}_A`,
+            text: `🅰️ ${a.slice(0, 20)}${a.length > 20 ? "…" : ""}`,
+          },
+          {
+            id: `${voteId}_B`,
+            text: `🅱️ ${b.slice(0, 20)}${b.length > 20 ? "…" : ""}`,
+          },
         ],
       });
     } catch (_) {
       await message.reply(
-        `*🤔 Would You Rather*\n\n*Préféreriez-vous…*\n\n🅰️ *${a}*\n\n— ou —\n\n🅱️ *${b}*\n\n_Répondez *A* ou *B* dans les 30 secondes !_`
+        `*🤔 Would You Rather*\n\n*Préféreriez-vous…*\n\n🅰️ *${a}*\n\n— ou —\n\n🅱️ *${b}*\n\n_Répondez *A* ou *B* dans les 30 secondes !_`,
       );
     }
 

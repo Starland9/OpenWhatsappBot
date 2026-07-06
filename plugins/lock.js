@@ -20,21 +20,26 @@ module.exports = {
 
     const isBotAdmin = await message.isBotAdmin();
     if (!isBotAdmin) {
-      return await message.reply("❌ Le bot doit être admin pour modifier ce paramètre.");
+      return await message.reply(
+        "❌ Le bot doit être admin pour modifier ce paramètre.",
+      );
     }
 
-    const cmd = message.body.split(/\s+/)[0].replace(/^[^a-z]*/i, "").toLowerCase();
+    const cmd = message.body
+      .split(/\s+/)[0]
+      .replace(/^[^a-z]*/i, "")
+      .toLowerCase();
 
     try {
       if (cmd === "lock") {
         await message.groupSettingUpdate("announcement");
         return await message.reply(
-          "🔒 *Groupe verrouillé !*\n\nSeuls les admins peuvent maintenant envoyer des messages."
+          "🔒 *Groupe verrouillé !*\n\nSeuls les admins peuvent maintenant envoyer des messages.",
         );
       } else {
         await message.groupSettingUpdate("not_announcement");
         return await message.reply(
-          "🔓 *Groupe déverrouillé !*\n\nTous les membres peuvent maintenant envoyer des messages."
+          "🔓 *Groupe déverrouillé !*\n\nTous les membres peuvent maintenant envoyer des messages.",
         );
       }
     } catch (err) {

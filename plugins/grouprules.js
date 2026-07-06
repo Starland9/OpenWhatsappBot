@@ -30,14 +30,20 @@ module.exports = {
       }
 
       const newRules = parts.slice(4).trim();
-      if (!newRules) return await message.reply("❌ Fournissez le texte des règles.");
+      if (!newRules)
+        return await message.reply("❌ Fournissez le texte des règles.");
 
       // Auto-number lines if they don't already start with a number
-      const lines = newRules.split(/[|;,\n]+/).map((l) => l.trim()).filter(Boolean);
+      const lines = newRules
+        .split(/[|;,\n]+/)
+        .map((l) => l.trim())
+        .filter(Boolean);
       const numbered = lines.map((l, i) => `${i + 1}. ${l}`).join("\n");
 
       await group.update({ rules: numbered });
-      return await message.reply(`✅ *Règles du groupe mises à jour !*\n\n${numbered}`);
+      return await message.reply(
+        `✅ *Règles du groupe mises à jour !*\n\n${numbered}`,
+      );
     }
 
     if (parts.toLowerCase() === "clear") {
@@ -52,12 +58,12 @@ module.exports = {
     // Display rules
     if (!group.rules || group.rules.trim() === "") {
       return await message.reply(
-        "📋 Aucune règle définie pour ce groupe.\n\n*Admins :* utilisez `.rules set Règle1 | Règle2 | Règle3`"
+        "📋 Aucune règle définie pour ce groupe.\n\n*Admins :* utilisez `.rules set Règle1 | Règle2 | Règle3`",
       );
     }
 
     return await message.reply(
-      `*📋 Règles du Groupe*\n\n${group.rules}\n\n_Respectez les règles pour une bonne ambiance !_ 🙏`
+      `*📋 Règles du Groupe*\n\n${group.rules}\n\n_Respectez les règles pour une bonne ambiance !_ 🙏`,
     );
   },
 };

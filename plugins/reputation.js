@@ -28,7 +28,9 @@ module.exports = {
       });
 
       if (top.length === 0) {
-        return await message.reply("📊 Aucune réputation dans ce groupe encore. Donnez des +rep !");
+        return await message.reply(
+          "📊 Aucune réputation dans ce groupe encore. Donnez des +rep !",
+        );
       }
 
       const medals = ["🥇", "🥈", "🥉"];
@@ -43,19 +45,18 @@ module.exports = {
     }
 
     // Give +rep
-    const target =
-      message.mentions?.[0] ||
-      message.quoted?.sender ||
-      null;
+    const target = message.mentions?.[0] || message.quoted?.sender || null;
 
     if (!target) {
       return await message.reply(
-        `*⭐ Réputation*\n\n*Usage :*\n• Mentionnez ou répondez à quelqu'un\n.rep @user → donner +1 rep\n.rep list → classement\n\n*Cooldown :* 24h par personne`
+        `*⭐ Réputation*\n\n*Usage :*\n• Mentionnez ou répondez à quelqu'un\n.rep @user → donner +1 rep\n.rep list → classement\n\n*Cooldown :* 24h par personne`,
       );
     }
 
     if (target === message.sender) {
-      return await message.reply("❌ Vous ne pouvez pas vous donner de réputation à vous-même !");
+      return await message.reply(
+        "❌ Vous ne pouvez pas vous donner de réputation à vous-même !",
+      );
     }
 
     // Check cooldown: check if THIS sender already gave to THIS target in the last 24h
@@ -66,7 +67,9 @@ module.exports = {
     const now = Date.now();
     if (now - lastGiven < COOLDOWN_MS) {
       const remaining = Math.ceil((COOLDOWN_MS - (now - lastGiven)) / 3600000);
-      return await message.reply(`⏱️ Vous avez déjà donné un rep à cet utilisateur. Réessayez dans ~${remaining}h.`);
+      return await message.reply(
+        `⏱️ Vous avez déjà donné un rep à cet utilisateur. Réessayez dans ~${remaining}h.`,
+      );
     }
 
     // Update reputation
@@ -84,7 +87,7 @@ module.exports = {
 
     return await message.reply(
       `⭐ @${senderNum} a donné +1 rep à @${num} !\n\n${num} a maintenant *${newRep} rep* 🎉`,
-      { mentions: [message.sender, target] }
+      { mentions: [message.sender, target] },
     );
   },
 };

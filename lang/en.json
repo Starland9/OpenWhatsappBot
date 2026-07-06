@@ -352,6 +352,143 @@
       "failed": "❌ Download failed. The content may be private or unavailable.",
       "success": "✅ Downloaded from *{0}*",
       "error": "❌ Error: {0}"
+    },
+    "groupcp": {
+      "desc": "Group Control Panel — toggle all group settings via interactive buttons"
+    },
+    "antilink": {
+      "desc": "Toggle link detection and removal in the group",
+      "on": "✅ Anti-Link enabled! Links will be removed automatically.",
+      "off": "❌ Anti-Link disabled.",
+      "warn": "⚠️ @{0}, links are not allowed in this group! (Warning {1}/3)",
+      "kick": "⛔ @{0} was kicked for repeatedly sending links."
+    },
+    "antiflood": {
+      "desc": "Toggle flood protection in the group",
+      "on": "✅ Anti-Flood enabled!",
+      "off": "❌ Anti-Flood disabled.",
+      "warn": "⚠️ @{0}, stop sending messages so fast!",
+      "kick": "⛔ @{0} was kicked for flooding ({1} messages in 5s)."
+    },
+    "antiword": {
+      "desc": "Manage banned words in the group",
+      "added": "✅ Word *\"{0}\"* added to the banned list.",
+      "removed": "✅ Word *\"{0}\"* removed from the banned list.",
+      "already": "❌ *\"{0}\"* is already in the list.",
+      "not_found": "❌ *\"{0}\"* is not in the list.",
+      "cleared": "✅ Banned words list cleared.",
+      "empty": "📋 No banned words in this group."
+    },
+    "grouprules": {
+      "desc": "Display or set group rules",
+      "set": "✅ Group rules updated!",
+      "cleared": "✅ Rules cleared.",
+      "none": "📋 No rules set. Admins: use .rules set Rule1 | Rule2"
+    },
+    "invite": {
+      "desc": "Get or reset the group invite link",
+      "link": "🔗 *Group Invite Link:*\n\nhttps://chat.whatsapp.com/{0}",
+      "revoked": "🔄 Link revoked. New link: https://chat.whatsapp.com/{0}",
+      "error": "❌ Could not get invite link: {0}"
+    },
+    "lock": {
+      "desc": "Lock/unlock group messaging (admins only)",
+      "locked": "🔒 *Group locked!* Only admins can send messages.",
+      "unlocked": "🔓 *Group unlocked!* Everyone can send messages."
+    },
+    "captcha": {
+      "desc": "Toggle captcha verification for new group members",
+      "on": "✅ Captcha enabled! New members must solve a math question.",
+      "off": "❌ Captcha disabled.",
+      "question": "👋 Welcome @{0}!\n\n🔐 *Anti-bot verification:*\nWhat is *{1} + {2}*?\n\nAnswer within 60 seconds or you'll be removed.",
+      "passed": "✅ Welcome @{0}, captcha passed!",
+      "failed": "⛔ @{0} was removed for not completing the captcha."
+    },
+    "reputation": {
+      "desc": "Group reputation system — give +rep or view leaderboard",
+      "given": "⭐ @{0} gave +1 rep to @{1}!\n\n{1} now has *{2} rep* 🎉",
+      "self": "❌ You can't give reputation to yourself!",
+      "cooldown": "⏱️ You already gave rep to this user. Try again in ~{0}h.",
+      "top": "🏆 *Reputation Leaderboard*"
+    },
+    "randommember": {
+      "desc": "Pick a random group member",
+      "result": "🎲 *Random Member*\n\nThe draw selected: @{0} 🎯"
+    },
+    "activity": {
+      "desc": "User activity statistics for the group",
+      "topactive": "📊 *Top {0} Most Active Members*",
+      "topinactive": "😴 *Top {0} Inactive Members (>7 days)*",
+      "all_active": "✅ All members have been active in the last 7 days!",
+      "no_data": "📊 No activity data for this group yet.",
+      "rank": "📊 *Your Activity Rank*",
+      "mystats": "📊 *My Activity Stats*",
+      "reset": "✅ Stats reset! {0} record(s) deleted.",
+      "reset_admin": "❌ Only admins can reset stats."
+    },
+    "hangman": {
+      "desc": "Classic hangman game for groups",
+      "started": "🎯 *Hangman — New Game!*\nCategory: *{0}*",
+      "stopped": "🛑 Game stopped. The word was: *{0}*",
+      "already": "⚠️ A game is already running! Use .hangman stop to end it.",
+      "correct": "✅ Good letter *{0}*!",
+      "wrong": "❌ *{0}* is not in the word!",
+      "won": "🎉 *@{0} found the word!* +10 points 🏆",
+      "lost": "💀 *Game over!* The word was: *{0}*",
+      "already_played": "⚠️ Letter *{0}* was already played!"
+    },
+    "wordle": {
+      "desc": "Guess the 5-letter word (like Wordle)",
+      "started": "🟩 *Wordle — New Game!*\nGuess the *5-letter word*.",
+      "stopped": "🛑 Game stopped. The word was: *{0}*",
+      "already": "⚠️ A Wordle game is already running!",
+      "won": "🎉 *@{0} found it!* +{1} points 🏆",
+      "lost": "😞 *You lost!* The word was: *{0}*"
+    },
+    "slots": {
+      "desc": "Slot machine 🎰 — try your luck!",
+      "jackpot": "💰 *JACKPOT! {0}!* +{1} points 🎉",
+      "pair": "😊 *Pair!* +5 points",
+      "nothing": "😔 Nothing this time... Try again!",
+      "cooldown": "⏱️ Wait {0}s before playing again."
+    },
+    "roulette": {
+      "desc": "Russian roulette group game",
+      "started": "🎯 *Russian Roulette — Session Open!*",
+      "joined": "✅ @{0} joined the roulette!",
+      "fired": "💀 *@{0} was eliminated by the roulette!*",
+      "not_enough": "❌ Need at least {0} players. ({1} currently)",
+      "expired": "⏰ Session expired — not enough players."
+    },
+    "wyr": {
+      "desc": "Would You Rather — make a tough choice!",
+      "header": "🤔 *Would You Rather*",
+      "results": "📊 *Results — Would You Rather*",
+      "no_votes": "📊 Nobody voted!"
+    },
+    "rps": {
+      "desc": "Rock Paper Scissors against the bot",
+      "usage": "Usage: .rps rock|paper|scissors",
+      "win": "🎉 *@{0} wins!*",
+      "lose": "😔 *The bot wins!*",
+      "draw": "🤝 *Draw!*",
+      "cooldown": "⏱️ Wait 5 seconds before playing again."
+    },
+    "8ball": {
+      "desc": "Ask a question to the magic 8 ball 🎱",
+      "usage": "Usage: .8ball <your question>"
+    },
+    "scramble": {
+      "desc": "Guess the scrambled word — first to find it wins!",
+      "started": "🔤 *Scramble — New Word!*",
+      "timeout": "⏰ *Time's up!* The word was: *{0}*",
+      "won": "🎉 *@{0} found it!* The word was *{1}*. +10 points 🏆",
+      "already": "⚠️ A scramble round is already running!"
+    },
+    "gameleaderboard": {
+      "desc": "Cross-game leaderboard for the group",
+      "no_scores": "📊 No scores recorded for *{0}* in this group.",
+      "title": "🏆 *Leaderboard — {0}*"
     }
   },
   "extra": {

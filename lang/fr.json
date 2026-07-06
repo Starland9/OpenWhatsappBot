@@ -352,6 +352,143 @@
       "failed": "❌ Échec du téléchargement. Le contenu est peut-être privé ou indisponible.",
       "success": "✅ Téléchargé depuis *{0}*",
       "error": "❌ Erreur: {0}"
+    },
+    "groupcp": {
+      "desc": "Panneau de contrôle du groupe — basculer tous les paramètres via des boutons interactifs"
+    },
+    "antilink": {
+      "desc": "Activer/désactiver la détection et suppression des liens",
+      "on": "✅ Anti-Link activé ! Les liens seront supprimés automatiquement.",
+      "off": "❌ Anti-Link désactivé.",
+      "warn": "⚠️ @{0}, les liens sont interdits dans ce groupe ! (Avertissement {1}/3)",
+      "kick": "⛔ @{0} a été expulsé pour envoi répété de liens."
+    },
+    "antiflood": {
+      "desc": "Activer/désactiver la protection anti-flood",
+      "on": "✅ Anti-Flood activé !",
+      "off": "❌ Anti-Flood désactivé.",
+      "warn": "⚠️ @{0}, arrêtez d'envoyer des messages aussi rapidement !",
+      "kick": "⛔ @{0} a été expulsé pour flood ({1} messages en 5s)."
+    },
+    "antiword": {
+      "desc": "Gérer les mots bannis dans le groupe",
+      "added": "✅ Mot *\"{0}\"* ajouté à la liste des mots bannis.",
+      "removed": "✅ Mot *\"{0}\"* retiré de la liste.",
+      "already": "❌ *\"{0}\"* est déjà dans la liste.",
+      "not_found": "❌ *\"{0}\"* n'est pas dans la liste.",
+      "cleared": "✅ Liste des mots bannis effacée.",
+      "empty": "📋 Aucun mot banni dans ce groupe."
+    },
+    "grouprules": {
+      "desc": "Afficher ou définir les règles du groupe",
+      "set": "✅ Règles du groupe mises à jour !",
+      "cleared": "✅ Règles effacées.",
+      "none": "📋 Aucune règle définie. Admins : utilisez .rules set Règle1 | Règle2"
+    },
+    "invite": {
+      "desc": "Obtenir ou révoquer le lien d'invitation du groupe",
+      "link": "🔗 *Lien d'invitation du groupe :*\n\nhttps://chat.whatsapp.com/{0}",
+      "revoked": "🔄 Lien révoqué. Nouveau lien : https://chat.whatsapp.com/{0}",
+      "error": "❌ Impossible d'obtenir le lien : {0}"
+    },
+    "lock": {
+      "desc": "Verrouiller/déverrouiller les messages du groupe",
+      "locked": "🔒 *Groupe verrouillé !* Seuls les admins peuvent envoyer des messages.",
+      "unlocked": "🔓 *Groupe déverrouillé !* Tous les membres peuvent envoyer des messages."
+    },
+    "captcha": {
+      "desc": "Activer/désactiver le captcha pour les nouveaux membres",
+      "on": "✅ Captcha activé ! Les nouveaux membres devront résoudre une question.",
+      "off": "❌ Captcha désactivé.",
+      "question": "👋 Bienvenue @{0} !\n\n🔐 *Vérification anti-bot :*\nCombien font *{1} + {2}* ?\n\nRépondez dans les 60 secondes ou vous serez expulsé.",
+      "passed": "✅ Bienvenue @{0}, captcha validé !",
+      "failed": "⛔ @{0} a été expulsé pour ne pas avoir complété le captcha."
+    },
+    "reputation": {
+      "desc": "Système de réputation : donner un +rep ou voir le classement",
+      "given": "⭐ @{0} a donné +1 rep à @{1} !\n\n{1} a maintenant *{2} rep* 🎉",
+      "self": "❌ Vous ne pouvez pas vous donner de réputation à vous-même !",
+      "cooldown": "⏱️ Vous avez déjà donné un rep à cet utilisateur. Réessayez dans ~{0}h.",
+      "top": "🏆 *Classement Réputation*"
+    },
+    "randommember": {
+      "desc": "Choisir un membre aléatoire du groupe",
+      "result": "🎲 *Membre Aléatoire*\n\nLe sort a désigné : @{0} 🎯"
+    },
+    "activity": {
+      "desc": "Statistiques d'activité des membres du groupe",
+      "topactive": "📊 *Top {0} Membres les Plus Actifs*",
+      "topinactive": "😴 *Top {0} Membres Inactifs (>7 jours)*",
+      "all_active": "✅ Tous les membres ont été actifs ces 7 derniers jours !",
+      "no_data": "📊 Aucune donnée d'activité pour ce groupe.",
+      "rank": "📊 *Votre Rang d'Activité*",
+      "mystats": "📊 *Mes Statistiques d'Activité*",
+      "reset": "✅ Statistiques réinitialisées ! {0} enregistrement(s) supprimé(s).",
+      "reset_admin": "❌ Réservé aux admins du groupe."
+    },
+    "hangman": {
+      "desc": "Jeu du pendu pour le groupe",
+      "started": "🎯 *Pendu — Nouvelle Partie !*\nCatégorie : *{0}*",
+      "stopped": "🛑 Partie arrêtée. Le mot était : *{0}*",
+      "already": "⚠️ Une partie est déjà en cours ! Utilisez .hangman stop.",
+      "correct": "✅ Bonne lettre *{0}* !",
+      "wrong": "❌ *{0}* n'est pas dans le mot !",
+      "won": "🎉 *@{0} a trouvé le mot !* +10 points 🏆",
+      "lost": "💀 *Perdu !* Le mot était : *{0}*",
+      "already_played": "⚠️ La lettre *{0}* a déjà été jouée !"
+    },
+    "wordle": {
+      "desc": "Devinez le mot de 5 lettres (comme Wordle)",
+      "started": "🟩 *Wordle — Nouvelle Partie !*\nDevinez le *mot de 5 lettres*.",
+      "stopped": "🛑 Partie arrêtée. Le mot était : *{0}*",
+      "already": "⚠️ Une partie Wordle est déjà en cours !",
+      "won": "🎉 *@{0} a trouvé !* +{1} points 🏆",
+      "lost": "😞 *Perdu !* Le mot était : *{0}*"
+    },
+    "slots": {
+      "desc": "Machine à sous 🎰 — tentez votre chance !",
+      "jackpot": "💰 *JACKPOT ! {0} !* +{1} points 🎉",
+      "pair": "😊 *Paire !* +5 points",
+      "nothing": "😔 Rien cette fois... Réessayez !",
+      "cooldown": "⏱️ Attendez {0}s avant de rejouer."
+    },
+    "roulette": {
+      "desc": "Roulette russe de groupe — qui sera éliminé ?",
+      "started": "🎯 *Roulette Russe — Session Ouverte !*",
+      "joined": "✅ @{0} a rejoint la roulette !",
+      "fired": "💀 *@{0} a été éliminé par la roulette !*",
+      "not_enough": "❌ Il faut au moins {0} joueurs. ({1} actuellement)",
+      "expired": "⏰ Session expirée — pas assez de joueurs."
+    },
+    "wyr": {
+      "desc": "Would You Rather — faites un choix cornélien !",
+      "header": "🤔 *Would You Rather*",
+      "results": "📊 *Résultats — Would You Rather*",
+      "no_votes": "📊 Personne n'a voté !"
+    },
+    "rps": {
+      "desc": "Pierre-Papier-Ciseaux contre le bot",
+      "usage": "Usage : .rps pierre|papier|ciseaux",
+      "win": "🎉 *@{0} gagne !*",
+      "lose": "😔 *Le bot gagne !*",
+      "draw": "🤝 *Égalité !*",
+      "cooldown": "⏱️ Attendez 5 secondes avant de rejouer."
+    },
+    "8ball": {
+      "desc": "Posez une question à la boule magique 🎱",
+      "usage": "Usage : .8ball <votre question>"
+    },
+    "scramble": {
+      "desc": "Déchiffrez le mot mélangé — premier à trouver gagne !",
+      "started": "🔤 *Scramble — Nouveau Mot !*",
+      "timeout": "⏰ *Temps écoulé !* Le mot était : *{0}*",
+      "won": "🎉 *@{0} a trouvé !* Le mot était *{1}*. +10 points 🏆",
+      "already": "⚠️ Un round Scramble est déjà en cours !"
+    },
+    "gameleaderboard": {
+      "desc": "Classement des jeux du groupe",
+      "no_scores": "📊 Aucun score enregistré pour *{0}* dans ce groupe.",
+      "title": "🏆 *Classement — {0}*"
     }
   },
   "extra": {

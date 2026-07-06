@@ -7,6 +7,10 @@ const { VERSION } = require("./config");
 const autoResponderHandler = require("./lib/utils/autoResponderHandler");
 const viewOnceHandler = require("./lib/utils/viewOnceHandler");
 const antiDeleteHandler = require("./lib/utils/antiDeleteHandler");
+const antilinkHandler = require("./lib/utils/antilinkHandler");
+const antifloodHandler = require("./lib/utils/antifloodHandler");
+const antiwordHandler = require("./lib/utils/antiwordHandler");
+const captchaHandler = require("./lib/utils/captchaHandler");
 const statusSaver = require("./lib/utils/statusSaver");
 const memoryManager = require("./lib/utils/memoryManager");
 const pino = require("pino");
@@ -98,6 +102,11 @@ async function start() {
         await antiDeleteHandler.handleMessageDelete(update, client);
       }
     });
+
+    // Handle group participant updates (captcha, antibot)
+    client.on("group-participants.update", async (update) => {
+      await captchaHandler.handleParticipantsUpdate(update, client);
+    });
   } catch (error) {
     logger.error("Failed to start bot:", error);
     process.exit(1);
@@ -124,6 +133,26 @@ async function processMessage(msg, client) {
 
     // Cache message for anti-delete functionality (non-blocking)
     setImmediate(() => antiDeleteHandler.cacheMessage(message));
+
+    // Track user activity for group messages (non-blocking)
+    if (message.isGroup && !message.fromMe && message.sender) {
+      setImmediate(async () => {
+        try {
+          const { UserActivity } = require("./lib/database");
+          const fields = { messageCount: 1 };
+          if (message.type === "audioMessage") fields.voiceCount = 1;
+          else if (message.type === "stickerMessage") fields.stickerCount = 1;
+          else if (["imageMessage", "videoMessage", "documentMessage"].includes(message.type)) fields.mediaCount = 1;
+
+          const [record] = await UserActivity.findOrCreate({
+            where: { jid: message.sender, groupJid: message.jid },
+            defaults: { jid: message.sender, groupJid: message.jid },
+          });
+          await record.increment(fields);
+          await record.update({ lastActive: new Date() });
+        } catch (_) {}
+      });
+    }
 
     // Handle view-once messages first (before any other processing)
     const viewOnceHandled = await viewOnceHandler.handleMessage(message);
@@ -173,6 +202,26 @@ async function processMessage(msg, client) {
     const isCommand = message.body.startsWith(require("./config").PREFIX);
 
     if (!isCommand && !message.fromMe) {
+      // Run protection handlers in sequence (group only)
+      if (message.isGroup) {
+        const captchaHandled = await captchaHandler.handleMessage(message);
+        if (captchaHandled) return;
+
+        const linkHandled = await antilinkHandler.handleMessage(message);
+        if (linkHandled) return;
+
+        const floodHandled = await antifloodHandler.handleMessage(message);
+        if (floodHandled) return;
+
+        const wordHandled = await antiwordHandler.handleMessage(message);
+        if (wordHandled) return;
+
+        // Route to game message handlers
+        const gameHandler = require("./lib/utils/gameHandler");
+        const gameHandled = await gameHandler.handleMessage(message);
+        if (gameHandled) return;
+      }
+
       const autoResponded = await autoResponderHandler.handleMessage(message);
       if (autoResponded) {
         return; // Skip command execution if auto-responded

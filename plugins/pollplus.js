@@ -32,8 +32,11 @@ module.exports = {
       for (const v of cur.votes.values()) {
         if (tally[v] !== undefined) tally[v] += 1;
       }
-      const text = `📊 *Poll closed:* ${cur.question}\n\n` +
-        cur.options.map((o, i) => `  ${i + 1}. ${o} — _${tally[o]} votes_`).join("\n");
+      const text =
+        `📊 *Poll closed:* ${cur.question}\n\n` +
+        cur.options
+          .map((o, i) => `  ${i + 1}. ${o} — _${tally[o]} votes_`)
+          .join("\n");
       return await message.reply(text);
     }
 
@@ -52,12 +55,19 @@ module.exports = {
     // New poll: parse "Question? opt1, opt2, opt3"
     const m = args.match(/^(.+?)\?\s*(.+)$/s);
     if (!m) {
-      return await message.reply(getLang("plugins.pollplus.usage", require("../config").PREFIX));
+      return await message.reply(
+        getLang("plugins.pollplus.usage", require("../config").PREFIX),
+      );
     }
     const question = m[1].trim();
-    const opts = m[2].split(",").map((o) => o.trim()).filter(Boolean);
+    const opts = m[2]
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean);
     if (opts.length < 2) {
-      return await message.reply(getLang("plugins.pollplus.usage", require("../config").PREFIX));
+      return await message.reply(
+        getLang("plugins.pollplus.usage", require("../config").PREFIX),
+      );
     }
     if (opts.length > 12) {
       return await message.reply(getLang("plugins.pollplus.too_many"));
@@ -65,7 +75,9 @@ module.exports = {
 
     try {
       // Try native poll first
-      const sent = await message.sendPoll(question, opts, { selectableCount: 1 });
+      const sent = await message.sendPoll(question, opts, {
+        selectableCount: 1,
+      });
       polls.set(message.jid, {
         id: sent?.key?.id,
         question,
@@ -80,7 +92,7 @@ module.exports = {
         message.jid,
         getLang("plugins.pollplus.created", question),
         [{ id: `pollplus:close:${message.jid}`, text: "🔒 Close" }],
-        { title: "📊 Poll+", footer: "OpenWhatsappBot", quoted: message.data }
+        { title: "📊 Poll+", footer: "OpenWhatsappBot", quoted: message.data },
       );
     } catch (err) {
       // Fallback: manual reaction-vote
@@ -121,8 +133,11 @@ module.exports = {
       for (const v of cur.votes.values()) {
         if (tally[v] !== undefined) tally[v] += 1;
       }
-      const text = `📊 *Poll closed:* ${cur.question}\n\n` +
-        cur.options.map((o, i) => `  ${i + 1}. ${o} — _${tally[o]} votes_`).join("\n");
+      const text =
+        `📊 *Poll closed:* ${cur.question}\n\n` +
+        cur.options
+          .map((o, i) => `  ${i + 1}. ${o} — _${tally[o]} votes_`)
+          .join("\n");
       await message.reply(text);
       return true;
     }

@@ -31,13 +31,19 @@ module.exports = {
         const remaining = COOLDOWN_MS - elapsed;
         const hours = Math.floor(remaining / (60 * 60 * 1000));
         const mins = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-        const buttons = [{ id: `daily:status:${message.jid}`, text: "📊 Status" }];
+        const buttons = [
+          { id: `daily:status:${message.jid}`, text: "📊 Status" },
+        ];
         return await sendQuickReplies(
           sock,
           message.jid,
           getLang("plugins.daily.cooldown", hours, mins),
           buttons,
-          { title: "⏰ Daily", footer: "OpenWhatsappBot", quoted: message.data }
+          {
+            title: "⏰ Daily",
+            footer: "OpenWhatsappBot",
+            quoted: message.data,
+          },
         );
       }
       // 24-48h: streak continues; >48h: streak reset
@@ -59,7 +65,7 @@ module.exports = {
 
     await message.react("💰");
     return await message.reply(
-      getLang("plugins.daily.claimed", reward, econ.balance, econ.streak)
+      getLang("plugins.daily.claimed", reward, econ.balance, econ.streak),
     );
   },
 
@@ -71,7 +77,7 @@ module.exports = {
         defaults: { balance: 0, streak: 0, lastDailyAt: null },
       });
       return await message.reply(
-        getLang("plugins.daily.status", econ.balance, econ.streak || 0)
+        getLang("plugins.daily.status", econ.balance, econ.streak || 0),
       );
     }
     return false;

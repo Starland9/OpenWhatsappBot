@@ -51,7 +51,9 @@ module.exports = {
     const timeArg = parts[0];
 
     if (!timeArg) {
-      return await message.reply(getLang("plugins.reminder.usage", require("../config").PREFIX));
+      return await message.reply(
+        getLang("plugins.reminder.usage", require("../config").PREFIX),
+      );
     }
 
     const text = parts.slice(1).join(" ").trim();
@@ -65,7 +67,10 @@ module.exports = {
       when = new Date(Date.now() + dur);
     } else {
       const clock = parseClock(timeArg);
-      if (!clock) return await message.reply(getLang("plugins.reminder.usage", require("../config").PREFIX));
+      if (!clock)
+        return await message.reply(
+          getLang("plugins.reminder.usage", require("../config").PREFIX),
+        );
       when = nextRunFromClock(clock);
     }
 
@@ -81,15 +86,24 @@ module.exports = {
       reminders.delete(id);
     });
     job.start();
-    reminders.set(id, { cronJob: job, jid: message.jid, sender: message.sender, text, when });
+    reminders.set(id, {
+      cronJob: job,
+      jid: message.jid,
+      sender: message.sender,
+      text,
+      when,
+    });
 
     await message.react("⏰");
     return await message.reply(
       getLang(
         "plugins.reminder.set",
         text,
-        when.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })
-      )
+        when.toLocaleString("en-US", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }),
+      ),
     );
   },
 };

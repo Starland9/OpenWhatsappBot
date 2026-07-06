@@ -17,19 +17,96 @@ const CATEGORIES = {
 const games = new Map(); // chatId -> { answer, masked, guessed:Set, attempts, maxAttempts, messageId, category }
 
 const WORDS = [
-  "banana", "computer", "elephant", "guitar", "horizon", "island", "jungle",
-  "kangaroo", "lemon", "mountain", "nebula", "ocean", "pyramid", "quasar",
-  "rainbow", "satellite", "telescope", "umbrella", "volcano", "whisper",
-  "xylophone", "yogurt", "zebra", "diamond", "emerald", "flamingo", "gondola",
-  "helicopter", "iceberg", "jaguar", "koala", "lighthouse", "mosaic", "narwhal",
-  "octopus", "pegasus", "quicksand", "revolver", "sapphire", "treasure",
-  "unicorn", "vampire", "wizard", "yacht", "zeppelin", "airplane", "bicycle",
-  "calendar", "dragonfly", "earthquake", "firefly", "grenade", "honeycomb",
-  "iguana", "jackal", "keyhole", "lantern", "mandolin", "nail", "obelisk",
-  "pumpkin", "quiver", "rosebush", "scorpion", "tornado", "umbrella", "violin",
-  "watermelon", "xenon", "yo-yo", "zeppelin", "android", "browser", "cathedral",
-  "dolphin", "engine", "forest", "garden", "helmet", "ice", "jacket", "kite",
-  "leopard", "marble", "noodle", "otter", "piano", "quill", "ribbon", "ship",
+  "banana",
+  "computer",
+  "elephant",
+  "guitar",
+  "horizon",
+  "island",
+  "jungle",
+  "kangaroo",
+  "lemon",
+  "mountain",
+  "nebula",
+  "ocean",
+  "pyramid",
+  "quasar",
+  "rainbow",
+  "satellite",
+  "telescope",
+  "umbrella",
+  "volcano",
+  "whisper",
+  "xylophone",
+  "yogurt",
+  "zebra",
+  "diamond",
+  "emerald",
+  "flamingo",
+  "gondola",
+  "helicopter",
+  "iceberg",
+  "jaguar",
+  "koala",
+  "lighthouse",
+  "mosaic",
+  "narwhal",
+  "octopus",
+  "pegasus",
+  "quicksand",
+  "revolver",
+  "sapphire",
+  "treasure",
+  "unicorn",
+  "vampire",
+  "wizard",
+  "yacht",
+  "zeppelin",
+  "airplane",
+  "bicycle",
+  "calendar",
+  "dragonfly",
+  "earthquake",
+  "firefly",
+  "grenade",
+  "honeycomb",
+  "iguana",
+  "jackal",
+  "keyhole",
+  "lantern",
+  "mandolin",
+  "nail",
+  "obelisk",
+  "pumpkin",
+  "quiver",
+  "rosebush",
+  "scorpion",
+  "tornado",
+  "umbrella",
+  "violin",
+  "watermelon",
+  "xenon",
+  "yo-yo",
+  "zeppelin",
+  "android",
+  "browser",
+  "cathedral",
+  "dolphin",
+  "engine",
+  "forest",
+  "garden",
+  "helmet",
+  "ice",
+  "jacket",
+  "kite",
+  "leopard",
+  "marble",
+  "noodle",
+  "otter",
+  "piano",
+  "quill",
+  "ribbon",
+  "ship",
 ];
 
 function pickWord() {
@@ -37,7 +114,10 @@ function pickWord() {
 }
 
 function maskWord(word, guessed) {
-  return word.split("").map((c) => (guessed.has(c) ? c : "_")).join(" ");
+  return word
+    .split("")
+    .map((c) => (guessed.has(c) ? c : "_"))
+    .join(" ");
 }
 
 function renderHangman(attempts, max) {
@@ -50,7 +130,10 @@ function renderHangman(attempts, max) {
     "+---+\n|   |\n|   O\n|  /|\\\n|  / \n=== ",
     "+---+\n|   |\n|   O\n|  /|\\\n|  / \\\n=== ",
   ];
-  const i = Math.min(stages.length - 1, Math.floor((attempts / max) * (stages.length - 1)));
+  const i = Math.min(
+    stages.length - 1,
+    Math.floor((attempts / max) * (stages.length - 1)),
+  );
   return "```" + stages[i] + "```";
 }
 
@@ -119,12 +202,16 @@ module.exports = {
 
     if (game.masked.replace(/\s/g, "") === game.answer) {
       games.delete(message.jid);
-      await message.reply(getLang("plugins.hangman.win", game.answer.toUpperCase()));
+      await message.reply(
+        getLang("plugins.hangman.win", game.answer.toUpperCase()),
+      );
       return true;
     }
     if (game.attempts >= game.maxAttempts) {
       games.delete(message.jid);
-      await message.reply(getLang("plugins.hangman.lose", game.answer.toUpperCase()));
+      await message.reply(
+        getLang("plugins.hangman.lose", game.answer.toUpperCase()),
+      );
       return true;
     }
 

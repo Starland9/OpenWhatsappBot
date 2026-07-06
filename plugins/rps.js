@@ -30,8 +30,8 @@ module.exports = {
       message.mentions && message.mentions.length > 0
         ? message.mentions[0]
         : message.quoted
-        ? message.quoted.sender
-        : null;
+          ? message.quoted.sender
+          : null;
 
     const gameId = message.jid;
     const buttons = CHOICES.map((c) => ({
@@ -46,8 +46,8 @@ module.exports = {
       const result = beats(playerPick, botPick)
         ? "win"
         : beats(botPick, playerPick)
-        ? "lose"
-        : "tie";
+          ? "lose"
+          : "tie";
       return await message.reply(
         getLang(
           "plugins.rps.vsbot",
@@ -55,8 +55,8 @@ module.exports = {
           playerPick,
           EMOJI[botPick],
           botPick,
-          getLang("plugins.rps." + result)
-        )
+          getLang("plugins.rps." + result),
+        ),
       );
     }
 
@@ -70,7 +70,7 @@ module.exports = {
       message.jid,
       getLang("plugins.rps.challenge", `@${opponent.split("@")[0]}`),
       buttons,
-      { title: "🪨📄✂️ RPS", footer: "Pick your move", quoted: message.data }
+      { title: "🪨📄✂️ RPS", footer: "Pick your move", quoted: message.data },
     );
 
     games.set(gameId, {
@@ -99,17 +99,14 @@ module.exports = {
 
     if (!game.picks[game.player1] || !game.picks[game.player2]) {
       // Waiting for the other player
-      const other = message.sender === game.player1 ? game.player2 : game.player1;
+      const other =
+        message.sender === game.player1 ? game.player2 : game.player1;
       return false; // Let them keep going; the original challenge stays
     }
 
     const p1 = game.picks[game.player1];
     const p2 = game.picks[game.player2];
-    const result = beats(p1, p2)
-      ? "p1"
-      : beats(p2, p1)
-      ? "p2"
-      : "tie";
+    const result = beats(p1, p2) ? "p1" : beats(p2, p1) ? "p2" : "tie";
     games.delete(gameId);
 
     const p1Name = `@${game.player1.split("@")[0]}`;
@@ -119,7 +116,14 @@ module.exports = {
       text = getLang("plugins.rps.tie", p1Name, EMOJI[p1], p2Name, EMOJI[p2]);
     } else {
       const winner = result === "p1" ? p1Name : p2Name;
-      text = getLang("plugins.rps.win", p1Name, EMOJI[p1], p2Name, EMOJI[p2], winner);
+      text = getLang(
+        "plugins.rps.win",
+        p1Name,
+        EMOJI[p1],
+        p2Name,
+        EMOJI[p2],
+        winner,
+      );
     }
     await message.reply(text, { mentions: [game.player1, game.player2] });
     return true;

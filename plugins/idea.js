@@ -51,16 +51,24 @@ module.exports = {
       { id: `idea:list:${message.jid}:0`, text: "📋 List" },
       { id: `idea:top:${message.jid}`, text: "🏆 Top" },
     ];
-    return await sendQuickReplies(sock, message.jid, getLang("plugins.idea.menu"), buttons, {
-      title: "💡 Ideas",
-      footer: "OpenWhatsappBot",
-      quoted: message.data,
-    });
+    return await sendQuickReplies(
+      sock,
+      message.jid,
+      getLang("plugins.idea.menu"),
+      buttons,
+      {
+        title: "💡 Ideas",
+        footer: "OpenWhatsappBot",
+        quoted: message.data,
+      },
+    );
   },
 
   async _add(message, text) {
     if (!text || text.trim().length < 3) {
-      return await message.reply(getLang("plugins.idea.usage", require("../config").PREFIX));
+      return await message.reply(
+        getLang("plugins.idea.usage", require("../config").PREFIX),
+      );
     }
     const idea = await Idea.create({
       groupJid: message.jid,
@@ -89,12 +97,17 @@ module.exports = {
     const text =
       `💡 *Ideas* — Page ${page + 1}/${totalPages}\n\n` +
       ideas
-        .map((i) => `  #${i.id} — _${i.text.slice(0, 60)}${i.text.length > 60 ? "..." : ""}_ — ❤️ ${(i.voters || []).length}`)
+        .map(
+          (i) =>
+            `  #${i.id} — _${i.text.slice(0, 60)}${i.text.length > 60 ? "..." : ""}_ — ❤️ ${(i.voters || []).length}`,
+        )
         .join("\n");
 
     const nav = [];
-    if (page > 0) nav.push({ id: `idea:list:${message.jid}:${page - 1}`, text: "◀ Prev" });
-    if (page < totalPages - 1) nav.push({ id: `idea:list:${message.jid}:${page + 1}`, text: "Next ▶" });
+    if (page > 0)
+      nav.push({ id: `idea:list:${message.jid}:${page - 1}`, text: "◀ Prev" });
+    if (page < totalPages - 1)
+      nav.push({ id: `idea:list:${message.jid}:${page + 1}`, text: "Next ▶" });
     nav.push({ id: `idea:add:${message.jid}`, text: "➕ Add" });
 
     try {
@@ -116,30 +129,42 @@ module.exports = {
     });
     ideas.sort((a, b) => (b.voters || []).length - (a.voters || []).length);
     const top = ideas.slice(0, 5);
-    if (top.length === 0) return await message.reply(getLang("plugins.idea.empty"));
+    if (top.length === 0)
+      return await message.reply(getLang("plugins.idea.empty"));
     const text =
       `🏆 *Top Ideas*\n\n` +
       top
-        .map((i, idx) => `  ${idx + 1}. _${i.text.slice(0, 60)}${i.text.length > 60 ? "..." : ""}_ — ❤️ ${(i.voters || []).length}`)
+        .map(
+          (i, idx) =>
+            `  ${idx + 1}. _${i.text.slice(0, 60)}${i.text.length > 60 ? "..." : ""}_ — ❤️ ${(i.voters || []).length}`,
+        )
         .join("\n");
     return await message.reply(text);
   },
 
   async _vote(message, idStr) {
     const id = parseInt(idStr, 10);
-    if (!id) return await message.reply(getLang("plugins.idea.usage", require("../config").PREFIX));
+    if (!id)
+      return await message.reply(
+        getLang("plugins.idea.usage", require("../config").PREFIX),
+      );
     const idea = await Idea.findOne({ where: { id, groupJid: message.jid } });
-    if (!idea) return await message.reply(getLang("plugins.idea.not_found", id));
+    if (!idea)
+      return await message.reply(getLang("plugins.idea.not_found", id));
     const voters = idea.voters || [];
     if (voters.includes(message.sender)) {
       // unvote
       idea.voters = voters.filter((v) => v !== message.sender);
       await idea.save();
-      return await message.reply(getLang("plugins.idea.unvoted", id, idea.voters.length));
+      return await message.reply(
+        getLang("plugins.idea.unvoted", id, idea.voters.length),
+      );
     }
     idea.voters = [...voters, message.sender];
     await idea.save();
-    return await message.reply(getLang("plugins.idea.voted", id, idea.voters.length));
+    return await message.reply(
+      getLang("plugins.idea.voted", id, idea.voters.length),
+    );
   },
 
   async _delete(message, idStr) {
@@ -147,9 +172,15 @@ module.exports = {
       return await message.reply(getLang("plugins.common.not_admin"));
     }
     const id = parseInt(idStr, 10);
-    if (!id) return await message.reply(getLang("plugins.idea.usage", require("../config").PREFIX));
-    const deleted = await Idea.destroy({ where: { id, groupJid: message.jid } });
-    if (!deleted) return await message.reply(getLang("plugins.idea.not_found", id));
+    if (!id)
+      return await message.reply(
+        getLang("plugins.idea.usage", require("../config").PREFIX),
+      );
+    const deleted = await Idea.destroy({
+      where: { id, groupJid: message.jid },
+    });
+    if (!deleted)
+      return await message.reply(getLang("plugins.idea.not_found", id));
     return await message.reply(getLang("plugins.idea.deleted", id));
   },
 
@@ -159,7 +190,9 @@ module.exports = {
     const action = parts[1];
     if (action === "add") {
       // User picked "Add Idea" — wait for text
-      await message.reply(getLang("plugins.idea.usage", require("../config").PREFIX));
+      await message.reply(
+        getLang("plugins.idea.usage", require("../config").PREFIX),
+      );
       return true;
     }
     if (action === "list" && parts.length >= 4) {

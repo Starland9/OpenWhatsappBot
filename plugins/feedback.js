@@ -16,7 +16,9 @@ module.exports = {
   async execute(message, argsString) {
     const text = (argsString || "").trim();
     if (!text && !message.quoted) {
-      return await message.reply(getLang("plugins.feedback.usage", config.PREFIX));
+      return await message.reply(
+        getLang("plugins.feedback.usage", config.PREFIX),
+      );
     }
 
     const sudoList = (config.SUDO || "")

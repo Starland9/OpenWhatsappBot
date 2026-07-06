@@ -19,11 +19,13 @@ module.exports = {
       message.mentions && message.mentions.length > 0
         ? message.mentions[0]
         : message.quoted
-        ? message.quoted.sender
-        : null;
+          ? message.quoted.sender
+          : null;
 
     if (!amount || amount <= 0) {
-      return await message.reply(getLang("plugins.give.usage", require("../config").PREFIX));
+      return await message.reply(
+        getLang("plugins.give.usage", require("../config").PREFIX),
+      );
     }
     if (!target) {
       return await message.reply(getLang("plugins.give.mention_user"));
@@ -42,7 +44,9 @@ module.exports = {
     });
 
     if ((sender.balance || 0) < amount) {
-      return await message.reply(getLang("plugins.give.no_funds", amount, sender.balance || 0));
+      return await message.reply(
+        getLang("plugins.give.no_funds", amount, sender.balance || 0),
+      );
     }
 
     sender.balance = (sender.balance || 0) - amount;
@@ -56,9 +60,9 @@ module.exports = {
         "plugins.give.done",
         amount,
         `@${target.split("@")[0]}`,
-        sender.balance
+        sender.balance,
       ),
-      { mentions: [target] }
+      { mentions: [target] },
     );
   },
 };

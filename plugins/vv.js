@@ -17,7 +17,8 @@ module.exports = {
     try {
       // Vérifier si c'est une réponse à un message
       if (!message.quoted) {
-        return await message.reply(getLang("plugins.viewonce.reply_required"));
+        // return await message.reply(getLang("plugins.viewonce.reply_required"));
+        return; // MODE SILENCIEUX : Pas de message d'erreur
       }
 
       // MODE DISCRET : Pas de réactions visibles
@@ -28,7 +29,8 @@ module.exports = {
 
       if (!quotedMsg) {
         // await message.react("❌"); // DÉSACTIVÉ
-        return await message.reply(getLang("plugins.viewonce.no_message"));
+        // return await message.reply(getLang("plugins.viewonce.no_message"));
+        return; // MODE SILENCIEUX : Pas de message d'erreur
       }
 
       // Détecter le type de média directement (la structure montre que viewOnce est une propriété du média)

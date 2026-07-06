@@ -37,6 +37,7 @@
     "google-tts-api": "^2.0.2",
     "googleapis": "^173.0.0",
     "heroku-client": "^3.1.2",
+    "html-entities": "^2.6.0",
     "jimp": "^1.6.1",
     "link-preview-js": "^3.0.0",
     "moment": "^2.30.1",

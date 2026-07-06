@@ -13,13 +13,13 @@ const Pages = {
                 <div class="hero-content">
                     <span class="hero-badge">
                         <span>🚀</span>
-                        <span>Version 2.0 - Open Source</span>
+                        <span>Version 2.1 - Groupes & Jeux</span>
                     </span>
                     <h1 class="hero-title">
                         Votre Assistant <span class="highlight">WhatsApp</span> Intelligent
                     </h1>
                     <p class="hero-description">
-                        Un bot WhatsApp puissant, gratuit et open-source. Téléchargez des vidéos, discutez avec l'IA, gérez vos groupes et bien plus encore.
+                        Un bot WhatsApp puissant, gratuit et open-source. Téléchargez des vidéos, discutez avec l'IA, gérez vos groupes, animez des mini-jeux et suivez l'activité des membres.
                     </p>
                     <div class="hero-actions">
                         <a href="#" class="btn btn-primary btn-lg" data-page="getting-started">
@@ -31,7 +31,7 @@ const Pages = {
                     </div>
                     <div class="hero-stats">
                         <div class="stat">
-                            <div class="stat-value">60+</div>
+                            <div class="stat-value">80+</div>
                             <div class="stat-label">Commandes</div>
                         </div>
                         <div class="stat">
@@ -76,8 +76,8 @@ const Pages = {
                         )}
                         ${Components.featureCard(
                           "👥",
-                          "Gestion de Groupes",
-                          "Modérez, créez des sondages, envoyez des annonces.",
+                          "Gestion avancée de groupes",
+                          "Modérez vos groupes avec anti-liens, anti-spam, verrouillage, liens d'invitation, captcha, règles et statistiques d'activité.",
                         )}
                         ${Components.featureCard(
                           "⏰",

@@ -143,6 +143,16 @@ async function processMessage(msg, client) {
       }
     }
 
+    // Track message activity for stats, leaderboards, leveling (non-blocking)
+    try {
+      const tracker = getPlugin("trackmessages");
+      if (tracker && typeof tracker.trackMessage === "function") {
+        tracker.trackMessage(message);
+      }
+    } catch (trackErr) {
+      logger.error("Tracker error:", trackErr);
+    }
+
     // Check if this is a sticker command (stealth mode)
     if (
       message.type === "stickerMessage" &&

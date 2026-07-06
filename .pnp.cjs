@@ -32,6 +32,7 @@ const RAW_RUNTIME_STATE =
           ["@google/genai", "virtual:b0ac570d07ed0f517ae6f02f6eb40f390ca5fecdda99cdab485117e3bbdbe47482de8e30ff6cd72483ede8f87b6e26b665c5e889abf65dc5f6c405653688bb84#npm:2.8.0"],\
           ["@google/generative-ai", "npm:0.24.1"],\
           ["@hapi/boom", "npm:10.0.1"],\
+          ["@ryuu-reinzz/button-helper", "npm:2.2.3"],\
           ["@vitalets/google-translate-api", "npm:9.2.1"],\
           ["audio-decode", "npm:2.2.3"],\
           ["axios", "npm:1.18.0"],\
@@ -1084,6 +1085,16 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["@ryuu-reinzz/button-helper", [\
+      ["npm:2.2.3", {\
+        "packageLocation": "../../../.yarn/berry/cache/@ryuu-reinzz-button-helper-npm-2.2.3-ef5b549712-10c0.zip/node_modules/@ryuu-reinzz/button-helper/",\
+        "packageDependencies": [\
+          ["@ryuu-reinzz/button-helper", "npm:2.2.3"],\
+          ["axios", "npm:1.18.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@simple-git/args-pathspec", [\
       ["npm:1.0.3", {\
         "packageLocation": "../../../.yarn/berry/cache/@simple-git-args-pathspec-npm-1.0.3-9c499ec0a4-10c0.zip/node_modules/@simple-git/args-pathspec/",\
@@ -1547,7 +1558,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../.yarn/berry/cache/axios-npm-0.20.0-535d9e0086-10c0.zip/node_modules/axios/",\
         "packageDependencies": [\
           ["axios", "npm:0.20.0"],\
-          ["follow-redirects", "virtual:063f207ba73aeb594b4cbb985624b766bdfff5fe9ec287dc83dec93d908f45cfc60a6db9f3d27e4af84015b1b37f649763b4c6b352728a09b7864711c4f33d97#npm:1.16.0"]\
+          ["follow-redirects", "virtual:cfe396e04f9d811fe025e61204c45b20fa95aeeb72f863d9cf0f07aec679067f9a0d2fe39eb3c317aeb8b92b549644483d65f5e97851fa03255f800f31d04eff#npm:1.16.0"]\
         ],\
         "linkType": "HARD"\
       }],\
@@ -1555,7 +1566,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../.yarn/berry/cache/axios-npm-0.21.4-e278873748-10c0.zip/node_modules/axios/",\
         "packageDependencies": [\
           ["axios", "npm:0.21.4"],\
-          ["follow-redirects", "virtual:063f207ba73aeb594b4cbb985624b766bdfff5fe9ec287dc83dec93d908f45cfc60a6db9f3d27e4af84015b1b37f649763b4c6b352728a09b7864711c4f33d97#npm:1.16.0"]\
+          ["follow-redirects", "virtual:cfe396e04f9d811fe025e61204c45b20fa95aeeb72f863d9cf0f07aec679067f9a0d2fe39eb3c317aeb8b92b549644483d65f5e97851fa03255f800f31d04eff#npm:1.16.0"]\
         ],\
         "linkType": "HARD"\
       }],\
@@ -1563,7 +1574,18 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../.yarn/berry/cache/axios-npm-1.18.0-063f207ba7-10c0.zip/node_modules/axios/",\
         "packageDependencies": [\
           ["axios", "npm:1.18.0"],\
-          ["follow-redirects", "virtual:063f207ba73aeb594b4cbb985624b766bdfff5fe9ec287dc83dec93d908f45cfc60a6db9f3d27e4af84015b1b37f649763b4c6b352728a09b7864711c4f33d97#npm:1.16.0"],\
+          ["follow-redirects", "virtual:cfe396e04f9d811fe025e61204c45b20fa95aeeb72f863d9cf0f07aec679067f9a0d2fe39eb3c317aeb8b92b549644483d65f5e97851fa03255f800f31d04eff#npm:1.16.0"],\
+          ["form-data", "npm:4.0.6"],\
+          ["https-proxy-agent", "npm:5.0.1"],\
+          ["proxy-from-env", "npm:2.1.0"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:1.18.1", {\
+        "packageLocation": "../../../.yarn/berry/cache/axios-npm-1.18.1-cfe396e04f-10c0.zip/node_modules/axios/",\
+        "packageDependencies": [\
+          ["axios", "npm:1.18.1"],\
+          ["follow-redirects", "virtual:cfe396e04f9d811fe025e61204c45b20fa95aeeb72f863d9cf0f07aec679067f9a0d2fe39eb3c317aeb8b92b549644483d65f5e97851fa03255f800f31d04eff#npm:1.16.0"],\
           ["form-data", "npm:4.0.6"],\
           ["https-proxy-agent", "npm:5.0.1"],\
           ["proxy-from-env", "npm:2.1.0"]\
@@ -2568,7 +2590,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../.yarn/berry/cache/extrareqp2-npm-1.0.0-0380882311-10c0.zip/node_modules/extrareqp2/",\
         "packageDependencies": [\
           ["extrareqp2", "npm:1.0.0"],\
-          ["follow-redirects", "virtual:063f207ba73aeb594b4cbb985624b766bdfff5fe9ec287dc83dec93d908f45cfc60a6db9f3d27e4af84015b1b37f649763b4c6b352728a09b7864711c4f33d97#npm:1.16.0"]\
+          ["follow-redirects", "virtual:cfe396e04f9d811fe025e61204c45b20fa95aeeb72f863d9cf0f07aec679067f9a0d2fe39eb3c317aeb8b92b549644483d65f5e97851fa03255f800f31d04eff#npm:1.16.0"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -2725,12 +2747,12 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:063f207ba73aeb594b4cbb985624b766bdfff5fe9ec287dc83dec93d908f45cfc60a6db9f3d27e4af84015b1b37f649763b4c6b352728a09b7864711c4f33d97#npm:1.16.0", {\
-        "packageLocation": "./.yarn/__virtual__/follow-redirects-virtual-0ff188baf0/4/.yarn/berry/cache/follow-redirects-npm-1.16.0-816e4f62d9-10c0.zip/node_modules/follow-redirects/",\
+      ["virtual:cfe396e04f9d811fe025e61204c45b20fa95aeeb72f863d9cf0f07aec679067f9a0d2fe39eb3c317aeb8b92b549644483d65f5e97851fa03255f800f31d04eff#npm:1.16.0", {\
+        "packageLocation": "./.yarn/__virtual__/follow-redirects-virtual-5a01cb4fdb/4/.yarn/berry/cache/follow-redirects-npm-1.16.0-816e4f62d9-10c0.zip/node_modules/follow-redirects/",\
         "packageDependencies": [\
           ["@types/debug", null],\
           ["debug", null],\
-          ["follow-redirects", "virtual:063f207ba73aeb594b4cbb985624b766bdfff5fe9ec287dc83dec93d908f45cfc60a6db9f3d27e4af84015b1b37f649763b4c6b352728a09b7864711c4f33d97#npm:1.16.0"]\
+          ["follow-redirects", "virtual:cfe396e04f9d811fe025e61204c45b20fa95aeeb72f863d9cf0f07aec679067f9a0d2fe39eb3c317aeb8b92b549644483d65f5e97851fa03255f800f31d04eff#npm:1.16.0"]\
         ],\
         "packagePeers": [\
           "@types/debug",\
@@ -4113,6 +4135,7 @@ const RAW_RUNTIME_STATE =
           ["@google/genai", "virtual:b0ac570d07ed0f517ae6f02f6eb40f390ca5fecdda99cdab485117e3bbdbe47482de8e30ff6cd72483ede8f87b6e26b665c5e889abf65dc5f6c405653688bb84#npm:2.8.0"],\
           ["@google/generative-ai", "npm:0.24.1"],\
           ["@hapi/boom", "npm:10.0.1"],\
+          ["@ryuu-reinzz/button-helper", "npm:2.2.3"],\
           ["@vitalets/google-translate-api", "npm:9.2.1"],\
           ["audio-decode", "npm:2.2.3"],\
           ["axios", "npm:1.18.0"],\

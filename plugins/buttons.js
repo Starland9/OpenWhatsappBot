@@ -1,4 +1,7 @@
-const { sendButtons, sendInteractiveMessage } = require("@ryuu-reinzz/button-helper");
+const {
+  sendButtons,
+  sendInteractiveMessage,
+} = require("@ryuu-reinzz/button-helper");
 const { getLang } = require("../lib/utils/language");
 
 /**
@@ -18,10 +21,15 @@ const MAX_BUTTONS_PER_MESSAGE = 3;
  */
 async function sendQuickReplies(sock, jid, text, buttons, opts = {}) {
   if (!sock || !jid) return null;
-  const safeButtons = Array.isArray(buttons) ? buttons.slice(0, MAX_BUTTONS_PER_MESSAGE) : [];
+  const safeButtons = Array.isArray(buttons)
+    ? buttons.slice(0, MAX_BUTTONS_PER_MESSAGE)
+    : [];
 
   if (safeButtons.length === 0) {
-    return await sock.sendMessage(jid, { text, ...(opts.quoted ? { quoted: opts.quoted } : {}) });
+    return await sock.sendMessage(jid, {
+      text,
+      ...(opts.quoted ? { quoted: opts.quoted } : {}),
+    });
   }
 
   try {
@@ -34,10 +42,10 @@ async function sendQuickReplies(sock, jid, text, buttons, opts = {}) {
   } catch (err) {
     console.error("sendQuickReplies fallback:", err.message);
     const lines = safeButtons.map((b, i) => `  ${i + 1}. ${b.text}`).join("\n");
-    return await sock.sendMessage(
-      jid,
-      { text: `${text}\n\n${lines}\n\n_Reply with the number of your choice._`, ...(opts.quoted ? { quoted: opts.quoted } : {}) },
-    );
+    return await sock.sendMessage(jid, {
+      text: `${text}\n\n${lines}\n\n_Reply with the number of your choice._`,
+      ...(opts.quoted ? { quoted: opts.quoted } : {}),
+    });
   }
 }
 
@@ -52,10 +60,14 @@ async function sendQuickReplies(sock, jid, text, buttons, opts = {}) {
 async function sendList(sock, jid, text, sections, opts = {}) {
   if (!sock || !jid) return null;
   if (!Array.isArray(sections) || sections.length === 0) {
-    return await sock.sendMessage(jid, { text, ...(opts.quoted ? { quoted: opts.quoted } : {}) });
+    return await sock.sendMessage(jid, {
+      text,
+      ...(opts.quoted ? { quoted: opts.quoted } : {}),
+    });
   }
 
-  const buttonText = opts.buttonLabel || getLang("plugins.buttons.open_menu") || "📋 Menu";
+  const buttonText =
+    opts.buttonLabel || getLang("plugins.buttons.open_menu") || "📋 Menu";
 
   try {
     return await sendInteractiveMessage(sock, jid, {
@@ -90,27 +102,52 @@ async function sendList(sock, jid, text, sections, opts = {}) {
       });
     });
     fallback += `\n_Use the command name to pick an option._`;
-    return await sock.sendMessage(jid, { text: fallback, ...(opts.quoted ? { quoted: opts.quoted } : {}) });
+    return await sock.sendMessage(jid, {
+      text: fallback,
+      ...(opts.quoted ? { quoted: opts.quoted } : {}),
+    });
   }
 }
 
 /**
  * Send a yes/no confirmation.
  */
-async function sendConfirm(sock, jid, text, yesId = "yes", noId = "no", opts = {}) {
+async function sendConfirm(
+  sock,
+  jid,
+  text,
+  yesId = "yes",
+  noId = "no",
+  opts = {},
+) {
   const yesText = opts.yesText || "✅ Yes";
   const noText = opts.noText || "❌ No";
-  return await sendQuickReplies(sock, jid, text, [
-    { id: yesId, text: yesText.slice(0, 24) },
-    { id: noId, text: noText.slice(0, 24) },
-  ], opts);
+  return await sendQuickReplies(
+    sock,
+    jid,
+    text,
+    [
+      { id: yesId, text: yesText.slice(0, 24) },
+      { id: noId, text: noText.slice(0, 24) },
+    ],
+    opts,
+  );
 }
 
 /**
  * Send a paginated list with prev/next buttons.
  * Builds a quick-reply header + list body so the user can both navigate and select.
  */
-async function sendPaginatedList(sock, jid, text, sections, page, totalPages, baseId, opts = {}) {
+async function sendPaginatedList(
+  sock,
+  jid,
+  text,
+  sections,
+  page,
+  totalPages,
+  baseId,
+  opts = {},
+) {
   const navId = `${baseId}_nav`;
   const navButtons = [];
 

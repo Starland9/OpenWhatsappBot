@@ -5,9 +5,21 @@ const { Op } = require("sequelize");
 const config = require("../config");
 
 const CATEGORIES = {
-  chat: { field: "messageCount", label: "💬 Top Chatters", desc: "Most messages sent" },
-  media: { field: "mediaCount", label: "🖼 Top Media Senders", desc: "Most media shared" },
-  cmds: { field: "commandCount", label: "⚙ Top Commanders", desc: "Most bot commands used" },
+  chat: {
+    field: "messageCount",
+    label: "💬 Top Chatters",
+    desc: "Most messages sent",
+  },
+  media: {
+    field: "mediaCount",
+    label: "🖼 Top Media Senders",
+    desc: "Most media shared",
+  },
+  cmds: {
+    field: "commandCount",
+    label: "⚙ Top Commanders",
+    desc: "Most bot commands used",
+  },
   xp: { field: "xp", label: "🏆 Top XP", desc: "Highest experience" },
 };
 
@@ -42,12 +54,18 @@ module.exports = {
           })),
         },
       ];
-      return await sendList(sock, message.jid, getLang("plugins.leaderboard.pick"), sections, {
-        title: getLang("plugins.leaderboard.title"),
-        buttonLabel: "📊 Pick category",
-        footer: "OpenWhatsappBot",
-        quoted: message.data,
-      });
+      return await sendList(
+        sock,
+        message.jid,
+        getLang("plugins.leaderboard.pick"),
+        sections,
+        {
+          title: getLang("plugins.leaderboard.title"),
+          buttonLabel: "📊 Pick category",
+          footer: "OpenWhatsappBot",
+          quoted: message.data,
+        },
+      );
     }
 
     return await this._showCategory(sock, message, cat, page);
@@ -72,12 +90,17 @@ module.exports = {
     const text =
       `${label}\n_Page ${page + 1}/${totalPages}_\n\n` +
       rows
-        .map((r, i) => `  ${offset + i + 1}. @${r.jid.split("@")[0]} — _${r[field] || 0} ${field}_`)
+        .map(
+          (r, i) =>
+            `  ${offset + i + 1}. @${r.jid.split("@")[0]} — _${r[field] || 0} ${field}_`,
+        )
         .join("\n");
 
     const navButtons = [];
-    if (page > 0) navButtons.push({ id: `top:nav:${cat}:${page - 1}`, text: "◀ Prev" });
-    if (page < totalPages - 1) navButtons.push({ id: `top:nav:${cat}:${page + 1}`, text: "Next ▶" });
+    if (page > 0)
+      navButtons.push({ id: `top:nav:${cat}:${page - 1}`, text: "◀ Prev" });
+    if (page < totalPages - 1)
+      navButtons.push({ id: `top:nav:${cat}:${page + 1}`, text: "Next ▶" });
     navButtons.push({ id: `top:catmenu`, text: "🔀 Categories" });
 
     try {
@@ -128,7 +151,7 @@ module.exports = {
           buttonLabel: "📊 Pick category",
           footer: "OpenWhatsappBot",
           quoted: message.data,
-        }
+        },
       );
       return true;
     }

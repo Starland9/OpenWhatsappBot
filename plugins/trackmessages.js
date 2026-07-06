@@ -19,7 +19,8 @@ async function trackMessage(message) {
   if (message.jid === "status@broadcast") return;
   if (message.fromMe) return;
 
-  const isCommand = typeof message.body === "string" && message.body.startsWith(PREFIX);
+  const isCommand =
+    typeof message.body === "string" && message.body.startsWith(PREFIX);
   const isMedia = !!message.hasMedia;
 
   setImmediate(async () => {

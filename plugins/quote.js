@@ -24,22 +24,30 @@ module.exports = {
     if (sub === "add" || sub === "save") return await this._add(message);
     if (sub === "random" || sub === "r") return await this._random(message);
     if (sub === "list" || sub === "l") return await this._list(message);
-    if (sub === "delete" || sub === "del") return await this._delete(message, argsString.split(/\s+/)[1]);
+    if (sub === "delete" || sub === "del")
+      return await this._delete(message, argsString.split(/\s+/)[1]);
 
     const buttons = [
       { id: `quote:save:${message.jid}`, text: "💾 Save" },
       { id: `quote:rand:${message.jid}`, text: "🎲 Random" },
       { id: `quote:list:${message.jid}`, text: "📋 List" },
     ];
-    return await sendQuickReplies(sock, message.jid, getLang("plugins.quote.menu"), buttons, {
-      title: "💬 Group Quotes",
-      footer: "OpenWhatsappBot",
-      quoted: message.data,
-    });
+    return await sendQuickReplies(
+      sock,
+      message.jid,
+      getLang("plugins.quote.menu"),
+      buttons,
+      {
+        title: "💬 Group Quotes",
+        footer: "OpenWhatsappBot",
+        quoted: message.data,
+      },
+    );
   },
 
   async _add(message) {
-    if (!message.quoted) return await message.reply(getLang("plugins.quote.reply_first"));
+    if (!message.quoted)
+      return await message.reply(getLang("plugins.quote.reply_first"));
     const text =
       message.quoted.message?.conversation ||
       message.quoted.message?.extendedTextMessage?.text ||
@@ -61,10 +69,18 @@ module.exports = {
     const count = await Quote.count({ where: { groupJid: message.jid } });
     if (count === 0) return await message.reply(getLang("plugins.quote.empty"));
     const offset = Math.floor(Math.random() * count);
-    const q = await Quote.findOne({ where: { groupJid: message.jid }, offset, order: [["id", "ASC"]] });
+    const q = await Quote.findOne({
+      where: { groupJid: message.jid },
+      offset,
+      order: [["id", "ASC"]],
+    });
     if (!q) return await message.reply(getLang("plugins.quote.empty"));
     return await message.reply(
-      getLang("plugins.quote.format", q.text, q.authorName || `@${q.authorJid.split("@")[0]}`)
+      getLang(
+        "plugins.quote.format",
+        q.text,
+        q.authorName || `@${q.authorJid.split("@")[0]}`,
+      ),
     );
   },
 
@@ -74,11 +90,15 @@ module.exports = {
       order: [["createdAt", "DESC"]],
       limit: 5,
     });
-    if (quotes.length === 0) return await message.reply(getLang("plugins.quote.empty"));
+    if (quotes.length === 0)
+      return await message.reply(getLang("plugins.quote.empty"));
     const text =
       `💬 *Recent Quotes*\n\n` +
       quotes
-        .map((q) => `  #${q.id} — _${q.text.slice(0, 50)}${q.text.length > 50 ? "..." : ""}_ — ${q.authorName || `@${q.authorJid.split("@")[0]}`}`)
+        .map(
+          (q) =>
+            `  #${q.id} — _${q.text.slice(0, 50)}${q.text.length > 50 ? "..." : ""}_ — ${q.authorName || `@${q.authorJid.split("@")[0]}`}`,
+        )
         .join("\n");
     return await message.reply(text);
   },
@@ -88,9 +108,15 @@ module.exports = {
       return await message.reply(getLang("plugins.common.not_admin"));
     }
     const id = parseInt(idStr, 10);
-    if (!id) return await message.reply(getLang("plugins.quote.usage", require("../config").PREFIX));
-    const deleted = await Quote.destroy({ where: { id, groupJid: message.jid } });
-    if (!deleted) return await message.reply(getLang("plugins.quote.not_found", id));
+    if (!id)
+      return await message.reply(
+        getLang("plugins.quote.usage", require("../config").PREFIX),
+      );
+    const deleted = await Quote.destroy({
+      where: { id, groupJid: message.jid },
+    });
+    if (!deleted)
+      return await message.reply(getLang("plugins.quote.not_found", id));
     return await message.reply(getLang("plugins.quote.deleted", id));
   },
 
@@ -98,9 +124,18 @@ module.exports = {
     if (!message.body || !message.body.startsWith("quote:")) return false;
     const parts = message.body.split(":");
     const action = parts[1];
-    if (action === "save") { await this._add(message); return true; }
-    if (action === "rand") { await this._random(message); return true; }
-    if (action === "list") { await this._list(message); return true; }
+    if (action === "save") {
+      await this._add(message);
+      return true;
+    }
+    if (action === "rand") {
+      await this._random(message);
+      return true;
+    }
+    if (action === "list") {
+      await this._list(message);
+      return true;
+    }
     return false;
   },
 };

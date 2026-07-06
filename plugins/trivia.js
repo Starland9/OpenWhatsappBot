@@ -27,7 +27,11 @@ function shuffle(arr) {
 }
 
 function decode(s) {
-  try { return htmlToText(s); } catch { return s; }
+  try {
+    return htmlToText(s);
+  } catch {
+    return s;
+  }
 }
 
 /**
@@ -57,12 +61,18 @@ module.exports = {
           })),
         },
       ];
-      return await sendList(sock, message.jid, getLang("plugins.trivia.pick"), sections, {
-        title: "🧠 Trivia",
-        buttonLabel: "Pick a category",
-        footer: "opentdb.com",
-        quoted: message.data,
-      });
+      return await sendList(
+        sock,
+        message.jid,
+        getLang("plugins.trivia.pick"),
+        sections,
+        {
+          title: "🧠 Trivia",
+          buttonLabel: "Pick a category",
+          footer: "opentdb.com",
+          quoted: message.data,
+        },
+      );
     }
 
     await message.react("⏳");
@@ -122,7 +132,7 @@ module.exports = {
       const cat = parts[2];
       if (!CATEGORIES[cat]) return false;
       // Re-invoke the command with the category arg
-      message.body = (require("../config").PREFIX) + "trivia " + cat;
+      message.body = require("../config").PREFIX + "trivia " + cat;
       await require("../lib/plugins/registry").executeCommand(message);
       return true;
     }
@@ -147,8 +157,8 @@ module.exports = {
           game.correct,
           prev.correct,
           prev.total,
-          Math.round((prev.correct / prev.total) * 100)
-        )
+          Math.round((prev.correct / prev.total) * 100),
+        ),
       );
     } else {
       game.score.set(message.sender, prev);

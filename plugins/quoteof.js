@@ -21,22 +21,30 @@ module.exports = {
 
       // Try Quotable
       try {
-        const response = await axios.get("https://api.quotable.io/random", { timeout: 10000 });
+        const response = await axios.get("https://api.quotable.io/random", {
+          timeout: 10000,
+        });
         if (response.data && response.data.content) {
           quote = response.data.content;
           author = response.data.author;
         }
-      } catch (e) { /* fallthrough */ }
+      } catch (e) {
+        /* fallthrough */
+      }
 
       // Try ZenQuotes
       if (!quote) {
         try {
-          const response = await axios.get("https://zenquotes.io/api/random", { timeout: 10000 });
+          const response = await axios.get("https://zenquotes.io/api/random", {
+            timeout: 10000,
+          });
           if (response.data && response.data[0]) {
             quote = response.data[0].q;
             author = response.data[0].a;
           }
-        } catch (e) { /* fallthrough */ }
+        } catch (e) {
+          /* fallthrough */
+        }
       }
 
       if (!quote) {
@@ -44,7 +52,7 @@ module.exports = {
       }
 
       await message.reply(
-        `✨ *Quote of the Moment*\n\n_"${quote}"_\n\n— *${author || "Unknown"}*`
+        `✨ *Quote of the Moment*\n\n_"${quote}"_\n\n— *${author || "Unknown"}*`,
       );
     } catch (err) {
       console.error("quoteof error:", err.message);

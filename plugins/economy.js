@@ -15,7 +15,8 @@ module.exports = {
   async execute(message) {
     const sock = message.client.getSocket();
     let target = message.sender;
-    if (message.mentions && message.mentions.length > 0) target = message.mentions[0];
+    if (message.mentions && message.mentions.length > 0)
+      target = message.mentions[0];
     else if (message.quoted) target = message.quoted.sender;
 
     const [econ] = await GroupEconomy.findOrCreate({
@@ -36,7 +37,10 @@ module.exports = {
       (econ.streak ? `Streak: _${econ.streak} days_ 🔥\n` : "") +
       `\n*Top 5 in this group:*\n` +
       top
-        .map((r, i) => `  ${i + 1}. @${r.userJid.split("@")[0]} — _${r.balance} coins_`)
+        .map(
+          (r, i) =>
+            `  ${i + 1}. @${r.userJid.split("@")[0]} — _${r.balance} coins_`,
+        )
         .join("\n");
 
     const buttons = [
@@ -58,13 +62,13 @@ module.exports = {
     if (!message.body || !message.body.startsWith("daily:claim")) {
       if (message.body && message.body.startsWith("give:menu")) {
         return await message.reply(
-          getLang("plugins.give.usage", require("../config").PREFIX)
+          getLang("plugins.give.usage", require("../config").PREFIX),
         );
       }
       return false;
     }
     // Forward to .daily
-    message.body = (require("../config").PREFIX) + "daily";
+    message.body = require("../config").PREFIX + "daily";
     await require("../lib/plugins/registry").executeCommand(message);
     return true;
   },

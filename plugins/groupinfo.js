@@ -27,9 +27,24 @@ module.exports = {
     const [totals] = await UserStats.findAll({
       where: { groupJid: message.jid },
       attributes: [
-        [UserStats.sequelize.fn("SUM", UserStats.sequelize.col("messageCount")), "totalMessages"],
-        [UserStats.sequelize.fn("SUM", UserStats.sequelize.col("commandCount")), "totalCommands"],
-        [UserStats.sequelize.fn("SUM", UserStats.sequelize.col("mediaCount")), "totalMedia"],
+        [
+          UserStats.sequelize.fn(
+            "SUM",
+            UserStats.sequelize.col("messageCount"),
+          ),
+          "totalMessages",
+        ],
+        [
+          UserStats.sequelize.fn(
+            "SUM",
+            UserStats.sequelize.col("commandCount"),
+          ),
+          "totalCommands",
+        ],
+        [
+          UserStats.sequelize.fn("SUM", UserStats.sequelize.col("mediaCount")),
+          "totalMedia",
+        ],
         [UserStats.sequelize.fn("MAX", UserStats.sequelize.col("xp")), "topXp"],
       ],
       raw: true,
@@ -92,9 +107,13 @@ module.exports = {
         await message.reply(getLang("plugins.groupinfo.empty"));
         return true;
       }
-      const text = `📊 *Top 5 in this group*\n\n` +
+      const text =
+        `📊 *Top 5 in this group*\n\n` +
         top
-          .map((r, i) => `  ${i + 1}. @${r.jid.split("@")[0]} — _${r.messageCount} msgs / ${r.xp} XP (Lv.${r.level || 0})_`)
+          .map(
+            (r, i) =>
+              `  ${i + 1}. @${r.jid.split("@")[0]} — _${r.messageCount} msgs / ${r.xp} XP (Lv.${r.level || 0})_`,
+          )
           .join("\n");
       await message.reply(text, { mentions: top.map((r) => r.jid) });
       return true;
@@ -111,7 +130,8 @@ module.exports = {
         if (r.lastActiveAt) hours[new Date(r.lastActiveAt).getHours()] += 1;
       }
       const peak = hours.indexOf(Math.max(...hours));
-      const text = `⏰ *Peak Hour*\n\n` +
+      const text =
+        `⏰ *Peak Hour*\n\n` +
         hours
           .map((c, h) => `  ${String(h).padStart(2, "0")}:00 — _${c} msgs_`)
           .join("\n") +
@@ -125,10 +145,26 @@ module.exports = {
         {
           title: "Stats",
           rows: [
-            { id: `top:cat:chat`, title: "💬 Top Chatters", description: "Most active" },
-            { id: `top:cat:media`, title: "🖼 Top Media", description: "Most media shared" },
-            { id: `top:cat:cmds`, title: "⚙ Top Commands", description: "Most commands" },
-            { id: `top:cat:xp`, title: "🏆 Top XP", description: "Highest experience" },
+            {
+              id: `top:cat:chat`,
+              title: "💬 Top Chatters",
+              description: "Most active",
+            },
+            {
+              id: `top:cat:media`,
+              title: "🖼 Top Media",
+              description: "Most media shared",
+            },
+            {
+              id: `top:cat:cmds`,
+              title: "⚙ Top Commands",
+              description: "Most commands",
+            },
+            {
+              id: `top:cat:xp`,
+              title: "🏆 Top XP",
+              description: "Highest experience",
+            },
           ],
         },
       ];
@@ -142,7 +178,7 @@ module.exports = {
           buttonLabel: "📊 Pick",
           footer: "OpenWhatsappBot",
           quoted: message.data,
-        }
+        },
       );
       return true;
     }

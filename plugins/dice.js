@@ -27,15 +27,26 @@ module.exports = {
 
     if (mode === "coin" || mode === "flip" || mode === "cf") {
       const flip = Math.random() < 0.5 ? "heads" : "tails";
-      return await message.reply(getLang("plugins.dice.coin", flip === "heads" ? "🪙 Heads" : "🪙 Tails"));
+      return await message.reply(
+        getLang(
+          "plugins.dice.coin",
+          flip === "heads" ? "🪙 Heads" : "🪙 Tails",
+        ),
+      );
     }
 
     let sides = 6;
     let count = 1;
-    if (mode === "d6" || mode === "6") { sides = 6; count = 1; }
-    else if (mode === "2d6" || mode === "26") { sides = 6; count = 2; }
-    else if (mode === "d20" || mode === "20") { sides = 20; count = 1; }
-    else if (/^(\d+)d(\d+)$/.test(mode)) {
+    if (mode === "d6" || mode === "6") {
+      sides = 6;
+      count = 1;
+    } else if (mode === "2d6" || mode === "26") {
+      sides = 6;
+      count = 2;
+    } else if (mode === "d20" || mode === "20") {
+      sides = 20;
+      count = 1;
+    } else if (/^(\d+)d(\d+)$/.test(mode)) {
       const m = mode.match(/^(\d+)d(\d+)$/);
       count = Math.min(10, parseInt(m[1], 10));
       sides = Math.min(100, parseInt(m[2], 10));
@@ -52,7 +63,11 @@ module.exports = {
         message.jid,
         getLang("plugins.dice.pick"),
         buttons,
-        { title: "🎲 Dice Roll", footer: "OpenWhatsappBot", quoted: message.data }
+        {
+          title: "🎲 Dice Roll",
+          footer: "OpenWhatsappBot",
+          quoted: message.data,
+        },
       );
     }
 
@@ -63,7 +78,9 @@ module.exports = {
         defaults: { balance: 0, streak: 0 },
       });
       if (econ.balance < bet) {
-        return await message.reply(getLang("plugins.dice.no_funds", bet, econ.balance));
+        return await message.reply(
+          getLang("plugins.dice.no_funds", bet, econ.balance),
+        );
       }
       econ.balance -= bet;
       await econ.save();
@@ -102,7 +119,7 @@ module.exports = {
 
     const rollText = rolls.map((r) => `\`${r}\``).join(" ");
     await message.reply(
-      `${getLang("plugins.dice.roll_format", mode, rollText, sum)}\n${result}`
+      `${getLang("plugins.dice.roll_format", mode, rollText, sum)}\n${result}`,
     );
   },
 
@@ -112,7 +129,7 @@ module.exports = {
     if (!["d6", "2d6", "d20", "coin"].includes(mode)) return false;
     if (message.fromMe) return false;
     // Re-invoke the same command by mutating body so registry runs it
-    message.body = (require("../config").PREFIX) + "dice " + mode;
+    message.body = require("../config").PREFIX + "dice " + mode;
     await require("../lib/plugins/registry").executeCommand(message);
     return true;
   },

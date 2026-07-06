@@ -11,7 +11,14 @@ function xpForLevel(level) {
 }
 
 function progressBar(current, target, length = 12) {
-  const ratio = Math.max(0, Math.min(1, (current - xpForLevel(Math.floor(Math.sqrt(current / XP_PER_LEVEL)))) / (target - xpForLevel(Math.floor(Math.sqrt(current / XP_PER_LEVEL))))));
+  const ratio = Math.max(
+    0,
+    Math.min(
+      1,
+      (current - xpForLevel(Math.floor(Math.sqrt(current / XP_PER_LEVEL)))) /
+        (target - xpForLevel(Math.floor(Math.sqrt(current / XP_PER_LEVEL)))),
+    ),
+  );
   const filled = Math.round(ratio * length);
   return "▓".repeat(filled) + "░".repeat(length - filled);
 }
@@ -31,12 +38,19 @@ module.exports = {
 
     // Resolve target
     let target = message.sender;
-    if (message.mentions && message.mentions.length > 0) target = message.mentions[0];
+    if (message.mentions && message.mentions.length > 0)
+      target = message.mentions[0];
     else if (message.quoted) target = message.quoted.sender;
 
     const [row] = await UserStats.findOrCreate({
       where: { jid: target, groupJid: message.jid },
-      defaults: { messageCount: 0, commandCount: 0, mediaCount: 0, xp: 0, level: 0 },
+      defaults: {
+        messageCount: 0,
+        commandCount: 0,
+        mediaCount: 0,
+        xp: 0,
+        level: 0,
+      },
     });
 
     const level = row.level || computeLevel(row.xp || 0);
@@ -48,8 +62,18 @@ module.exports = {
 
     if (sub === "global" || (message.isGroup === false && !sub)) {
       // Global rank
-      const higher = await UserStats.count({ where: { xp: { [require("sequelize").Op.gt]: row.xp || 0 } } });
-      const text = getLang("plugins.level.card", row.xp || 0, level, bar, progress, needed, higher + 1);
+      const higher = await UserStats.count({
+        where: { xp: { [require("sequelize").Op.gt]: row.xp || 0 } },
+      });
+      const text = getLang(
+        "plugins.level.card",
+        row.xp || 0,
+        level,
+        bar,
+        progress,
+        needed,
+        higher + 1,
+      );
       return await message.reply(text);
     }
 
@@ -68,10 +92,22 @@ module.exports = {
       });
 
       const lines = top
-        .map((r, i) => `  ${i + 1}. @${r.jid.split("@")[0]} — _${r.xp || 0} XP (Lv.${r.level || 0})_`)
+        .map(
+          (r, i) =>
+            `  ${i + 1}. @${r.jid.split("@")[0]} — _${r.xp || 0} XP (Lv.${r.level || 0})_`,
+        )
         .join("\n");
 
-      const text = getLang("plugins.level.card_group", row.xp || 0, level, bar, progress, needed, higher + 1, lines);
+      const text = getLang(
+        "plugins.level.card_group",
+        row.xp || 0,
+        level,
+        bar,
+        progress,
+        needed,
+        higher + 1,
+        lines,
+      );
       const mentions = top.map((r) => r.jid);
       if (message.isGroup) mentions.push(target);
 
@@ -82,11 +118,17 @@ module.exports = {
       ];
 
       try {
-        return await sendQuickReplies(message.client.getSocket(), message.jid, text, buttons, {
-          title: getLang("plugins.level.title"),
-          footer: "OpenWhatsappBot",
-          quoted: message.data,
-        });
+        return await sendQuickReplies(
+          message.client.getSocket(),
+          message.jid,
+          text,
+          buttons,
+          {
+            title: getLang("plugins.level.title"),
+            footer: "OpenWhatsappBot",
+            quoted: message.data,
+          },
+        );
       } catch (e) {
         return await message.reply(text, { mentions });
       }
@@ -101,7 +143,12 @@ module.exports = {
     const valid = ["chat", "media", "cmds"];
     if (!valid.includes(cat)) return false;
 
-    const sortField = cat === "chat" ? "messageCount" : cat === "media" ? "mediaCount" : "commandCount";
+    const sortField =
+      cat === "chat"
+        ? "messageCount"
+        : cat === "media"
+          ? "mediaCount"
+          : "commandCount";
     const top = await UserStats.findAll({
       where: { groupJid: message.jid },
       order: [[sortField, "DESC"]],
@@ -111,8 +158,11 @@ module.exports = {
     const text = getLang(
       "plugins.level.top_" + cat,
       top
-        .map((r, i) => `  ${i + 1}. @${r.jid.split("@")[0]} — _${r[sortField] || 0}_`)
-        .join("\n")
+        .map(
+          (r, i) =>
+            `  ${i + 1}. @${r.jid.split("@")[0]} — _${r[sortField] || 0}_`,
+        )
+        .join("\n"),
     );
     await message.reply(text, { mentions: top.map((r) => r.jid) });
     return true;

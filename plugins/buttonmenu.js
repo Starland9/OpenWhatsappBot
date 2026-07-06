@@ -22,10 +22,15 @@ module.exports = {
       // Direct subcommand
       const sub = argsString.trim().toLowerCase();
       const cmd = commands.find((c) =>
-        c.pattern.split("|").map((p) => p.toLowerCase()).includes(sub)
+        c.pattern
+          .split("|")
+          .map((p) => p.toLowerCase())
+          .includes(sub),
       );
       if (cmd) {
-        return await message.reply(`*${config.PREFIX}${cmd.pattern.split("|")[0]}*\n${cmd.desc || ""}`);
+        return await message.reply(
+          `*${config.PREFIX}${cmd.pattern.split("|")[0]}*\n${cmd.desc || ""}`,
+        );
       }
       return await message.reply(getLang("plugins.buttonmenu.not_found", sub));
     }
@@ -42,16 +47,14 @@ module.exports = {
       .sort()
       .map((type) => ({
         title: type.toUpperCase(),
-        rows: grouped[type]
-          .slice(0, 30)
-          .map((c) => {
-            const name = c.pattern.split("|")[0];
-            return {
-              id: `menu:${name}`,
-              title: name.slice(0, 24),
-              description: (c.desc || "").slice(0, 72),
-            };
-          }),
+        rows: grouped[type].slice(0, 30).map((c) => {
+          const name = c.pattern.split("|")[0];
+          return {
+            id: `menu:${name}`,
+            title: name.slice(0, 24),
+            description: (c.desc || "").slice(0, 72),
+          };
+        }),
       }));
 
     const text = `╔══════════════════╗\n║  ⚡ SYSTEM: ONLINE ║\n╚══════════════════╝\n> Prefix: ${config.PREFIX}\n> CMDs: ${commands.length}\n\n_Pick a category to browse commands._`;
@@ -74,7 +77,10 @@ module.exports = {
 
     const commands = getCommands();
     const cmd = commands.find((c) =>
-      c.pattern.split("|").map((p) => p.toLowerCase()).includes(cmdName)
+      c.pattern
+        .split("|")
+        .map((p) => p.toLowerCase())
+        .includes(cmdName),
     );
 
     if (!cmd) {
@@ -82,7 +88,9 @@ module.exports = {
       return true;
     }
 
-    await message.reply(`*${config.PREFIX}${cmd.pattern.split("|")[0]}*\n${cmd.desc || ""}`);
+    await message.reply(
+      `*${config.PREFIX}${cmd.pattern.split("|")[0]}*\n${cmd.desc || ""}`,
+    );
     return true;
   },
 };

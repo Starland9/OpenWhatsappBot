@@ -132,15 +132,53 @@ async function processMessage(msg, client) {
       // Continue processing for other handlers/commands
     }
 
-    // Check if message is a reply to a quiz/game
-    if (message.quoted) {
-      const quizPlugin = getPlugin("quiz");
-      if (quizPlugin && quizPlugin.handleReply) {
-        const handled = await quizPlugin.handleReply(message);
-        if (handled) {
-          return; // Skip further processing
+    // Check if message is a reply to a quiz/game OR a button/single-select reply
+    // Many button plugins (level, leaderboard, idea, role, ginfo, tictactoe, etc.)
+    // send buttons whose `id` becomes the body. We route those via the same
+    // `handleReply` mechanism the quiz uses, but globally.
+    if (message.quoted || message.isInteractiveReply) {
+      // 1) Try the quiz plugin first (it requires a quoted reply)
+      if (message.quoted) {
+        const quizPlugin = getPlugin("quiz");
+        if (quizPlugin && quizPlugin.handleReply) {
+          const handled = await quizPlugin.handleReply(message);
+          if (handled) {
+            return; // Skip further processing
+          }
         }
       }
+
+      // 2) Global button/list reply dispatcher
+      //    Any plugin that exports a `handleButtonReply` (or `handleReply`) is
+      //    called. First to return true wins. This lets every button plugin
+      //    receive its own button clicks without a quoted message.
+      const body = (message.body || "").trim();
+      if (body) {
+        const { getPlugins } = require("./lib/plugins/registry");
+        const list = getPlugins();
+        for (const p of list) {
+          const handler = p.handleButtonReply || p.handleReply;
+          if (typeof handler !== "function") continue;
+          try {
+            const handled = await handler(message);
+            if (handled) {
+              return; // Skip further processing
+            }
+          } catch (err) {
+            logger.error("Button reply handler error:", err);
+          }
+        }
+      }
+    }
+
+    // Track message activity for stats, leaderboards, leveling (non-blocking)
+    try {
+      const tracker = getPlugin("trackmessages");
+      if (tracker && typeof tracker.trackMessage === "function") {
+        tracker.trackMessage(message);
+      }
+    } catch (trackErr) {
+      logger.error("Tracker error:", trackErr);
     }
 
     // Check if this is a sticker command (stealth mode)
@@ -172,7 +210,11 @@ async function processMessage(msg, client) {
     // Try auto-responder first (only for non-command messages)
     const isCommand = message.body.startsWith(require("./config").PREFIX);
 
-    if (!isCommand && !message.fromMe) {
+    if (
+      !isCommand &&
+      !message.fromMe &&
+      !message.isInteractiveReply // skip auto-responder for button clicks
+    ) {
       const autoResponded = await autoResponderHandler.handleMessage(message);
       if (autoResponded) {
         return; // Skip command execution if auto-responded

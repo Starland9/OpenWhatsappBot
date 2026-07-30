@@ -352,6 +352,151 @@
       "failed": "❌ Échec du téléchargement. Le contenu est peut-être privé ou indisponible.",
       "success": "✅ Téléchargé depuis *{0}*",
       "error": "❌ Erreur: {0}"
+    },
+    "buttons": {
+      "open_menu": "📋 Ouvrir le menu"
+    },
+    "buttonmenu": {
+      "desc": "Menu interactif des commandes (boutons)",
+      "title": "📋 Menu des commandes",
+      "not_found": "❌ Commande `{0}` introuvable."
+    },
+    "level": {
+      "desc": "Affiche ton XP, niveau et progression",
+      "title": "🏆 Niveau & XP",
+      "card": "🏆 *Tes stats*\n\nXP : *{0}*\nNiveau : *{1}*\nProgression : `{2}`\n_{3}/{4} XP avant prochain niveau_\n\nRang global : #{5}",
+      "card_group": "🏆 *Tes stats*\n\nXP : *{0}*\nNiveau : *{1}*\nProgression : `{2}`\n_{3}/{4} XP avant prochain niveau_\n\nRang dans le groupe : #{6}\n\n*Top 3 :*\n{7}",
+      "top_chat": "💬 *Top 5 bavards*\n\n{0}",
+      "top_media": "🖼 *Top 5 médias*\n\n{0}",
+      "top_cmds": "⚙ *Top 5 commandes*\n\n{0}",
+      "usage": "Usage : {0}level [top|global]"
+    },
+    "leaderboard": {
+      "desc": "Classement du groupe (bavards, médias, commandes, XP)",
+      "title": "📊 Classement",
+      "pick": "Choisis une catégorie pour voir le classement",
+      "empty": "Aucune donnée pour la catégorie `{0}`."
+    },
+    "rps": {
+      "desc": "Pierre-Feuille-Ciseaux (1v1 avec boutons, ou vs bot)",
+      "self": "❌ Tu ne peux pas jouer contre toi-même.",
+      "challenge": "🎮 *Pierre-Feuille-Ciseaux*\n\n{0} — _choisis ton coup !_",
+      "vsbot": "🎮 *PFC vs Bot*\n\nToi : {0} {1}\nBot : {2} {3}\n\n{4}",
+      "win": "Tu gagnes ! 🎉",
+      "lose": "Tu perds ! 😢",
+      "tie": "Égalité ! 🤝",
+      "tie_game": "🤝 *Égalité*\n\n{0} {1}\n{2} {3}",
+      "win_game": "🎉 *Gagnant : {4}*\n\n{0} {1}\n{2} {3}"
+    },
+    "dice": {
+      "desc": "Lancer un dé ou pièce (avec paris en option)",
+      "pick": "Choisis un type de lancer :",
+      "roll_format": "🎲 *{0}*\n\n{1}\n\nTotal : *{2}*",
+      "coin": "🪙 *Pile ou face*\n\n{0}",
+      "jackpot": "🎰 *JACKPOT !* Gagné *{0}* pièces ! Nouveau solde : *{1}*",
+      "won": "🎉 Gagné *{0}* pièces ! Nouveau solde : *{1}*",
+      "lost": "💸 Perdu *{0}* pièces. Solde : *{1}*",
+      "no_funds": "❌ Pas assez de pièces. Mise : {0}, solde : {1}."
+    },
+    "ttt": {
+      "desc": "Tic-Tac-Toe (1v1, grille 3x3 en boutons)",
+      "need_opponent": "❌ Mentionne ou réponds à un adversaire pour jouer.",
+      "self": "❌ Tu ne peux pas jouer contre toi-même.",
+      "tie": "🤝 Égalité !",
+      "win": "🎉 *{0} gagne !*"
+    },
+    "hangman": {
+      "desc": "Jeu du pendu",
+      "invalid": "❌ Réponds avec une seule lettre (a-z).",
+      "already": "❌ Tu as déjà essayé `{0}`.",
+      "win": "🎉 Tu as gagné ! Le mot était : *{0}*",
+      "lose": "💀 Tu as perdu. Le mot était : *{0}*"
+    },
+    "trivia": {
+      "desc": "Questions à choix multiples",
+      "pick": "Choisis une catégorie :",
+      "api_error": "❌ Impossible de charger une question. Réessaie.",
+      "correct": "🎉 Correct ! La réponse était *{0}*\n\nTon score : *{1}/{2}* ({3} %)",
+      "wrong": "❌ Faux ! La bonne réponse était *{0}*"
+    },
+    "idea": {
+      "desc": "Boîte à idées du groupe avec votes",
+      "menu": "💡 *Idées*\n\n_Utilise les boutons pour gérer les idées._",
+      "usage": "Usage : {0}idea add <texte>\n{0}idea list | top | vote <id> | delete <id>",
+      "added": "💡 Idée #*{0}* ajoutée !",
+      "empty": "💡 Aucune idée pour l'instant.",
+      "voted": "✅ Voté pour l'idée #*{0}* (❤️ {1})",
+      "unvoted": "↩ Vote retiré de l'idée #*{0}* (❤️ {1})",
+      "deleted": "🗑 Idée #*{0}* supprimée.",
+      "not_found": "❌ Idée #*{0}* introuvable."
+    },
+    "daily": {
+      "desc": "Réclame ta récompense quotidienne (cooldown 24h)",
+      "cooldown": "⏰ Déjà réclamé. Réessaie dans {0}h {1}m.",
+      "claimed": "💰 Réclamé *{0}* pièces !\n\nNouveau solde : *{1}*\nSérie : *{2} jours* 🔥",
+      "status": "💰 Solde : *{0}* pièces\nSérie : *{1} jours* 🔥"
+    },
+    "economy": {
+      "desc": "Affiche ton solde et les plus riches du groupe"
+    },
+    "give": {
+      "desc": "Donner des pièces à un autre utilisateur",
+      "usage": "Usage : {0}give <montant> @user",
+      "mention_user": "❌ Mentionne un utilisateur à qui donner des pièces.",
+      "self": "❌ Tu ne peux pas te donner à toi-même.",
+      "no_funds": "❌ Pas assez de pièces. Besoin : {0}, tu as : {1}.",
+      "done": "💸 Envoyé *{0}* pièces à {1} !\nNouveau solde : *{2}*"
+    },
+    "role": {
+      "desc": "Gérer les rôles personnalisés (vip, muted, banned, regular)",
+      "usage": "Usage : {0}role set <vip|muted|banned|regular> @user | {0}role list | {0}role check @user",
+      "pick": "Choisis un rôle pour {0} :",
+      "set": "✅ {0} est maintenant *{1}*.",
+      "current": "{0} est actuellement *{1}*.",
+      "none": "{0} n'a aucun rôle personnalisé.",
+      "empty": "Aucun rôle personnalisé dans ce groupe."
+    },
+    "pollplus": {
+      "desc": "Sondages améliorés : natif + 12 options + fermeture",
+      "usage": "Usage : {0}poll+ \"Question ? opt1, opt2, opt3\"\n{0}poll+ vote <numéro> | close",
+      "none": "❌ Aucun sondage actif dans cette discussion.",
+      "bad_idx": "❌ Numéro d'option invalide.",
+      "voted": "✅ Voté pour l'option #{0}.",
+      "too_many": "❌ Maximum 12 options par sondage.",
+      "created": "📊 Sondage lancé : *{0}*"
+    },
+    "reminder": {
+      "desc": "Définir un rappel (30s, 5m, 1h, 2j ou HH:MM)",
+      "usage": "Usage : {0}remind <30s|5m|1h|2j|HH:MM> <texte>",
+      "no_text": "❌ Donne un message de rappel.",
+      "set": "⏰ Rappel défini !\n\n_{0}_\n\n⏳ Déclenchement : {1}",
+      "fire": "⏰ *Rappel*\n\n_{0}_"
+    },
+    "quoteof": {
+      "desc": "Obtenir une citation inspirante aléatoire",
+      "api_error": "❌ Impossible de charger une citation."
+    },
+    "quote": {
+      "desc": "Sauvegarder et rejouer des messages mémorables du groupe",
+      "menu": "💬 *Citations du groupe*\n\n_Sauvegarde, rejoue, liste._",
+      "usage": "Usage : {0}quote add|random|list|delete <id>",
+      "reply_first": "❌ Réponds à un message pour le sauvegarder.",
+      "no_text": "❌ Le message cité n'a pas de texte.",
+      "saved": "💾 Citation #*{0}* sauvegardée !",
+      "empty": "💬 Aucune citation sauvegardée.",
+      "format": "💬 _\"{0}\"_\n— *{1}*",
+      "not_found": "❌ Citation #*{0}* introuvable.",
+      "deleted": "🗑 Citation #*{0}* supprimée."
+    },
+    "feedback": {
+      "desc": "Envoyer un feedback anonyme aux admins du bot",
+      "usage": "Usage : {0}feedback <message> (ou répondre à un message)",
+      "no_sudo": "❌ Aucun SUDO configuré pour recevoir le feedback.",
+      "sent": "✅ Feedback envoyé aux admins. Merci !"
+    },
+    "groupinfo": {
+      "desc": "Tableau de bord des stats du groupe (top users, heures de pointe, totaux)",
+      "empty": "📊 Aucune stat suivie pour ce groupe."
     }
   },
   "extra": {

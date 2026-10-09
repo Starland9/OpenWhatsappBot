@@ -82,6 +82,15 @@ module.exports = {
   ALPHA_VANTAGE_KEY: process.env.ALPHA_VANTAGE_KEY || "",
   SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || "",
   SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || "",
+  // Image API Keys
+  CLOUDMERSIVE_API_KEY: process.env.CLOUDMERSIVE_API_KEY || "",
+  APYHUB_API_KEY: process.env.APYHUB_API_KEY || "",
+  DEEPAI_API_KEY: process.env.DEEPAI_API_KEY || "",
+  WAIFUPICS_API_KEY: process.env.WAIFUPICS_API_KEY || "",
+  PUTERJS_API_KEY: process.env.PUTERJS_API_KEY || "",
+  // Generic image API options
+  IMAGE_API_TIMEOUT: parseInt(process.env.IMAGE_API_TIMEOUT) || 20000,
+  IMAGE_API_MAX_SIZE_MB: parseInt(process.env.IMAGE_API_MAX_SIZE_MB) || 10,
 
   // Social DL Backend
   BACKEND_URL: process.env.BACKEND_URL || "https://api.socialdl.starland9.dev",

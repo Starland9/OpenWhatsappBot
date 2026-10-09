@@ -9,14 +9,16 @@ if (existsSync(configPath)) require("dotenv").config({ path: configPath });
 
 const toBool = (x) => x === "true";
 const DATABASE_URL = process.env.DATABASE_URL || databasePath;
+// SSL is required by hosted Postgres (Heroku...); set DATABASE_SSL=false for a plain internal server
+const DATABASE_SSL = process.env.DATABASE_SSL !== "false";
 
 // Database configuration
 const DATABASE = DATABASE_URL.includes("postgres")
   ? new Sequelize(DATABASE_URL, {
       dialect: "postgres",
-      dialectOptions: {
-        ssl: { require: true, rejectUnauthorized: false },
-      },
+      dialectOptions: DATABASE_SSL
+        ? { ssl: { require: true, rejectUnauthorized: false } }
+        : {},
       logging: false,
       pool: {
         max: 10,

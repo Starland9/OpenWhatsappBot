@@ -1,39 +1,23 @@
-version: '3.8'
-
 services:
   bot:
     build: .
-    container_name: levanter-bot
     restart: unless-stopped
+    # config.env for local use; .env is written by Dokploy from its Environment tab
     env_file:
-      - config.env
-    volumes:
-      - ./sessions:/app/sessions
-      - ./logs:/app/logs
-      - ./database.db:/app/database.db
-    depends_on:
-      - postgres
-    networks:
-      - levanter-network
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: levanter-db
-    restart: unless-stopped
+      - path: config.env
+        required: false
+      - path: .env
+        required: false
     environment:
-      POSTGRES_USER: levanter
-      POSTGRES_PASSWORD: levanter_password
-      POSTGRES_DB: levanter
+      # SQLite on a volume by default; set DATABASE_URL to a postgres:// URL to use Postgres
+      DATABASE_URL: ${DATABASE_URL:-/app/db/database.db}
+    # Named volumes survive Dokploy redeploys (relative bind mounts do not)
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - levanter-network
-    ports:
-      - "5432:5432"
+      - bot_sessions:/app/sessions
+      - bot_db:/app/db
+      - bot_data:/app/data
 
 volumes:
-  postgres_data:
-
-networks:
-  levanter-network:
-    driver: bridge
+  bot_sessions:
+  bot_db:
+  bot_data:

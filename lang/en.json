@@ -352,6 +352,151 @@
       "failed": "❌ Download failed. The content may be private or unavailable.",
       "success": "✅ Downloaded from *{0}*",
       "error": "❌ Error: {0}"
+    },
+    "buttons": {
+      "open_menu": "📋 Open Menu"
+    },
+    "buttonmenu": {
+      "desc": "Interactive button-based command menu",
+      "title": "📋 Command Menu",
+      "not_found": "❌ Command `{0}` not found."
+    },
+    "level": {
+      "desc": "Show your XP, level, and progress",
+      "title": "🏆 Level & XP",
+      "card": "🏆 *Your Stats*\n\nXP: *{0}*\nLevel: *{1}*\nProgress: `{2}`\n_{3}/{4} XP to next level_\n\nGlobal rank: #{5}",
+      "card_group": "🏆 *Your Stats*\n\nXP: *{0}*\nLevel: *{1}*\nProgress: `{2}`\n_{3}/{4} XP to next level_\n\nRank in group: #{6}\n\n*Top 3:*\n{7}",
+      "top_chat": "💬 *Top 5 Chatters*\n\n{0}",
+      "top_media": "🖼 *Top 5 Media*\n\n{0}",
+      "top_cmds": "⚙ *Top 5 Commands*\n\n{0}",
+      "usage": "Usage: {0}level [top|global]"
+    },
+    "leaderboard": {
+      "desc": "Group leaderboard (top chatters, media, commands, XP)",
+      "title": "📊 Leaderboard",
+      "pick": "Pick a category to view the leaderboard",
+      "empty": "No data yet for category `{0}`."
+    },
+    "rps": {
+      "desc": "Rock-Paper-Scissors (1v1 with buttons, or vs bot)",
+      "self": "❌ You can't play against yourself.",
+      "challenge": "🎮 *Rock-Paper-Scissors*\n\n{0} — _pick your move!_",
+      "vsbot": "🎮 *RPS vs Bot*\n\nYou: {0} {1}\nBot: {2} {3}\n\n{4}",
+      "win": "You win! 🎉",
+      "lose": "You lose! 😢",
+      "tie": "It's a tie! 🤝",
+      "tie_game": "🤝 *Tie*\n\n{0} {1}\n{2} {3}",
+      "win_game": "🎉 *Winner: {4}*\n\n{0} {1}\n{2} {3}"
+    },
+    "dice": {
+      "desc": "Roll dice or flip a coin (with optional economy bets)",
+      "pick": "Pick a roll type:",
+      "roll_format": "🎲 *{0}*\n\n{1}\n\nTotal: *{2}*",
+      "coin": "🪙 *Coin Flip*\n\n{0}",
+      "jackpot": "🎰 *JACKPOT!* Won *{0}* coins! New balance: *{1}*",
+      "won": "🎉 Won *{0}* coins! New balance: *{1}*",
+      "lost": "💸 Lost *{0}* coins. Balance: *{1}*",
+      "no_funds": "❌ Not enough coins. Bet: {0}, balance: {1}."
+    },
+    "ttt": {
+      "desc": "Tic-Tac-Toe (1v1, 3x3 button grid)",
+      "need_opponent": "❌ Please mention or reply to an opponent to play.",
+      "self": "❌ You can't play against yourself.",
+      "tie": "🤝 It's a tie!",
+      "win": "🎉 *{0} wins!*"
+    },
+    "hangman": {
+      "desc": "Word-guessing game",
+      "invalid": "❌ Reply with a single letter (a-z).",
+      "already": "❌ You already guessed `{0}`.",
+      "win": "🎉 You won! The word was: *{0}*",
+      "lose": "💀 You lost. The word was: *{0}*"
+    },
+    "trivia": {
+      "desc": "Multiple-choice trivia questions",
+      "pick": "Pick a category to start a trivia game:",
+      "api_error": "❌ Could not load a question. Try again later.",
+      "correct": "🎉 Correct! The answer was *{0}*\n\nYour score: *{1}/{2}* ({3}%)",
+      "wrong": "❌ Wrong! The correct answer was *{0}*"
+    },
+    "idea": {
+      "desc": "Group idea/suggestion box with voting",
+      "menu": "💡 *Ideas*\n\n_Use the buttons to manage ideas._",
+      "usage": "Usage: {0}idea add <text>\n{0}idea list | top | vote <id> | delete <id>",
+      "added": "💡 Idea #*{0}* added!",
+      "empty": "💡 No ideas yet. Be the first!",
+      "voted": "✅ Voted for idea #*{0}* (❤️ {1})",
+      "unvoted": "↩ Removed your vote from idea #*{0}* (❤️ {1})",
+      "deleted": "🗑 Idea #*{0}* deleted.",
+      "not_found": "❌ Idea #*{0}* not found."
+    },
+    "daily": {
+      "desc": "Claim your daily coin reward (24h cooldown)",
+      "cooldown": "⏰ Already claimed. Try again in {0}h {1}m.",
+      "claimed": "💰 Claimed *{0}* coins!\n\nNew balance: *{1}*\nStreak: *{2} days* 🔥",
+      "status": "💰 Balance: *{0}* coins\nStreak: *{1} days* 🔥"
+    },
+    "economy": {
+      "desc": "Show your balance and the group's richest"
+    },
+    "give": {
+      "desc": "Give coins to another user",
+      "usage": "Usage: {0}give <amount> @user",
+      "mention_user": "❌ Please mention a user to give coins to.",
+      "self": "❌ You can't give to yourself.",
+      "no_funds": "❌ Not enough coins. Need: {0}, have: {1}.",
+      "done": "💸 Sent *{0}* coins to {1}!\nNew balance: *{2}*"
+    },
+    "role": {
+      "desc": "Manage custom group roles (vip, muted, banned, regular)",
+      "usage": "Usage: {0}role set <vip|muted|banned|regular> @user | {0}role list | {0}role check @user",
+      "pick": "Pick a role for {0}:",
+      "set": "✅ {0} is now *{1}*.",
+      "current": "{0} is currently *{1}*.",
+      "none": "{0} has no custom role.",
+      "empty": "No custom roles set in this group."
+    },
+    "pollplus": {
+      "desc": "Enhanced polls: native + 12 options + close",
+      "usage": "Usage: {0}poll+ \"Question? opt1, opt2, opt3\"\n{0}poll+ vote <number> | close",
+      "none": "❌ No active poll in this chat.",
+      "bad_idx": "❌ Invalid option number.",
+      "voted": "✅ Voted for option #{0}.",
+      "too_many": "❌ Maximum 12 options per poll.",
+      "created": "📊 Poll started: *{0}*"
+    },
+    "reminder": {
+      "desc": "Set a reminder (30s, 5m, 1h, 2d, or HH:MM)",
+      "usage": "Usage: {0}remind <30s|5m|1h|2d|HH:MM> <text>",
+      "no_text": "❌ Please provide a reminder message.",
+      "set": "⏰ Reminder set!\n\n_{0}_\n\n⏳ Fires at: {1}",
+      "fire": "⏰ *Reminder*\n\n_{0}_"
+    },
+    "quoteof": {
+      "desc": "Get a random inspirational quote",
+      "api_error": "❌ Could not load a quote right now."
+    },
+    "quote": {
+      "desc": "Save and replay memorable group messages",
+      "menu": "💬 *Group Quotes*\n\n_Save messages, replay random ones, list recent._",
+      "usage": "Usage: {0}quote add|random|list|delete <id>",
+      "reply_first": "❌ Reply to a message to save it as a quote.",
+      "no_text": "❌ Quoted message has no text.",
+      "saved": "💾 Quote #*{0}* saved!",
+      "empty": "💬 No saved quotes yet.",
+      "format": "💬 _\"{0}\"_\n— *{1}*",
+      "not_found": "❌ Quote #*{0}* not found.",
+      "deleted": "🗑 Quote #*{0}* deleted."
+    },
+    "feedback": {
+      "desc": "Send anonymous feedback to bot admins",
+      "usage": "Usage: {0}feedback <message> (or reply to a message)",
+      "no_sudo": "❌ No SUDO configured to receive feedback.",
+      "sent": "✅ Feedback sent to admins. Thank you!"
+    },
+    "groupinfo": {
+      "desc": "Group statistics dashboard (top users, peak hours, totals)",
+      "empty": "📊 No stats tracked yet for this group."
     }
   },
   "extra": {

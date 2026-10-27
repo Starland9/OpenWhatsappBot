@@ -338,7 +338,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 **Independent Test**: quickstart §5.
 
-- [ ] T034 [US7] Run `node tools/check-unused-deps.js` and `node .yarn/releases/yarn-4.17.0.cjs outdated` with Node 24. Write `specs/001-audit-fix-commands/deps-report.md`: one row per dependency (before → after, action: upgraded / removed / replaced / added / exception + reason), from the `package.json` diff against `master`. — agent A (sonnet)
+- [X] T034 [US7] Run `node tools/check-unused-deps.js` and `node .yarn/releases/yarn-4.17.0.cjs outdated` with Node 24. Write `specs/001-audit-fix-commands/deps-report.md`: one row per dependency (before → after, action: upgraded / removed / replaced / added / exception + reason), from the `package.json` diff against `master`. — agent A (sonnet)
 
 ---
 

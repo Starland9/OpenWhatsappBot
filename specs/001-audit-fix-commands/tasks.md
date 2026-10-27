@@ -194,7 +194,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 ### Implementation for User Story 3
 
 - [ ] T024 [P] [US3] Media-processing plugins: `plugins/convert.js` (send as document with the right mimetype, `fileLength` guard, sharp→png before pdfkit, `runFfmpeg`, libopus for ogg), `plugins/sticker.js` (`withTempDir`, `-t 10`, size loop ≤ 900 KB, EXIF via `node-webpmux` from `STICKER_PACKNAME`/`STICKER_AUTHOR`, validation before the ⏳ reaction), `plugins/voice.js` (`speak` via `getAllAudioUrls`, then `sendVoice`; `getQuotedMedia` with a 25 MB cap for Whisper; OpenAI `timeout: 60000, maxRetries: 0`; key checked before downloading), `plugins/tts.js` (`{ translate }` import, `raw.src` detection, `sendVoice`), `plugins/pdfmaker.js` (`getQuotedMedia`/`getQuotedText`, `rawArgs` to keep newlines, in-memory PDF, webp→png), `plugins/qr.js` (level M, input cap with a friendly message, truncated caption, `rawArgs`). Apply the findings in audit-findings "Batch 4" and write the i18n fragments. — agent E3 (sonnet)
-- [ ] T025 [P] [US3] Downloader plugins, all using `lib/utils/downloader.js`, `getQuotedText()` and URL host allow-lists (`new URL()`):
+- [X] T025 [P] [US3] Downloader plugins, all using `lib/utils/downloader.js`, `getQuotedText()` and URL host allow-lists (`new URL()`):
   - `plugins/youtube.js`: yt-dlp, `.yts` via `search`;
   - `plugins/instagram.js`: alias to the downloader;
   - `plugins/socialdl.js`: yt-dlp first; `BACKEND_URL` only if explicitly set; content-type sniffing; `MAX_UPLOAD`;

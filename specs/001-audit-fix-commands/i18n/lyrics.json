@@ -1,0 +1,18 @@
+{
+  "en": {
+    "plugins.lyrics.desc": "Search song lyrics",
+    "plugins.lyrics.usage": "*Provide a song name!*\n\nExample: `{0}lyrics shape of you`\n\nYou can also reply to a message that contains the title.",
+    "plugins.lyrics.not_found": "❌ Lyrics not found.\n\nTry adding the artist name or checking the spelling.",
+    "plugins.lyrics.header": "🎵 *{0}*",
+    "plugins.lyrics.part": "_(continued {0}/{1})_",
+    "plugins.lyrics.truncated": "_...lyrics truncated_"
+  },
+  "fr": {
+    "plugins.lyrics.desc": "Rechercher les paroles d’une chanson",
+    "plugins.lyrics.usage": "*Indiquez le nom d’une chanson !*\n\nExemple : `{0}lyrics shape of you`\n\nVous pouvez aussi répondre à un message qui contient le titre.",
+    "plugins.lyrics.not_found": "❌ Paroles introuvables.\n\nEssayez d’ajouter le nom de l’artiste ou vérifiez l’orthographe.",
+    "plugins.lyrics.header": "🎵 *{0}*",
+    "plugins.lyrics.part": "_(suite {0}/{1})_",
+    "plugins.lyrics.truncated": "_...paroles tronquées_"
+  }
+}

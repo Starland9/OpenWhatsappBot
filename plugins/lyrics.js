@@ -1,95 +1,104 @@
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
+const config = require("../config");
+const { fetchJson, classifyError, replyKeyFor, safeLog } = require("../lib/utils/http");
 
 /**
- * Lyrics Plugin
- * Search and display song lyrics
+ * Lyrics plugin (LRCLIB, keyless): https://lrclib.net/api/search?q=<query>
  */
+
+const LRCLIB_SEARCH_URL = "https://lrclib.net/api/search";
+const USER_AGENT = "OpenWhatsappBot (https://github.com/Starland9/OpenWhatsappBot)";
+
+const MAX_QUERY_LENGTH = 200;
+const CHUNK_SIZE = 3500;
+const MAX_PARTS = 3;
+
+/**
+ * Split lyrics into at most `maxParts` messages of about `size` characters, on line
+ * boundaries. `truncated` is true when some lyrics did not fit.
+ */
+function chunkLyrics(text, size = CHUNK_SIZE, maxParts = MAX_PARTS) {
+  const lines = String(text)
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .flatMap((line) => (line.length > size ? line.match(new RegExp(`.{1,${size}}`, "gs")) : [line]));
+
+  const parts = [];
+  let current = "";
+  for (const line of lines) {
+    const next = current ? `${current}\n${line}` : line;
+    if (next.length > size && current) {
+      parts.push(current);
+      current = line;
+    } else {
+      current = next;
+    }
+  }
+  if (current.trim()) parts.push(current);
+
+  return { parts: parts.slice(0, maxParts), truncated: parts.length > maxParts };
+}
 
 module.exports = {
   command: {
     pattern: "lyrics",
-    desc: "Search for song lyrics",
+    desc: getLang("plugins.lyrics.desc"),
     type: "search",
   },
 
-  async execute(message, args) {
-    const query = args || (message.quoted && message.quoted.message);
+  async execute(message, argsString) {
+    const query = (argsString || message.getQuotedText()).trim().slice(0, MAX_QUERY_LENGTH);
 
     if (!query) {
-      return await message.reply(
-        "*Please provide a song name!*\n\nExample: `.lyrics shape of you`"
-      );
+      return await message.reply(getLang("plugins.lyrics.usage", config.PREFIX));
     }
 
     try {
       await message.react("🔍");
 
-      // Using Genius API alternative - lyrics.ovh
-      const response = await axios.get(
-        `https://api.lyrics.ovh/v1/${encodeURIComponent(query)}`
-      );
+      const results = await fetchJson(LRCLIB_SEARCH_URL, {
+        params: { q: query },
+        headers: { "User-Agent": USER_AGENT },
+        timeoutMs: 15000,
+      });
 
-      if (response.data && response.data.lyrics) {
-        const { lyrics } = response.data;
+      const song = Array.isArray(results)
+        ? results.find((r) => typeof r?.plainLyrics === "string" && r.plainLyrics.trim())
+        : null;
 
-        // Split lyrics if too long
-        if (lyrics.length > 4000) {
-          const parts = lyrics.match(/[\s\S]{1,4000}/g) || [];
-          for (let i = 0; i < parts.length; i++) {
-            await message.reply(
-              `*🎵 Lyrics - Part ${i + 1}/${parts.length}*\n\n${parts[i]}`
-            );
-          }
-        } else {
-          await message.reply(`*🎵 Lyrics*\n\n${lyrics}`);
-        }
-
-        await message.react("✅");
-      } else {
-        await message.reply(
-          "*Lyrics not found!*\n\nTry searching with artist name."
-        );
+      if (!song) {
         await message.react("❌");
+        return await message.reply(getLang("plugins.lyrics.not_found"));
       }
-    } catch (error) {
-      console.error("Lyrics search error:", error);
 
-      // Fallback: try alternative method with better formatting
-      try {
-        const searchQuery = query.split(" ").slice(0, 3).join(" ");
-        const altResponse = await axios.get(
-          `https://some-random-api.com/lyrics?title=${encodeURIComponent(
-            searchQuery
-          )}`
-        );
+      // some LRCLIB records already put the artist in the track name
+      const track = song.trackName || query;
+      const title =
+        song.artistName && !track.toLowerCase().includes(song.artistName.toLowerCase())
+          ? `${track} — ${song.artistName}`
+          : track;
+      const { parts, truncated } = chunkLyrics(song.plainLyrics.trim());
 
-        if (altResponse.data && altResponse.data.lyrics) {
-          const { title, author, lyrics } = altResponse.data;
-
-          const formattedLyrics = `*🎵 ${title}*\n*🎤 Artist:* ${author}\n\n${lyrics}`;
-
-          if (formattedLyrics.length > 4000) {
-            const parts = formattedLyrics.match(/[\s\S]{1,4000}/g) || [];
-            for (let i = 0; i < parts.length; i++) {
-              await message.reply(
-                `*Part ${i + 1}/${parts.length}*\n\n${parts[i]}`
-              );
-            }
-          } else {
-            await message.reply(formattedLyrics);
-          }
-
-          await message.react("✅");
-        } else {
-          throw new Error("No lyrics found");
-        }
-      } catch (altError) {
-        await message.reply(
-          "*❌ Lyrics not found!*\n\nPlease try:\n• Including artist name\n• Checking spelling\n• Using exact song title"
-        );
-        await message.react("❌");
+      for (let i = 0; i < parts.length; i++) {
+        let text = parts[i];
+        if (i === 0) text = `${getLang("plugins.lyrics.header", title)}\n\n${text}`;
+        else text = `${getLang("plugins.lyrics.part", i + 1, parts.length)}\n\n${text}`;
+        if (truncated && i === parts.length - 1) text += `\n\n${getLang("plugins.lyrics.truncated")}`;
+        await message.reply(text);
       }
+
+      await message.react("✅");
+    } catch (err) {
+      await message.react("❌");
+
+      const kind = classifyError(err);
+      if (kind === "error") throw err;
+
+      console.error("Lyrics error:", safeLog(err));
+      await message.reply(getLang(replyKeyFor(kind), config.MAX_UPLOAD));
     }
   },
+
+  // exposed for tests
+  chunkLyrics,
 };

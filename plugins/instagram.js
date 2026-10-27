@@ -1,130 +1,104 @@
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
+const config = require("../config");
+const downloader = require("../lib/utils/downloader");
+const { classifyError, replyKeyFor, safeLog } = require("../lib/utils/http");
 
 /**
- * Instagram Downloader Plugin
- * Download Instagram posts, reels, and stories
+ * Instagram downloader: posts, reels, IGTV and stories through yt-dlp
+ * (lib/utils/downloader.js). The old third-party providers no longer exist.
  */
 
-// Helper to extract URLs from text
+const INSTAGRAM_HOSTS = new Set([
+  "instagram.com",
+  "www.instagram.com",
+  "m.instagram.com",
+  "instagr.am",
+  "www.instagr.am",
+]);
+
+// /p/<id>, /reel/<id>, /reels/<id>, /tv/<id>, /share/<id>, /stories/<user>/<id>,
+// optionally behind a username (/<user>/reel/<id>)
+const CONTENT_PATH_RE = /^\/(?:[^/]+\/)?(?:p|reel|reels|tv|share|stories)\/[^/]+/i;
+
+// yt-dlp failures that mean "this link does not work", not "the service is down"
+const BAD_LINK_CODES = new Set(["YTDLP_UNAVAILABLE", "YTDLP_UNSUPPORTED", "INVALID_URL"]);
+
 function extractUrl(text) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const matches = text.match(urlRegex);
-  return matches ? matches[0] : null;
+  const match = String(text || "").match(/https?:\/\/[^\s<>"]+/i);
+  return match ? match[0].replace(/[).,;!?]+$/, "") : null;
 }
 
-// Helper to check if URL is Instagram
-function isInstagramUrl(url) {
-  return /instagram\.com\/(p|reel|tv|stories)\//.test(url);
+/** First Instagram content link of a text, as a URL object, or null */
+function parseInstagramUrl(text) {
+  const raw = extractUrl(text);
+  if (!raw) return null;
+
+  let url;
+  try {
+    url = new URL(raw);
+  } catch (e) {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (!INSTAGRAM_HOSTS.has(url.hostname.toLowerCase())) return null;
+  return CONTENT_PATH_RE.test(url.pathname) ? url : null;
+}
+
+async function sendMedia(message, media, caption) {
+  const type = String(media.mimetype || "").split("/")[0];
+  if (media.mimetype === "video/mp4" || media.mimetype === "video/quicktime") {
+    return await message.sendVideo(media.buffer, caption);
+  }
+  if (type === "image" && media.mimetype !== "image/gif") {
+    return await message.sendImage(media.buffer, caption);
+  }
+  if (type === "audio") return await message.sendAudioFile(media.buffer);
+  return await message.sendDocument(media.buffer, {
+    fileName: media.fileName,
+    mimetype: media.mimetype,
+    caption,
+  });
 }
 
 module.exports = {
   command: {
     pattern: "insta",
-    desc: "Download Instagram posts, reels, and stories",
+    desc: getLang("plugins.instagram.desc"),
     type: "downloader",
   },
 
-  async execute(message, args) {
-    const input = args || (message.quoted && message.body);
+  async execute(message, argsString) {
+    const input = argsString || message.getQuotedText();
 
     if (!input) {
-      return await message.reply(
-        "*Please provide an Instagram URL!*\n\nExample: `.insta https://instagram.com/p/xxx`"
-      );
+      return await message.reply(getLang("plugins.instagram.usage", config.PREFIX));
     }
 
-    const url = extractUrl(input);
-
-    if (!url || !isInstagramUrl(url)) {
-      return await message.reply(
-        "*Invalid Instagram URL!*\n\nSupported: Posts, Reels, Stories"
-      );
+    const url = parseInstagramUrl(input);
+    if (!url) {
+      return await message.reply(getLang("plugins.instagram.invalid_url"));
     }
 
     try {
       await message.react("⏳");
-
-      // Try multiple APIs for better success rate
-      let result = null;
-
-      // Method 1: API from various free services
-      try {
-        const response = await axios.get(
-          `https://api.instagramsave.com/v1/get.php?url=${encodeURIComponent(
-            url
-          )}`,
-          { timeout: 15000 }
-        );
-
-        if (response.data && response.data.url) {
-          result = { url: response.data.url, type: "video" };
-        }
-      } catch (e) {
-        console.log("Method 1 failed, trying method 2");
-      }
-
-      // Method 2: Alternative API
-      if (!result) {
-        try {
-          const response = await axios.post(
-            "https://v3.igdownloader.app/api/ajaxSearch",
-            new URLSearchParams({ q: url, t: "media", lang: "en" }),
-            {
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              timeout: 15000,
-            }
-          );
-
-          if (response.data && response.data.data) {
-            // Parse HTML response to extract download link
-            const downloadMatch = response.data.data.match(
-              /href="([^"]+)"[^>]*>Download/i
-            );
-            if (downloadMatch) {
-              result = { url: downloadMatch[1], type: "video" };
-            }
-          }
-        } catch (e) {
-          console.log("Method 2 failed");
-        }
-      }
-
-      if (result && result.url) {
-        await message.reply("*Downloading...*");
-
-        // Download and send
-        const mediaResponse = await axios.get(result.url, {
-          responseType: "arraybuffer",
-          timeout: 60000,
-        });
-
-        const buffer = Buffer.from(mediaResponse.data);
-
-        // Determine if it's a video or image based on content type
-        const contentType = mediaResponse.headers["content-type"];
-
-        if (contentType.includes("video")) {
-          await message.sendVideo(buffer, "*Instagram Video*");
-        } else {
-          await message.sendImage(buffer, "*Instagram Image*");
-        }
-
-        await message.react("✅");
-      } else {
-        await message.reply(
-          "*Failed to download!*\n\nPossible reasons:\n• Private account\n• Invalid URL\n• Content not available\n\nPlease try again or use a different URL."
-        );
-        await message.react("❌");
-      }
-    } catch (error) {
-      console.error("Instagram download error:", error);
-      await message.reply(
-        "*Download failed!*\n\nThe Instagram API might be temporarily unavailable. Please try again later."
-      );
+      const media = await downloader.download(url.href);
+      await sendMedia(message, media, getLang("plugins.instagram.caption"));
+      await message.react("✅");
+    } catch (err) {
       await message.react("❌");
+
+      if (BAD_LINK_CODES.has(err?.code)) {
+        return await message.reply(getLang("plugins.instagram.failed"));
+      }
+
+      const kind = classifyError(err, { userUrl: true });
+      if (kind === "error") throw err;
+
+      console.error("Instagram download error:", safeLog(err));
+      await message.reply(getLang(replyKeyFor(kind), config.MAX_UPLOAD));
     }
   },
+
+  // exposed for tests
+  parseInstagramUrl,
 };

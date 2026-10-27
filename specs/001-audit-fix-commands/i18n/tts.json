@@ -1,0 +1,18 @@
+{
+  "en": {
+    "plugins.tts.desc": "Convert a text to a voice note (language auto-detected)",
+    "plugins.tts.usage": "{0}tts <text>\n{0}tts {lang} <text>\nOr reply to a text message with {0}tts.\n\nExamples:\n• {0}tts Hello World\n• {0}tts {es} Hola Mundo\n• {0}tts {fr} Bonjour\n\nThe language is detected automatically unless you give it between braces. Maximum {1} characters.\n\nPopular languages:\nen - English\nes - Spanish\nfr - French\nde - German\nit - Italian\npt - Portuguese\nhi - Hindi\nja - Japanese\nko - Korean\nar - Arabic",
+    "plugins.tts.empty_text": "❌ Please give the text to convert after the language code.",
+    "plugins.tts.text_too_long": "❌ Text too long (max {0} characters).",
+    "plugins.tts.invalid_lang": "❌ Invalid language code: {0}\n\nUse standard ISO codes such as en, es, fr.",
+    "plugins.tts.error": "❌ Text-to-speech failed. Please try again with a shorter text or another language."
+  },
+  "fr": {
+    "plugins.tts.desc": "Convertir un texte en message vocal (langue détectée automatiquement)",
+    "plugins.tts.usage": "{0}tts <texte>\n{0}tts {lang} <texte>\nOu répondez à un message texte avec {0}tts.\n\nExemples :\n• {0}tts Hello World\n• {0}tts {es} Hola Mundo\n• {0}tts {fr} Bonjour\n\nLa langue est détectée automatiquement, sauf si vous l'indiquez entre accolades. {1} caractères maximum.\n\nLangues courantes :\nen - anglais\nes - espagnol\nfr - français\nde - allemand\nit - italien\npt - portugais\nhi - hindi\nja - japonais\nko - coréen\nar - arabe",
+    "plugins.tts.empty_text": "❌ Indiquez le texte à convertir après le code de langue.",
+    "plugins.tts.text_too_long": "❌ Texte trop long ({0} caractères max).",
+    "plugins.tts.invalid_lang": "❌ Code de langue invalide : {0}\n\nUtilisez des codes ISO standards comme en, es, fr.",
+    "plugins.tts.error": "❌ La synthèse vocale a échoué. Réessayez avec un texte plus court ou une autre langue."
+  }
+}

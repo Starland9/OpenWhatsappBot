@@ -1,0 +1,16 @@
+{
+  "en": {
+    "plugins.qr.desc": "Generate a QR code from a text, a link, a Wi-Fi or a contact card",
+    "plugins.qr.usage": "{0}qr <text or link>\nOr reply to a message with {0}qr.\n\nExamples:\n• {0}qr https://example.com\n• {0}qr WIFI:T:WPA;S:MyNetwork;P:MyPassword;;\n\nLine breaks are kept, so contact cards (vCard) work too. Maximum {1} characters.",
+    "plugins.qr.too_long": "❌ Text too long for a QR code (max {0} characters).",
+    "plugins.qr.caption": "*QR Code*\n\n{0}",
+    "plugins.qr.error": "❌ Couldn't generate the QR code."
+  },
+  "fr": {
+    "plugins.qr.desc": "Générer un QR code à partir d'un texte, d'un lien, d'un Wi-Fi ou d'une carte de contact",
+    "plugins.qr.usage": "{0}qr <texte ou lien>\nOu répondez à un message avec {0}qr.\n\nExemples :\n• {0}qr https://example.com\n• {0}qr WIFI:T:WPA;S:MonReseau;P:MonMotDePasse;;\n\nLes retours à la ligne sont conservés, les cartes de contact (vCard) fonctionnent donc aussi. {1} caractères maximum.",
+    "plugins.qr.too_long": "❌ Texte trop long pour un QR code ({0} caractères max).",
+    "plugins.qr.caption": "*QR Code*\n\n{0}",
+    "plugins.qr.error": "❌ Impossible de générer le QR code."
+  }
+}

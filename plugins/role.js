@@ -478,6 +478,8 @@ async function onGroupParticipants(update, client) {
 }
 
 module.exports = {
+  // onMessage order (lower first, default 100): moderation first: deletes messages of muted members
+  hookPriority: { onMessage: 10 },
   command: {
     pattern: "role",
     desc: getLang("plugins.role.desc"),

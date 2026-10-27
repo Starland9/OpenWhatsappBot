@@ -143,6 +143,8 @@ async function track(message) {
 }
 
 module.exports = {
+  // onMessage order (lower first, default 100): count every message before anything can consume it
+  hookPriority: { onMessage: 20 },
   /**
    * Hook: every non-status message, before command dispatch.
    * Fire and forget; always lets the pipeline continue.

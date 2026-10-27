@@ -171,6 +171,8 @@ async function onReady() {
 }
 
 module.exports = {
+  // onMessage order (lower first, default 100): observer: clears AFK / answers mentions, never consumes
+  hookPriority: { onMessage: 30 },
   command: {
     pattern: COMMAND_NAMES.join("|"),
     desc: getLang("plugins.afk.desc"),

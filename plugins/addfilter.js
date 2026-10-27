@@ -154,6 +154,8 @@ async function listFilters(message) {
 }
 
 module.exports = {
+  // onMessage order (lower first, default 100): consumes matching messages: runs after the observers
+  hookPriority: { onMessage: 90 },
   command: {
     pattern: "filter",
     desc: getLang("plugins.addfilter.desc"),

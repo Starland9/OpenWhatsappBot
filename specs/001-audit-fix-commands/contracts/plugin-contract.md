@@ -53,6 +53,8 @@ Errors: if `execute` throws, the user receives `common.error` (no `error.message
 
 Hook order inside the pipeline is defined in [pipeline.md](pipeline.md).
 
+Within one hook type, plugins run by `hookPriority[name]` (lower first, default 100), then in load order: export `hookPriority: { onMessage: 20 }`. Current `onMessage` order: role (10, moderation) → trackmessages (20) → afk (30) → notify (40) → addfilter (90, consumes the message).
+
 ## Messages and translations
 
 - Every user-facing string goes through `getLang("plugins.<name>.<key>", ...args)` with `{0}`, `{1}` placeholders. Strings shared across plugins live under `common.*`.

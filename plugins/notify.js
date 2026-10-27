@@ -304,6 +304,8 @@ async function onMessage(message) {
 }
 
 module.exports = {
+  // onMessage order (lower first, default 100): observer: keyword alerts, never consumes
+  hookPriority: { onMessage: 40 },
   command: {
     pattern: "notify",
     desc: getLang("plugins.notify.desc"),

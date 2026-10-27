@@ -1,0 +1,22 @@
+{
+  "en": {
+    "plugins.economy.title": "💰 Economy",
+    "plugins.economy.no_target": "❌ Could not identify that user.",
+    "plugins.economy.card": "💰 *Balance*\n\n{0}: _{1} coins_\n{2}\n*Top 5 in this group:*\n{3}",
+    "plugins.economy.streak_line": "Streak: _{0} days_ 🔥\n",
+    "plugins.economy.top_line": "  {0}. {1} — _{2} coins_",
+    "plugins.economy.no_top": "_Nobody has any coins yet._",
+    "plugins.economy.btn_daily": "🎁 Daily",
+    "plugins.economy.btn_give": "💸 Give"
+  },
+  "fr": {
+    "plugins.economy.title": "💰 Économie",
+    "plugins.economy.no_target": "❌ Impossible d'identifier cet utilisateur.",
+    "plugins.economy.card": "💰 *Solde*\n\n{0} : _{1} pièces_\n{2}\n*Top 5 du groupe :*\n{3}",
+    "plugins.economy.streak_line": "Série : _{0} jours_ 🔥\n",
+    "plugins.economy.top_line": "  {0}. {1} — _{2} pièces_",
+    "plugins.economy.no_top": "_Personne n'a encore de pièces._",
+    "plugins.economy.btn_daily": "🎁 Quotidien",
+    "plugins.economy.btn_give": "💸 Donner"
+  }
+}

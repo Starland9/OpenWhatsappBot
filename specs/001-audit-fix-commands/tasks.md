@@ -266,7 +266,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
   - `plugins/poll.js` and `plugins/pollplus.js`: a single native poll command `poll|vote|poll+|pollplus` in `poll.js`; `pollplus.js` reduced to a re-export or removed from registration with no duplicate aliases; split at the first `?`; `|` also accepted; deduplicated options, 2 to 12; no fake tally.
 
   Write the i18n fragments. — agent E7 (sonnet)
-- [ ] T030 [P] [US4] Stats and economy plugins per research R16 and [data-model.md](data-model.md) (UserStats, GroupEconomy):
+- [X] T030 [P] [US4] Stats and economy plugins per research R16 and [data-model.md](data-model.md) (UserStats, GroupEconomy):
   - `plugins/trackmessages.js`: `onMessage`; groups only; type whitelist; XP cooldown 60 s; atomic `increment`;
   - `plugins/stats.js`: rebuilt on UserStats; in-memory state removed;
   - `plugins/level.js`: `findOne`, no phantom rows; global rank by distinct users;

@@ -1,0 +1,24 @@
+{
+  "en": {
+    "plugins.level.card": "🏆 *Stats of {0}*\n\nXP: *{1}*\nLevel: *{2}*\nProgress: `{3}`\n_{4}/{5} XP to next level_\n\nGlobal rank: {6}",
+    "plugins.level.card_group": "🏆 *Stats of {0}*\n\nXP: *{1}*\nLevel: *{2}*\nProgress: `{3}`\n_{4}/{5} XP to next level_\n\nRank in group: {6}\n\n*Top 3:*\n{7}",
+    "plugins.level.top_line": "  {0}. {1} — _{2} XP (Lv.{3})_",
+    "plugins.level.top_entry": "  {0}. {1} — _{2}_",
+    "plugins.level.no_activity": "No activity recorded yet.",
+    "plugins.level.btn_chat": "💬 Top chat",
+    "plugins.level.btn_media": "🖼 Top media",
+    "plugins.level.btn_cmds": "⚙ Top commands",
+    "plugins.level.usage": "Usage: {0}level [top|global] [@user]"
+  },
+  "fr": {
+    "plugins.level.card": "🏆 *Stats de {0}*\n\nXP : *{1}*\nNiveau : *{2}*\nProgression : `{3}`\n_{4}/{5} XP avant le prochain niveau_\n\nRang global : {6}",
+    "plugins.level.card_group": "🏆 *Stats de {0}*\n\nXP : *{1}*\nNiveau : *{2}*\nProgression : `{3}`\n_{4}/{5} XP avant le prochain niveau_\n\nRang dans le groupe : {6}\n\n*Top 3 :*\n{7}",
+    "plugins.level.top_line": "  {0}. {1} — _{2} XP (niv. {3})_",
+    "plugins.level.top_entry": "  {0}. {1} — _{2}_",
+    "plugins.level.no_activity": "Aucune activité enregistrée pour le moment.",
+    "plugins.level.btn_chat": "💬 Top messages",
+    "plugins.level.btn_media": "🖼 Top médias",
+    "plugins.level.btn_cmds": "⚙ Top commandes",
+    "plugins.level.usage": "Utilisation : {0}level [top|global] [@membre]"
+  }
+}

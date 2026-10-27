@@ -1,0 +1,10 @@
+{
+  "en": {
+    "plugins.daily.title": "⏰ Daily",
+    "plugins.daily.btn_status": "📊 Status"
+  },
+  "fr": {
+    "plugins.daily.title": "⏰ Quotidien",
+    "plugins.daily.btn_status": "📊 Statut"
+  }
+}

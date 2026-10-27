@@ -1,160 +1,227 @@
+const { Op } = require("sequelize");
 const { UserStats } = require("../lib/database");
 const { getLang } = require("../lib/utils/language");
+const { safeLog } = require("../lib/utils/http");
 const { sendList, sendQuickReplies } = require("./buttons");
-const { Op } = require("sequelize");
-const config = require("../config");
+
+const PAGE_SIZE = 5;
 
 const CATEGORIES = {
   chat: {
     field: "messageCount",
-    label: "💬 Top Chatters",
-    desc: "Most messages sent",
+    label: "plugins.leaderboard.cat_chat",
+    desc: "plugins.leaderboard.cat_chat_desc",
+    unit: "plugins.leaderboard.unit_chat",
   },
   media: {
     field: "mediaCount",
-    label: "🖼 Top Media Senders",
-    desc: "Most media shared",
+    label: "plugins.leaderboard.cat_media",
+    desc: "plugins.leaderboard.cat_media_desc",
+    unit: "plugins.leaderboard.unit_media",
   },
   cmds: {
     field: "commandCount",
-    label: "⚙ Top Commanders",
-    desc: "Most bot commands used",
+    label: "plugins.leaderboard.cat_cmds",
+    desc: "plugins.leaderboard.cat_cmds_desc",
+    unit: "plugins.leaderboard.unit_cmds",
   },
-  xp: { field: "xp", label: "🏆 Top XP", desc: "Highest experience" },
+  xp: {
+    field: "xp",
+    label: "plugins.leaderboard.cat_xp",
+    desc: "plugins.leaderboard.cat_xp_desc",
+    unit: "plugins.leaderboard.unit_xp",
+  },
 };
 
-const PAGE_SIZE = 5;
+// Words accepted in the command for each category
+const CATEGORY_ALIASES = {
+  messages: "chat",
+  msg: "chat",
+  medias: "media",
+  commands: "cmds",
+  cmd: "cmds",
+  level: "xp",
+  lvl: "xp",
+};
+
+const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+/** Category key for a word, or null */
+function resolveCategory(word) {
+  const w = String(word || "").toLowerCase();
+  if (has(CATEGORIES, w)) return w;
+  if (has(CATEGORY_ALIASES, w)) return CATEGORY_ALIASES[w];
+  return null;
+}
+
+const tag = (jid) => `@${String(jid).split("@")[0]}`;
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+async function showCategoryMenu(message) {
+  const sections = [
+    {
+      title: getLang("plugins.leaderboard.categories"),
+      rows: Object.entries(CATEGORIES).map(([key, cat]) => ({
+        id: `top:cat:${key}`,
+        title: getLang(cat.label),
+        description: getLang(cat.desc),
+      })),
+    },
+  ];
+  return await sendList(
+    message.client.getSocket(),
+    message.jid,
+    getLang("plugins.leaderboard.pick"),
+    sections,
+    {
+      title: getLang("plugins.leaderboard.title"),
+      buttonLabel: getLang("plugins.leaderboard.pick_button"),
+      footer: "OpenWhatsappBot",
+      quoted: message.data,
+    },
+  );
+}
 
 /**
- * Group leaderboard with category picker, pagination, and quick-reply navigation.
+ * One page of a ranking. The page is clamped to the existing pages, so a
+ * stale button or a typo can never produce a negative offset.
+ * Members with a zero score are not ranked.
+ */
+async function showCategory(message, category, page) {
+  const cat = CATEGORIES[category];
+  const label = getLang(cat.label);
+  const where = { groupJid: message.jid, [cat.field]: { [Op.gt]: 0 } };
+
+  const total = await UserStats.count({ where });
+  if (total === 0) {
+    return await message.reply(getLang("plugins.leaderboard.empty", label));
+  }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const current = clamp(Number.isFinite(page) ? Math.trunc(page) : 0, 0, totalPages - 1);
+  const offset = current * PAGE_SIZE;
+  const rows = await UserStats.findAll({
+    where,
+    order: [
+      [cat.field, "DESC"],
+      ["jid", "ASC"],
+    ],
+    limit: PAGE_SIZE,
+    offset,
+  });
+
+  const text = getLang(
+    "plugins.leaderboard.page_text",
+    label,
+    current + 1,
+    totalPages,
+    rows
+      .map((r, i) =>
+        getLang(
+          "plugins.leaderboard.entry",
+          offset + i + 1,
+          tag(r.jid),
+          getLang(cat.unit, r[cat.field] || 0),
+        ),
+      )
+      .join("\n"),
+  );
+  const mentions = rows.map((r) => r.jid);
+
+  const navButtons = [];
+  if (current > 0) {
+    navButtons.push({
+      id: `top:nav:${category}:${current - 1}`,
+      text: getLang("plugins.leaderboard.btn_prev"),
+    });
+  }
+  if (current < totalPages - 1) {
+    navButtons.push({
+      id: `top:nav:${category}:${current + 1}`,
+      text: getLang("plugins.leaderboard.btn_next"),
+    });
+  }
+  navButtons.push({
+    id: "top:catmenu",
+    text: getLang("plugins.leaderboard.btn_categories"),
+  });
+
+  try {
+    return await sendQuickReplies(
+      message.client.getSocket(),
+      message.jid,
+      text,
+      navButtons,
+      {
+        title: label,
+        footer: getLang("plugins.leaderboard.footer", current + 1, totalPages),
+        quoted: message.data,
+        mentions,
+      },
+    );
+  } catch (err) {
+    console.error("leaderboard: buttons failed", safeLog(err));
+    return await message.reply(text, { mentions });
+  }
+}
+
+/**
+ * Group leaderboard with category picker, pagination and quick-reply navigation.
  */
 module.exports = {
   command: {
     pattern: "top|active|leaderboard|lb",
     desc: getLang("plugins.leaderboard.desc"),
     type: "stats",
+    onlyGroup: true,
   },
 
   async execute(message, argsString) {
-    const sock = message.client.getSocket();
-    const args = (argsString || "").trim().toLowerCase();
-    const parts = args.split(/\s+/);
-    const cat = parts[0];
-    const page = Math.max(0, parseInt(parts[1] || "0", 10) || 0);
+    const [word, pageWord] = String(argsString || "")
+      .trim()
+      .toLowerCase()
+      .split(/\s+/);
+    const category = resolveCategory(word);
+    if (!category) return await showCategoryMenu(message);
 
-    if (!cat || !CATEGORIES[cat]) {
-      // Show category picker
-      const sections = [
-        {
-          title: "Categories",
-          rows: Object.entries(CATEGORIES).map(([k, v]) => ({
-            id: `top:cat:${k}`,
-            title: v.label,
-            description: v.desc,
-          })),
-        },
-      ];
-      return await sendList(
-        sock,
-        message.jid,
-        getLang("plugins.leaderboard.pick"),
-        sections,
-        {
-          title: getLang("plugins.leaderboard.title"),
-          buttonLabel: "📊 Pick category",
-          footer: "OpenWhatsappBot",
-          quoted: message.data,
-        },
-      );
-    }
-
-    return await this._showCategory(sock, message, cat, page);
+    // Typed pages start at 1
+    const typed = parseInt(pageWord, 10);
+    return await showCategory(message, category, (Number.isFinite(typed) ? typed : 1) - 1);
   },
 
-  async _showCategory(sock, message, cat, page) {
-    const { field, label } = CATEGORIES[cat];
-    const offset = page * PAGE_SIZE;
-    const rows = await UserStats.findAll({
-      where: { groupJid: message.jid },
-      order: [[field, "DESC"]],
-      limit: PAGE_SIZE,
-      offset,
-    });
-    const total = await UserStats.count({ where: { groupJid: message.jid } });
-    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  async handleButtonReply(message) {
+    const id = message && message.body;
+    if (typeof id !== "string" || !id.startsWith("top:")) return false;
 
-    if (rows.length === 0) {
-      return await message.reply(getLang("plugins.leaderboard.empty", cat));
+    const parts = id.split(":");
+    const action = parts[1];
+    let run = null;
+    if (action === "nav" && parts.length === 4 && has(CATEGORIES, parts[2]) && /^\d{1,6}$/.test(parts[3])) {
+      run = () => showCategory(message, parts[2], Number(parts[3]));
+    } else if (action === "cat" && parts.length === 3 && has(CATEGORIES, parts[2])) {
+      run = () => showCategory(message, parts[2], 0);
+    } else if (action === "catmenu" && parts.length === 2) {
+      run = () => showCategoryMenu(message);
     }
-
-    const text =
-      `${label}\n_Page ${page + 1}/${totalPages}_\n\n` +
-      rows
-        .map(
-          (r, i) =>
-            `  ${offset + i + 1}. @${r.jid.split("@")[0]} — _${r[field] || 0} ${field}_`,
-        )
-        .join("\n");
-
-    const navButtons = [];
-    if (page > 0)
-      navButtons.push({ id: `top:nav:${cat}:${page - 1}`, text: "◀ Prev" });
-    if (page < totalPages - 1)
-      navButtons.push({ id: `top:nav:${cat}:${page + 1}`, text: "Next ▶" });
-    navButtons.push({ id: `top:catmenu`, text: "🔀 Categories" });
+    if (!run) return false;
 
     try {
-      return await sendQuickReplies(sock, message.jid, text, navButtons, {
-        title: label,
-        footer: `Page ${page + 1}/${totalPages}`,
-        quoted: message.data,
-      });
-    } catch (e) {
-      return await message.reply(text, { mentions: rows.map((r) => r.jid) });
+      if (!message.isGroup) {
+        await message.reply(getLang("extra.group_cmd"));
+      } else {
+        await run();
+      }
+    } catch (err) {
+      console.error("leaderboard: button failed", safeLog(err));
+      try {
+        await message.reply(getLang("common.error"));
+      } catch (_) {
+        // nothing more to do
+      }
     }
+    return true;
   },
 
-  async handleReply(message) {
-    if (!message.body || !message.body.startsWith("top:")) return false;
-    const parts = message.body.slice("top:".length).split(":");
-    if (parts[0] === "nav" && parts.length === 3) {
-      const cat = parts[1];
-      const page = parseInt(parts[2], 10) || 0;
-      if (!CATEGORIES[cat]) return false;
-      await this._showCategory(message.client.getSocket(), message, cat, page);
-      return true;
-    }
-    if (parts[0] === "cat") {
-      const cat = parts[1];
-      if (!CATEGORIES[cat]) return false;
-      await this._showCategory(message.client.getSocket(), message, cat, 0);
-      return true;
-    }
-    if (parts[0] === "catmenu") {
-      const sections = [
-        {
-          title: "Categories",
-          rows: Object.entries(CATEGORIES).map(([k, v]) => ({
-            id: `top:cat:${k}`,
-            title: v.label,
-            description: v.desc,
-          })),
-        },
-      ];
-      await sendList(
-        message.client.getSocket(),
-        message.jid,
-        getLang("plugins.leaderboard.pick"),
-        sections,
-        {
-          title: getLang("plugins.leaderboard.title"),
-          buttonLabel: "📊 Pick category",
-          footer: "OpenWhatsappBot",
-          quoted: message.data,
-        },
-      );
-      return true;
-    }
-    return false;
-  },
+  showCategory,
+  CATEGORIES,
 };

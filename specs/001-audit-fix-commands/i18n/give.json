@@ -1,0 +1,12 @@
+{
+  "en": {
+    "plugins.give.usage": "Usage: {0}give <amount> @user\n_You can also reply to a message: {0}give <amount>_",
+    "plugins.give.not_member": "❌ That user is not in this group.",
+    "plugins.give.bot": "🤖 I don't need coins, keep them!"
+  },
+  "fr": {
+    "plugins.give.usage": "Utilisation : {0}give <montant> @membre\n_Tu peux aussi répondre à un message : {0}give <montant>_",
+    "plugins.give.not_member": "❌ Cet utilisateur n'est pas dans ce groupe.",
+    "plugins.give.bot": "🤖 Je n'ai pas besoin de pièces, garde-les !"
+  }
+}

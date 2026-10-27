@@ -204,4 +204,6 @@ module.exports = {
   PANEL_HOST: process.env.PANEL_HOST || process.env.HOST || "0.0.0.0",
   KEEP_ALIVE_INTERVAL: parseInt(process.env.KEEP_ALIVE_INTERVAL) || 60000, // 60 seconds
   PANEL_ENABLED: toBool(process.env.PANEL_ENABLED),
+  // Bearer token required by POST /api/restart; empty = the endpoint is disabled (403)
+  PANEL_TOKEN: process.env.PANEL_TOKEN || "",
 };

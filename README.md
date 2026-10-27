@@ -302,6 +302,16 @@ The `panel.js` file provides:
 - 📊 Metrics endpoint (`/metrics`)
 - 🔄 Keep-alive ping mechanism
 - 🌐 Status page accessible via browser
+- 🔒 Remote restart (`POST /api/restart`), disabled unless `PANEL_TOKEN` is set
+
+`/health`, `/status`, `/ping`, `/metrics` and `/api/info` are read-only and public. `POST /api/restart` answers `403` while `PANEL_TOKEN` is empty, `401` without the right token and `405` for any other method:
+
+```bash
+# config.env: PANEL_TOKEN=a-long-random-secret
+curl -X POST -H "Authorization: Bearer a-long-random-secret" http://localhost:3000/api/restart
+```
+
+Stopping the panel (SIGTERM/SIGINT) closes the WhatsApp connection without logging the device out, so a restart does not need a new QR scan.
 
 See [Bot-Hosting Guide](docs/BOT_HOSTING_GUIDE.md) for detailed instructions.
 

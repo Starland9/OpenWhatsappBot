@@ -356,7 +356,7 @@ Dépendances système : `ffmpeg` (inchangé) et **`yt-dlp`** (nouveau, voir sect
 - **`gpt-4o-mini`** : retiré par OpenAI le 2027-01-14. Changer `OPENAI_MODEL` avant cette date.
 - **Postgres non testé.** La nouvelle synchronisation du schéma et les requêtes atomiques de l'économie n'ont été exécutées que sur SQLite. Les anciennes contraintes en double créées par `alter: true` sur Postgres ne sont pas nettoyées (sans danger).
 - **Blagues en français** : JokeAPI peut renvoyer des blagues de mauvais goût malgré le mode sûr. Option : garder tel quel, ou ne servir que les blagues anglaises ou locales.
-- **Fichier suivi par git par erreur** : `data/status_save.json` est dans `.gitignore` mais déjà versionné, et contient des numéros de téléphone. Commande suggérée : `git rm --cached data/status_save.json` (puis commit).
+- **Fichier suivi par git par erreur** : `data/status_save.json` (numéros de téléphone) était versionné malgré `.gitignore`. Il est désormais retiré du suivi (voir section 9).
 - **Statistiques et niveaux** : les messages envoyés par le compte du bot (donc aussi par le propriétaire depuis ce compte) ne sont pas comptés, car on ne peut pas les distinguer des réponses du bot.
 - **Quotas des clés** : l'audit a fait quelques appels réels à Gemini avec la clé configurée (quelques centimes).
 - **Aide** : `.help dice`, `.help fancy`, `.help qr` et `.help tts` n'affichent pas l'usage, dont le texte attend des arguments. Amélioration facultative : exporter `command.usage` dans ces plugins.
@@ -474,8 +474,10 @@ Une revue indépendante de toute la branche a été faite en fin de chantier. El
 | Mineur | Un membre `muted` peut encore cliquer des boutons de jeu | Les réponses de boutons sont traitées avant le hook de modération |
 | Mineur | Comptes d'économie possiblement séparés pour un expéditeur vu seulement en LID (`daily`, `dice`) | Peu probable ; l'utilisateur ne le contrôle pas |
 
-### Problèmes antérieurs au chantier, hors périmètre
+### Problèmes antérieurs au chantier, corrigés après la revue
 
-- **`panel.js`** : l'arrêt (SIGTERM) appelle `client.stop()` → `sock.logout()`. **Chaque redémarrage en mode panel déconnecte la session WhatsApp**, et il faut rescanner le QR.
-- **`panel.js`** : `POST /api/restart` n'a aucune authentification. N'importe qui ayant accès au port peut redémarrer le bot.
-- **`data/status_save.json`** est suivi par git alors qu'il est ignoré. Il contient des numéros. Dès que `.ss` le modifie, `.update now` refuse de s'exécuter (« modifications non commitées »). Correctif proposé : `git rm --cached data/status_save.json`.
+| Problème | Correction |
+| --- | --- |
+| `panel.js` : l'arrêt (SIGTERM) appelait `client.stop()` → `sock.logout()`, donc chaque redémarrage en mode panel déconnectait la session WhatsApp (nouveau QR à scanner) | `stop()` ferme la connexion sans déconnecter l'appareil et n'autorise plus de reconnexion après un arrêt volontaire ; `logout()` est une méthode séparée, jamais appelée à l'arrêt |
+| `panel.js` : `POST /api/restart` sans aucune authentification | Clé `PANEL_TOKEN` : endpoint désactivé (403) si elle est vide, sinon `Authorization: Bearer <jeton>` exigé (401), POST uniquement (405) |
+| `data/status_save.json` (numéros de téléphone) suivi par git malgré `.gitignore`, ce qui bloquait `.update now` | Retiré du suivi (`git rm --cached`) ; le fichier local est conservé |

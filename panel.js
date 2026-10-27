@@ -7,12 +7,13 @@
  * Features:
  * - Health check endpoint for uptime monitoring
  * - Keep-alive ping mechanism
- * - Panel status API endpoints
+ * - Panel status API endpoints (POST /api/restart needs PANEL_TOKEN)
  * - Graceful shutdown handling
  * - Configurable port via environment variables
  */
 
 const http = require('http');
+const crypto = require('crypto');
 const { WhatsAppClient } = require('./lib/baileys/client');
 const PluginLoader = require('./lib/plugins/loader');
 const { attachHandlers } = require('./lib/core/pipeline');
@@ -42,6 +43,7 @@ const PREFIX = config.PREFIX;
 const PORT = config.PANEL_PORT || parseInt(process.env.PORT) || 3000;
 const HOST = config.PANEL_HOST || '0.0.0.0';
 const KEEP_ALIVE_INTERVAL = config.KEEP_ALIVE_INTERVAL || 60000; // 60 seconds
+const RESTART_DELAY = 1000; // ms between the /api/restart answer and process.exit
 
 // Bot state tracking
 let botState = {
@@ -103,8 +105,9 @@ function createServer() {
 
       case '/api/restart':
         if (method === 'POST') {
-          handleRestart(res);
+          handleRestart(req, res);
         } else {
+          res.setHeader('Allow', 'POST');
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
@@ -225,9 +228,36 @@ function handleBotInfo(res) {
 }
 
 /**
- * Restart endpoint handler
+ * Check `Authorization: Bearer <token>` against the configured token.
+ * Both sides are hashed first so that the buffers handed to timingSafeEqual always have the
+ * same length (a token of another length takes the same time and leaks nothing).
  */
-function handleRestart(res) {
+function hasValidToken(req, token) {
+  const match = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '');
+  if (!match) return false;
+  const digest = (value) => crypto.createHash('sha256').update(value).digest();
+  return crypto.timingSafeEqual(digest(match[1].trim()), digest(token));
+}
+
+/**
+ * Restart endpoint handler. Disabled (403) unless PANEL_TOKEN is set; then it needs
+ * `Authorization: Bearer <PANEL_TOKEN>` (401 otherwise). config.PANEL_TOKEN is read per request.
+ */
+function handleRestart(req, res) {
+  const token = config.PANEL_TOKEN;
+  if (!token) {
+    res.writeHead(403);
+    res.end(JSON.stringify({ error: 'Restart endpoint disabled: PANEL_TOKEN is not configured' }));
+    return;
+  }
+  if (!hasValidToken(req, token)) {
+    logger.warn('Rejected unauthorized /api/restart request');
+    res.setHeader('WWW-Authenticate', 'Bearer');
+    res.writeHead(401);
+    res.end(JSON.stringify({ error: 'Unauthorized' }));
+    return;
+  }
+
   res.writeHead(200);
   res.end(JSON.stringify({
     message: 'Bot restart initiated',
@@ -238,7 +268,7 @@ function handleRestart(res) {
   setTimeout(() => {
     logger.info('Restart requested via panel API');
     process.exit(0); // PM2/panel will restart the process
-  }, 1000);
+  }, RESTART_DELAY);
 }
 
 /**
@@ -519,7 +549,8 @@ async function startBot() {
     // Handle disconnection
     client.on('close', () => {
       botState.isConnected = false;
-      botState.status = 'disconnected';
+      // stop() closes the socket during shutdown: keep the shutting_down status
+      if (botState.status !== 'shutting_down') botState.status = 'disconnected';
     });
 
     await client.initialize();
@@ -550,7 +581,7 @@ function setupGracefulShutdown(server) {
       logger.info('HTTP server closed');
     });
 
-    // Stop WhatsApp client
+    // Stop WhatsApp client (closes the connection, keeps the linked device: no new QR on restart)
     if (botState.client) {
       try {
         await botState.client.stop();

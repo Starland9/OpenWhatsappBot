@@ -50,7 +50,7 @@ module.exports = {
 
   async execute(message, query, ctx) {
     if (!config.OPENAI_API_KEY) {
-      return await message.reply(getLang("plugins.chatgpt.no_key"));
+      return await message.reply(getLang("common.not_configured"));
     }
 
     const question = (ctx?.rawArgs ?? query ?? "").trim();

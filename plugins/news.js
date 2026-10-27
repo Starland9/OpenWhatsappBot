@@ -64,7 +64,7 @@ function newsApiKind(error) {
 
 async function handleNews(message, rawQuery) {
   if (!config.NEWS_API_KEY) {
-    return await message.reply(getLang("plugins.news.no_api_key"));
+    return await message.reply(getLang("common.not_configured"));
   }
 
   const query = rawQuery.slice(0, MAX_QUERY_LENGTH);
@@ -174,7 +174,7 @@ async function handleStock(message, rawQuery) {
     return await message.reply(getLang("plugins.news.stock_usage", config.PREFIX));
   }
   if (!config.ALPHA_VANTAGE_KEY) {
-    return await message.reply(getLang("plugins.news.no_stock_api_key"));
+    return await message.reply(getLang("common.not_configured"));
   }
 
   const symbol = rawQuery.split(/\s+/)[0].toUpperCase();

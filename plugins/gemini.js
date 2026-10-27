@@ -67,7 +67,7 @@ module.exports = {
 
   async execute(message, query, ctx) {
     if (!config.GEMINI_API_KEY) {
-      return await message.reply(getLang("plugins.gemini.Key"));
+      return await message.reply(getLang("common.not_configured"));
     }
 
     const question = (ctx?.rawArgs ?? query ?? "").trim();

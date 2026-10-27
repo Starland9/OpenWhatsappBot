@@ -4,71 +4,83 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Plain CommonJS JavaScript: no build step, no test suite, no linter configured. Yarn 4 is vendored (`.yarn/releases`, `.yarnrc.yml`). Node >= 24 (per `package.json` engines; the README's "Node 20" is outdated). FFmpeg must be on the PATH for media plugins.
+Plain CommonJS JavaScript: no build step, no linter. Yarn 4 is vendored (`.yarn/releases`, `.yarnrc.yml`). Node >= 24 (`package.json` engines): run `nvm use 24` first. System binaries: `ffmpeg` (media plugins) and `yt-dlp` (`youtube`, `insta`, `dl`; keep it recent, the Dockerfile installs the latest and `.update` runs `yt-dlp -U`).
 
 ```bash
-yarn install            # postinstall re-adds sharp if its native binary fails to load
+yarn install            # no postinstall anymore
+yarn test               # node --test --test-force-exit "test/**/*.test.js": ~10 s, no network, no WhatsApp
+node --test --test-force-exit test/registry.test.js   # one test file (BOT_LANG=en for English; default fr)
+node tools/check-unused-deps.js   # must print "0 unused dependencies"
 yarn dev                # node index.js — prints a QR code in the terminal on first login
 yarn start / yarn stop  # run under PM2 (ecosystem.config.js: 500M restart, --expose-gc)
 yarn panel              # panel.js: HTTP server (/health, /metrics, status page) + bot, for panel hosts
 docker compose up -d    # Dockerfile runs `node --expose-gc index.js`; volumes for sessions/, db/, data/
 ```
 
-Verify a change by running `yarn dev` and sending the command from WhatsApp. `LOG_LEVEL=debug` shows plugin registration and command dispatch; `BAILEYS_LOG_LVL` controls Baileys' own logger (default `silent`).
-
-Configuration comes from `config.env` (copy `config.env.example`), loaded by `config.js` via dotenv. Every setting is read through `config.js`. Boolean flags are true only when the value is the exact string `"true"`. `BOT_LANG` defaults to `fr`.
+`LOG_LEVEL=debug` shows plugin registration and command dispatch; `BAILEYS_LOG_LVL` controls Baileys' own logger (default `silent`). Configuration comes from `config.env` (copy `config.env.example`), loaded by `config.js` via dotenv; every setting is read through `config.js`. Boolean flags are true only for the exact string `"true"`. `BOT_LANG` defaults to `fr`. `yarn test` cannot cover buttons, anti-delete or welcome/goodbye on a real device: see the checklist in `docs/AUDIT_COMMANDES.md` section 7.
 
 ## Architecture
 
-### Boot (`index.js`)
-memory manager → `DATABASE.authenticate()` → `sync()` → `PluginLoader.loadAll()` → `WhatsAppClient.initialize()`. A global axios timeout of 30s is set here, and `uncaughtException`/`unhandledRejection` are logged instead of crashing the process.
+### Boot and client
+`index.js` and `panel.js`: memory manager → `DATABASE.authenticate()` → `sync()` → `PluginLoader.loadAll()` → `attachHandlers(client)` → `client.initialize()`. `panel.js` only adds the HTTP server and counters (`attachHandlers(client, { onMessageProcessed, onError })`). `lib/baileys/client.js` wraps Baileys v7 (rc14; the 7.x line only exists as a prerelease), loaded with `require` then `import()` fallback; `mediaAdapter.js` hides download API differences. Auth is multi-file under `sessions/main/` (delete it to re-pair); it reconnects after 3s unless logged out and re-emits `messages` (notify batches only), `messages.update`, `groups.update`, `group-participants.update`, `ready`. Auto status view/react lives in the client.
 
-### WhatsApp client (`lib/baileys/client.js`)
-Wraps Baileys v7 (rc). Baileys is loaded with `require`, falling back to `import()` for ESM builds, and exports are resolved defensively (`tryGet`). `lib/baileys/mediaAdapter.js` hides download/reupload API differences between Baileys versions. Auth is multi-file under `sessions/main/`; delete that folder to re-pair. The client reconnects itself after 3s unless logged out, and re-emits Baileys events as `messages`, `messages.update`, `groups.update`, `group-participants.update`, `ready`. Auto status view/react happens inside the client. `group-participants.update` is emitted but nothing subscribes to it.
+### Pipeline (`lib/core/pipeline.js`, the only copy)
+`processMessage` never throws; `attachHandlers` also wires `messages.update` (anti-delete), `group-participants.update` (`onGroupParticipants` hooks) and `ready` (`onReady` hooks). Per message:
 
-### Message pipeline (`processMessage` in `index.js`)
-Messages are processed in batches of `MESSAGE_CONCURRENCY_LIMIT`. For each message, in order:
-1. `status@broadcast` → `statusSaver`, then stop.
-2. Wrap in `Message` and cache it for anti-delete (`setImmediate`).
-3. `viewOnceHandler` (does not stop processing).
-4. If quoted or an interactive (button/list) reply: first `quiz.handleReply`, then **every** loaded plugin's `handleButtonReply` (or `handleReply`) is called with the message; the first one to return `true` consumes it. Button `id`s become `message.body`, so these handlers must return `false` quickly for ids they don't own.
-5. `trackmessages.trackMessage(message)` (stats/levels/leaderboard).
-6. Stickers whose `fileSha256` is bound in `StickerCommand` are rewritten to `PREFIX + command` and executed silently.
-7. Non-command, non-`fromMe` messages → `autoResponderHandler` (Gemini); stop if it replied.
-8. `executeCommand(message)` from the registry.
+1. `status@broadcast` → `statusSaver`, stop.
+2. Wrap in `Message`, set `isCommand`, cache for anti-delete.
+3. Disabled-chat gate (`BannedChat`): stop, except `unban` from an owner.
+4. `viewOnceHandler` (never stops).
+5. Quoted or interactive reply: a bare number quoting a message known to `buttonRegistry` becomes its button id; then each plugin's `handleButtonReply` (legacy `handleReply`) runs and the first truthy return consumes it. A prefixed command skips this step.
+6. `onMessage` hooks, stop on truthy.
+7. Sticker bound by `setcmd` → body becomes `PREFIX + command`.
+8. Plain non-`fromMe` message → `autoResponderHandler` (not awaited), stop.
+9. `registry.executeCommand`.
 
-**`panel.js` contains its own, older copy of `processMessage`** without steps 1, 4 (global dispatcher) and 5. Any pipeline change made in `index.js` must also be made there, or panel deployments will behave differently.
+Each hook is isolated in try/catch. Pipeline changes go in this file only.
 
 ### Plugins (`plugins/*.js`, `lib/plugins/`)
-`loader.js` `require`s every `plugins/*.js` and registers those that export `command` + `execute`. Files without `command` (e.g. `plugins/buttons.js`, the shared `sendQuickReplies`/`sendList` helper wrapping `@ryuu-reinzz/button-helper`) are silently skipped. Plugins may `require` each other: `buttons`, `trackmessages` (`computeLevel`), and `banchat` are imported this way.
+`loader.js` requires `plugins/*.js` in sorted order and registers modules exporting `command` + `execute` and/or hooks. Modules with neither (`buttons.js`, the empty `pollplus.js`) are skipped; `trackmessages.js` is hook-only.
 
 ```js
 module.exports = {
-  command: { pattern: "cmd|alias", desc, type, fromMe, onlyGroup, onlyPm },
-  async execute(message, argsString) {},          // argsString = text after the command word
-  async handleButtonReply(message) { return false }, // optional, see pipeline step 4
+  command: { pattern: "name|alias", desc: getLang("plugins.x.desc"), type, fromMe, ownerOnly, onlyGroup, onlyPm, adminOnly },
+  async execute(message, argsString, ctx) {},   // ctx = { command, rawArgs }; `this` is the plugin module
+  async handleButtonReply(message) { return false }, // true only for your own ids
+  async onMessage(message) {},                  // cheap and cached; truthy return consumes the message
+  async onGroupParticipants(update, client) {}, // add/remove/promote/demote
+  async onReady(client) {},                     // idempotent: runs on every (re)connection
+  hookPriority: { onMessage: 20 },              // lower first, default 100, then load order
 };
 ```
 
-Registry behaviour (`lib/plugins/registry.js`) that matters:
-- Matching builds `new RegExp(`^${pattern}$`, "i")` from the raw pattern, so `"gpt|ai"` becomes `^gpt|ai$` and matches *any* word that starts with `gpt` or ends with `ai`. Regex metacharacters in patterns are live. The first match in registration order wins.
-- `fromMe: true` means sudo-only (`message.isSudo()` compares the sender against the `SUDO` list, given as bare numbers or full JIDs). It does not mean "sent by the bot".
-- `ownerOnly` is checked in `executeCommand`, but `registerCommand` doesn't copy it into the stored entry, so it is never enforced. Plugins that use it (`update`, `exportcontacts`) also check `isSudo()` themselves; do the same.
-- An exception thrown from `execute` is caught: the user gets `❌ Error: <message>` and the first `SUDO` number is DM'd the stack trace.
-- `getPlugin(name)` looks up by any alias; `getPlugins()` returns deduplicated plugin objects.
+- Matching is exact: `pattern` is a `|` list of **literal** lower-case aliases in an alias map; the word after the prefix, lower-cased, must equal one (no regex). A duplicate alias logs a warning and the first registered keeps it.
+- The registry enforces `fromMe`/`ownerOnly` (synonyms; owner = `SUDO`, empty `SUDO` refuses everybody), `onlyGroup`, `onlyPm`, `adminOnly` (group admin or owner) before `execute`. Don't re-check them in the plugin; only `isBotAdmin()` before admin actions.
+- `argsString` is whitespace-collapsed: use `ctx.rawArgs` to keep newlines and `ctx.command` to know which alias matched.
+- An exception from `execute` gives the user `common.error` (never `error.message`) and DMs the stack to the owners.
+- `onMessage` order: role (10) → trackmessages (20) → afk (30) → notify (40) → addfilter (90, consumes). Observers stay before consumers.
+- Button ids are `<plugin>:<action>[:<nonce>][:<arg>]`, never with JIDs (chat = `message.jid`). Send interactive messages through `plugins/buttons.js` (`sendQuickReplies`, `sendList`, `sendConfirm`, `sendPaginatedList`): it adds a numbered text fallback and records the ids in `lib/utils/buttonRegistry.js` (TTL 1 h) so a quoted number works. Clicks arrive as native-flow `paramsJson`; `Message` sets `body` to the id.
 
-Prefer the `Message` helpers (`lib/classes/Message.js`: `reply`, `send*`, `react`, `downloadMedia`, `isSudo`, `isBotAdmin`, `isSenderAdmin`, `kick/add/promote/demote`, `sendPoll`, …) over calling the socket. Use `message.client.getSocket()` when raw Baileys is needed (e.g. for the button helpers). Check `await message.isBotAdmin()` before group admin actions.
+### `Message` and `lib/utils/`
+Prefer `Message` helpers (`lib/classes/Message.js`) over the raw socket: `reply`, `react`, `send*`, `sendAudioFile` (sniffs type), `sendVoice` (ogg/opus), `getQuotedMedia({ maxBytes })` (null, or `{buffer,type,mimetype,fileLength}`; checks size before downloading), `getQuotedText()`, `quoted.key`, `isSudo`, `isBotAdmin`, `isSenderAdmin`, `kick/add/promote/demote`. `sender` is the phone-number JID when Baileys gives one, `senderLid` the LID; sudo and admin checks match both.
+- `permissions.js`: `getOwnerJids`, `guardTarget(message, jid)` (refuses bot/owner/creator/self), `assertParticipantResult(res)` (`groupParticipantsUpdate` returns per-target `status`, success is `"200"`).
+- `http.js`: `fetchJson`/`fetchBuffer` (30 s timeout, `MAX_UPLOAD` cap), `withTimeout`, `classifyError(err, { hasKey })` + `replyKeyFor(kind)` → `common.service_unavailable|not_configured|rate_limited`; `safeLog(err)` (never log an axios error: it holds API keys). Answer a missing key with `common.not_configured` before calling.
+- `ffmpeg.js` (`runFfmpeg`, `toOpusVoice`; `execFile`, no shell), `media.js#withTempDir`, `downloader.js` (yt-dlp), `gameStore.js` (`createStore`: one game per chat, TTL, nonce), `cooldown.js` (`hit(user, key, ms)` → remaining ms), `scheduler.js` (persisted reminders, one 20 s loop started by `reminder.onReady`).
+- `settingsCache.js`: `getOrLoad(key, loader, ttl)`, 5-minute TTL; keys `view_once`, `anti_delete`, `auto_responder`, `banned_chats`, `sticker_cmds`, `afk_users`, `filters:<jid>`, `group:<jid>`, `roles:<jid>`. **A setter that writes a cached setting must call `settingsCache.invalidate(key)`.**
 
 ### Database (`lib/database/`)
-Sequelize. Uses Postgres when `DATABASE_URL` contains `postgres` (SSL on unless `DATABASE_SSL=false`); otherwise SQLite at `DATABASE_URL` or `./database.db`. Every file in `lib/database/models/` exports `(sequelize) => Model` and is auto-loaded and exported under its filename (`const { Group, Warn } = require("../lib/database")`). There are no migrations: `DATABASE.sync({ alter: true })` runs on every boot, so schema changes are applied by editing the model. Hot settings read on every message (anti-delete, auto-responder) go through `lib/utils/settingsCache.js` (5-minute TTL).
+Sequelize: Postgres when `DATABASE_URL` contains `postgres` (SSL unless `DATABASE_SSL=false`), else SQLite at `DATABASE_URL` or `./database.db` (`:memory:` in tests). Each file in `models/` exports `(sequelize) => Model` and is auto-loaded under its filename. `sync()` is **additive**, not `alter: true` (which turned composite keys into per-column UNIQUE on SQLite): it creates missing tables and indexes, adds missing nullable/defaulted columns, and repairs SQLite tables damaged by the old `alter`. It never alters or drops a column, and a new unique index on an existing table is not allowed; a column change needs a hand-written migration. The Postgres path is untested. Economy updates are atomic (`UPDATE ... WHERE balance >= :n`, transactions); stats use `increment`.
 
 ### i18n (`lib/utils/language.js`, `lang/*.json`)
-`getLang("plugins.<name>.<key>", ...args)` fills `{0}`, `{1}` placeholders. If a key is missing in the active language it falls back to `en`, then returns the key itself. Language files have two top-level sections, `plugins` and `extra`. Only `en.json` and `fr.json` are complete; the other locales are partial and rely on the fallback. Add new keys to at least `en.json` and `fr.json`. Many older plugins still hard-code strings, and `getLang` is evaluated at require time when it is used in `command.desc`.
+Every user-facing string goes through `getLang("plugins.<name>.<key>", ...args)` (`{0}`, `{1}`); shared text lives under `common.*`. Never `getLang(k) || "fallback"` (a missing key returns the key). `en` and `fr` must have the **same keys**; other locales fall back to `en`. `command.desc` is evaluated at require time. Add keys in a fragment `specs/001-audit-fix-commands/i18n/<plugin>.json` (`{ "en": { "plugins.x.k": "…" }, "fr": {…} }`, flat dot keys) then run `node tools/merge-i18n.js` (`--dry-run` first), or edit both `lang/en.json` and `lang/fr.json`. `test/i18n.test.js` fails on a missing key or a literal text passed to `reply()`/`sendMessage`; a deliberate exception takes `// i18n-ignore` on the same or previous line.
+
+### Tests (`test/`)
+`node:test` with `test/helpers/fakes.js` (`setupEnv`, `fakeSocket`, `makeMessage`, `stubNetwork`) and an in-memory database. They load every plugin and check alias uniqueness and exact matching, permission refusals, a no-argument call of every command, the pipeline, hook order, database sync and translations. New commands are picked up automatically.
 
 ## Repo conventions and references
 
-- Commits use Conventional Commit prefixes (`feat:`, `fix:`, `style:`) with descriptions mostly in French.
-- Plugin authoring guides: `docs/PLUGIN_CREATION_DOC.md`, `.github/agents/plugin-creator.md` (French), `.github/copilot-instructions.md`.
-- Spec Kit is installed (`.specify/`, `speckit-*` skills in `.claude/skills/`); `.specify/memory/constitution.md` is still the unfilled template.
-- `docs-site/` is a standalone static documentation SPA, unrelated to the bot runtime.
-- Gitignored runtime state: `sessions/`, `database.db`, `config.env`, `data/`, `logs/`, `media/temp`.
+- Commits use Conventional Commit prefixes (`feat:`, `fix:`, `docs:`, `test:`) with descriptions mostly in French.
+- `docs/AUDIT_COMMANDES.md` is the per-command report (status, access, services, syntax changes, manual checklist): update a command's row when its behavior changes. Contracts and decisions: `specs/001-audit-fix-commands/`.
+- Plugin guides (`docs/PLUGIN_CREATION_DOC.md`, `.github/agents/plugin-creator.md`, `.github/copilot-instructions.md`) predate the exact-matching registry: follow this file where they differ.
+- Spec Kit is installed (`.specify/`, `speckit-*` skills in `.claude/skills/`); `.specify/memory/constitution.md` is still the unfilled template. `docs-site/` is a static docs SPA unrelated to the runtime.
+- Gitignored runtime state: `sessions/`, `database.db`, `config.env`, `data/`, `logs/`, `media/temp`. `data/status_save.json` is ignored but still tracked (it holds phone numbers).

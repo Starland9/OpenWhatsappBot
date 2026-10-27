@@ -363,7 +363,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 **Independent Test**: every command listed by `.menu` appears in the report with a status and a justification.
 
-- [ ] T036 [US1] Write `docs/AUDIT_COMMANDES.md` in French from [audit-findings.md](audit-findings.md), the final reports of agents E1 to E10, `deps-report.md` and `getCommands()`. Include:
+- [X] T036 [US1] Write `docs/AUDIT_COMMANDES.md` in French from [audit-findings.md](audit-findings.md), the final reports of agents E1 to E10, `deps-report.md` and `getCommands()`. Include:
   - a summary (counts per status, cross-cutting fixes);
   - a table with one row per command: name, aliases, category, access, external services (key, state on 2026-10-27), status `OK | Corrigée | Désactivée | À surveiller`, defects found → fix;
   - a section on dead services and their replacements, including the note on the owner's own backend `api.socialdl.starland9.dev` (Traefik default certificate, 404) to repair outside this repo;
@@ -379,7 +379,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 - [X] T037 Run `node tools/merge-i18n.js` (it must exit 0), then review the diff of `lang/en.json` and `lang/fr.json`. Files: `lang/en.json`, `lang/fr.json`. — main
 - [X] T038 Run `yarn test` with Node 24, with `BOT_LANG=fr` and with `BOT_LANG=en`, and fix the failures. This may touch any file, so it runs serially after every other task. Target: < 2 min (SC-010). — agent F (sonnet)
 - [X] T039 Startup smoke: `timeout 25 node index.js` with `LOG_LEVEL=debug` and a throwaway `sessions/` path. Expected: the plugin count is the total, there is no `Failed to load plugin` and no duplicate-alias warning, and the DB syncs against a copy of the existing `database.db`. Files: none. — main
-- [ ] T040 [P] Update `CLAUDE.md`:
+- [X] T040 [P] Update `CLAUDE.md`:
   - new pipeline and hooks; `ctx`; exact matching; LID helpers; utilities; `yarn test`; i18n fragments workflow;
   - drop the gotchas that are now fixed.
 

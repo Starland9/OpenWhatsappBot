@@ -22,9 +22,9 @@ Expected: no missing modules (`@ryuu-reinzz/button-helper`, `html-entities`), an
 ## 2. Automated check (FR-024, SC-010)
 
 ```bash
-yarn test                              # node --test test/
+yarn test                              # node --test --test-force-exit "test/**/*.test.js"
 BOT_LANG=fr yarn test                  # same in French
-node --test --test-name-pattern=alias test/   # one family of checks
+node --test --test-force-exit test/registry.test.js   # one test file
 ```
 
 Expected: every test passes in under 2 minutes, with no network access needed (axios, fetch and `execFile` are stubbed). The families are described in [research.md, section F](research.md#f-verification-fr-024).
@@ -36,7 +36,7 @@ LOG_LEVEL=debug yarn dev
 ```
 
 Expected in the logs:
-- `Loaded 80 plugins` (or the final count), and no `Failed to load plugin` line;
+- `Loaded 79 plugins` (78 commands + the hook-only `trackmessages`), and no `Failed to load plugin` line;
 - no `alias already registered` warning;
 - `Database synced` against an **existing** database, which shows that `alter` is additive.
 

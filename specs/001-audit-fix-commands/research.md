@@ -29,7 +29,7 @@ Rationale: multi-line input is impossible today (welcome, goodbye, filter, tagal
 | Command | Flags |
 | --------- | ------- |
 | `vv`, `exec`, `update`, `exportcontacts`, `ban`, `unban`, `statussave` | `fromMe` |
-| `exec`, `exportcontacts` | also `onlyPm` |
+| `exec` | also `onlyPm` (`exportcontacts` instead always sends its file by DM to the owner) |
 | `kick`, `promote`, `demote`, `tagall`, `warn`, `welcome`, `goodbye`, `filter`, `delfilter` | `adminOnly` |
 | `role set` | `adminOnly` checked inside (`role list` stays public) |
 

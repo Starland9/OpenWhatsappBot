@@ -24,12 +24,12 @@ processMessage(msg, client)   // exported for the smoke test
 | --- | ------ | ----------------------- |
 | 1 | `status@broadcast` → `statusSaver.handleStatus` | always |
 | 2 | Build `Message`; set `message.isCommand = body.startsWith(PREFIX)`; cache for anti-delete (`setImmediate`) | — |
-| 3 | `viewOnceHandler.handleMessage` | never |
-| 4 | **Disabled-chat gate**: if `BannedChat` contains the chat (cached) → stop, unless the sender is an owner and the command is `unban` | chat disabled |
+| 3 | **Disabled-chat gate**: if `BannedChat` contains the chat (cached) → stop, unless the sender is an owner and the command is `unban` | chat disabled |
+| 4 | `viewOnceHandler.handleMessage` (after the gate: a disabled chat is fully ignored) | never |
 | 5 | If quoted or interactive reply: each plugin's `handleButtonReply` (or legacy `handleReply`), in load order | a handler returns `true` |
 | 6 | Each plugin's `onMessage(message)`, in load order, isolated | a hook returns `true` |
 | 7 | Sticker bound to a command (`StickerCommand`) → `body = PREFIX + command`, dispatch | sticker matched |
-| 8 | Not a command, not `fromMe`, not interactive → `autoResponderHandler.handleMessage` | auto-responder replied |
+| 8 | Not a command, not `fromMe`, not interactive → `autoResponderHandler.handleMessage`, started without being awaited (it waits seconds on purpose) | always (a message without the prefix can't be a command) |
 | 9 | `executeCommand(message)` | — |
 
 Notes:

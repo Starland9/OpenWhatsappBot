@@ -22,7 +22,7 @@ Approach: dependencies and the core first (a shared pipeline with a hook contrac
 
 **Language/Version**: JavaScript (CommonJS), Node.js >= 24 (engines, `node:24-alpine`); locally `nvm use 24`.
 
-**Primary Dependencies**: `baileys` 7.0.0-rc14, `sequelize` 6, `axios` 1.21, `@google/genai` 2.31, `openai` 7, `@ryuu-reinzz/button-helper`, `pino` 10. System binaries: `ffmpeg`, **`yt-dlp`** (new).
+**Primary Dependencies**: `baileys` 7.0.0-rc14, `sequelize` 6, `axios` 1.20 (1.21 held back by Yarn's 24 h quarantine), `@google/genai` 2.31, `openai` 7, `@ryuu-reinzz/button-helper`, `pino` 10. System binaries: `ffmpeg`, **`yt-dlp`** (new).
 
 **Storage**: Sequelize (SQLite / Postgres), `sync({ alter: true })`. 4 new tables and 1 new column, all additive ([data-model.md](data-model.md)).
 

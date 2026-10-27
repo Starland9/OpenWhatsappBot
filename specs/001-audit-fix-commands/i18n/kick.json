@@ -1,0 +1,14 @@
+{
+  "en": {
+    "plugins.kick.desc": "Remove one or more members from the group (admins only)",
+    "plugins.kick.usage": "{0}kick @user [@user2 …]\nOr reply to a member's message with {0}kick.",
+    "plugins.kick.done": "✅ Removed: {0}",
+    "plugins.kick.failed": "❌ Could not remove: {0}"
+  },
+  "fr": {
+    "plugins.kick.desc": "Retirer un ou plusieurs membres du groupe (admins uniquement)",
+    "plugins.kick.usage": "{0}kick @membre [@membre2 …]\nOu répondez au message d'un membre avec {0}kick.",
+    "plugins.kick.done": "✅ Retiré(s) : {0}",
+    "plugins.kick.failed": "❌ Impossible de retirer : {0}"
+  }
+}

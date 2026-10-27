@@ -1,0 +1,24 @@
+{
+  "en": {
+    "plugins.antidelete.usage": "*Anti-delete management:*\n\n*{0}antidel g* - forward deleted messages to the same group/chat\n*{0}antidel p* - forward to your private chat\n*{0}antidel sudo* - forward only the owner's deleted messages, to the owner\n*{0}antidel <jid or number>* - forward to a specific chat\n*{0}antidel null* - disable anti-delete\n\n*{0}getantidel* - show the current settings",
+    "plugins.antidelete.not_set": "Anti-delete forwarding is not configured.\n\nUse *{0}antidel* to configure it.",
+    "plugins.antidelete.report": "🗑️ *Deleted message detected*\n\n*From:* @{0}\n*Chat:* {1}\n*Time:* {2}",
+    "plugins.antidelete.report_body": "\n\n*Message:*\n{0}",
+    "plugins.antidelete.chat_group": "Group",
+    "plugins.antidelete.chat_private": "Private",
+    "plugins.antidelete.media_unrecovered": "\n\n_Media could not be recovered_",
+    "plugins.antidelete.media_failed": "\n\n_Media download failed_",
+    "plugins.antidelete.media_too_large": "\n\n_Media too large to be forwarded_"
+  },
+  "fr": {
+    "plugins.antidelete.usage": "*Gestion de l'anti-suppression :*\n\n*{0}antidel g* - transférer les messages supprimés vers le même groupe/chat\n*{0}antidel p* - transférer vers votre chat privé\n*{0}antidel sudo* - transférer uniquement les messages supprimés du propriétaire, vers le propriétaire\n*{0}antidel <jid ou numéro>* - transférer vers un chat précis\n*{0}antidel null* - désactiver l'anti-suppression\n\n*{0}getantidel* - afficher les réglages actuels",
+    "plugins.antidelete.not_set": "Le transfert anti-suppression n'est pas configuré.\n\nUtilisez *{0}antidel* pour le configurer.",
+    "plugins.antidelete.report": "🗑️ *Message supprimé détecté*\n\n*De :* @{0}\n*Chat :* {1}\n*Heure :* {2}",
+    "plugins.antidelete.report_body": "\n\n*Message :*\n{0}",
+    "plugins.antidelete.chat_group": "Groupe",
+    "plugins.antidelete.chat_private": "Privé",
+    "plugins.antidelete.media_unrecovered": "\n\n_Le média n'a pas pu être récupéré_",
+    "plugins.antidelete.media_failed": "\n\n_Échec du téléchargement du média_",
+    "plugins.antidelete.media_too_large": "\n\n_Média trop volumineux pour être transféré_"
+  }
+}

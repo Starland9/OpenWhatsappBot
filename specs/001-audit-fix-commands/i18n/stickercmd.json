@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.stickercmd.desc": "Bind a command to a sticker (reply to the sticker)",
+    "plugins.stickercmd.reply_sticker": "❌ Reply to a sticker with `{0}setcmd <command>`\n\n*Examples:*\n• `{0}setcmd vv` - reveal a view-once message\n• `{0}setcmd ping` - run ping\n• `{0}setcmd menu` - show the menu",
+    "plugins.stickercmd.usage": "❌ Specify a command\n\n*Usage:* `{0}setcmd <command>`",
+    "plugins.stickercmd.cannot_identify": "❌ Unable to identify this sticker.",
+    "plugins.stickercmd.unknown_command": "❌ Unknown command: `{0}`\n\n_Use `{1}menu` to see the available commands_",
+    "plugins.stickercmd.assigned": "✅ Command bound to the sticker\n\n*Command:* `{0}`\n\n_Send this sticker to run it silently_",
+    "plugins.stickercmd.updated": "✅ Command updated for this sticker\n\n*Command:* `{0}`\n\n_Send this sticker to run it silently_"
+  },
+  "fr": {
+    "plugins.stickercmd.desc": "Associer une commande à un sticker (en répondant au sticker)",
+    "plugins.stickercmd.reply_sticker": "❌ Répondez à un sticker avec `{0}setcmd <commande>`\n\n*Exemples :*\n• `{0}setcmd vv` - révéler un message à vue unique\n• `{0}setcmd ping` - exécuter ping\n• `{0}setcmd menu` - afficher le menu",
+    "plugins.stickercmd.usage": "❌ Indiquez une commande\n\n*Utilisation :* `{0}setcmd <commande>`",
+    "plugins.stickercmd.cannot_identify": "❌ Impossible d'identifier ce sticker.",
+    "plugins.stickercmd.unknown_command": "❌ Commande inconnue : `{0}`\n\n_Utilisez `{1}menu` pour voir les commandes disponibles_",
+    "plugins.stickercmd.assigned": "✅ Commande associée au sticker\n\n*Commande :* `{0}`\n\n_Envoyez ce sticker pour l'exécuter silencieusement_",
+    "plugins.stickercmd.updated": "✅ Commande mise à jour pour ce sticker\n\n*Commande :* `{0}`\n\n_Envoyez ce sticker pour l'exécuter silencieusement_"
+  }
+}

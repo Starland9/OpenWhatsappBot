@@ -1,0 +1,24 @@
+{
+  "en": {
+    "plugins.getcmd.desc": "Show the command bound to a sticker, or list all sticker commands",
+    "plugins.getcmd.cannot_identify": "❌ Unable to identify this sticker.",
+    "plugins.getcmd.none_for_sticker": "❌ No command is bound to this sticker\n\n_Use `{0}setcmd <command>` to bind one_",
+    "plugins.getcmd.assigned": "✅ *Bound command:*\n\n`{0}`\n\n_Send this sticker to run it_",
+    "plugins.getcmd.empty": "❌ No sticker command configured\n\n_Use `{0}setcmd <command>` in reply to a sticker_",
+    "plugins.getcmd.list_title": "📋 *Sticker commands* ({0})",
+    "plugins.getcmd.item": "{0}. `{1}`\n   Hash: `{2}...`",
+    "plugins.getcmd.more": "_...and {0} more_",
+    "plugins.getcmd.footer": "_Reply to a sticker with `{0}getcmd` to see its command_"
+  },
+  "fr": {
+    "plugins.getcmd.desc": "Voir la commande d'un sticker ou lister toutes les commandes de stickers",
+    "plugins.getcmd.cannot_identify": "❌ Impossible d'identifier ce sticker.",
+    "plugins.getcmd.none_for_sticker": "❌ Aucune commande n'est associée à ce sticker\n\n_Utilisez `{0}setcmd <commande>` pour en associer une_",
+    "plugins.getcmd.assigned": "✅ *Commande associée :*\n\n`{0}`\n\n_Envoyez ce sticker pour l'exécuter_",
+    "plugins.getcmd.empty": "❌ Aucune commande de sticker configurée\n\n_Utilisez `{0}setcmd <commande>` en répondant à un sticker_",
+    "plugins.getcmd.list_title": "📋 *Commandes de stickers* ({0})",
+    "plugins.getcmd.item": "{0}. `{1}`\n   Hash : `{2}...`",
+    "plugins.getcmd.more": "_...et {0} de plus_",
+    "plugins.getcmd.footer": "_Répondez à un sticker avec `{0}getcmd` pour voir sa commande_"
+  }
+}

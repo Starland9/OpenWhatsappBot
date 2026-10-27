@@ -1,0 +1,16 @@
+{
+  "en": {
+    "plugins.delcmd.desc": "Remove the command bound to a sticker",
+    "plugins.delcmd.usage": "❌ Reply to a sticker with `{0}delcmd` to remove its command.",
+    "plugins.delcmd.cannot_identify": "❌ Unable to identify this sticker.",
+    "plugins.delcmd.none": "❌ No command is bound to this sticker.",
+    "plugins.delcmd.deleted": "✅ Command removed\n\n_This sticker will no longer run a command_"
+  },
+  "fr": {
+    "plugins.delcmd.desc": "Supprimer la commande associée à un sticker",
+    "plugins.delcmd.usage": "❌ Répondez à un sticker avec `{0}delcmd` pour supprimer sa commande.",
+    "plugins.delcmd.cannot_identify": "❌ Impossible d'identifier ce sticker.",
+    "plugins.delcmd.none": "❌ Aucune commande n'est associée à ce sticker.",
+    "plugins.delcmd.deleted": "✅ Commande supprimée\n\n_Ce sticker n'exécutera plus de commande_"
+  }
+}

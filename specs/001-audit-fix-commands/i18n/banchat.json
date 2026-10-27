@@ -1,0 +1,12 @@
+{
+  "en": {
+    "plugins.banchat.desc": "Disable the bot in the current chat (owner only)",
+    "plugins.banchat.already": "⚫ The bot is already disabled in this chat.\n\nUse {0}unban to re-enable it.",
+    "plugins.banchat.done": "⚫ *Bot disabled in this chat!*\n\nIt will not respond to anything here.\n\nUse {0}unban to re-enable it."
+  },
+  "fr": {
+    "plugins.banchat.desc": "Désactiver le bot dans le chat actuel (propriétaire uniquement)",
+    "plugins.banchat.already": "⚫ Le bot est déjà désactivé dans ce chat.\n\nUtilisez {0}unban pour le réactiver.",
+    "plugins.banchat.done": "⚫ *Bot désactivé dans ce chat !*\n\nIl ne répondra plus à rien ici.\n\nUtilisez {0}unban pour le réactiver."
+  }
+}

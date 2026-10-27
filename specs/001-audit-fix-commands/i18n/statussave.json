@@ -1,0 +1,38 @@
+{
+  "en": {
+    "plugins.statussave.desc": "Manage the auto-save of contacts' statuses (on/off/add/rm/list). Owner only.",
+    "plugins.statussave.usage": "*Auto status save:*\n\n{0}statussave on - enable\n{0}statussave off - disable\n{0}statussave add <number> - watch a contact\n{0}statussave rm <number> - stop watching a contact\n{0}statussave list - show the settings\n\n_With an empty list, the statuses of every contact are saved._",
+    "plugins.statussave.enabled": "✅ Auto status save enabled.\nWatched numbers: {0}",
+    "plugins.statussave.enabled_all_warning": "⚠️ The list is empty: the statuses of *all* your contacts will be saved. Use {0}statussave add <number> to restrict it.",
+    "plugins.statussave.disabled": "✅ Auto status save disabled.",
+    "plugins.statussave.forced_by_env": "⚠️ AUTO_STATUS_SAVE=true is set in the bot configuration, so auto-save stays ON whatever this command says. Set it to false in config.env and restart the bot to turn it off.",
+    "plugins.statussave.add_usage": "Specify a number to add, e.g. {0}statussave add 237600000000",
+    "plugins.statussave.rm_usage": "Specify a number to remove, e.g. {0}statussave rm 237600000000",
+    "plugins.statussave.invalid_number": "❌ Invalid number. Use digits only, with the country code (e.g. 237600000000).",
+    "plugins.statussave.added": "✅ Added.\nWatched numbers: {0}",
+    "plugins.statussave.removed": "✅ Removed.\nWatched numbers: {0}",
+    "plugins.statussave.not_in_list": "ℹ️ This number is not in the list.",
+    "plugins.statussave.status": "*Auto status save:* {0}\n*Watched numbers:* {1}",
+    "plugins.statussave.list_empty": "(empty: all contacts)",
+    "plugins.statussave.unknown": "❌ Unknown subcommand. Use {0}statussave on, off, add, rm or list.",
+    "plugins.statussave.caption": "📱 Status from {0}"
+  },
+  "fr": {
+    "plugins.statussave.desc": "Gérer la sauvegarde automatique des statuts des contacts (on/off/add/rm/list). Propriétaire uniquement.",
+    "plugins.statussave.usage": "*Sauvegarde automatique des statuts :*\n\n{0}statussave on - activer\n{0}statussave off - désactiver\n{0}statussave add <numéro> - surveiller un contact\n{0}statussave rm <numéro> - ne plus surveiller un contact\n{0}statussave list - afficher les réglages\n\n_Avec une liste vide, les statuts de tous les contacts sont sauvegardés._",
+    "plugins.statussave.enabled": "✅ Sauvegarde automatique des statuts activée.\nNuméros surveillés : {0}",
+    "plugins.statussave.enabled_all_warning": "⚠️ La liste est vide : les statuts de *tous* vos contacts seront sauvegardés. Utilisez {0}statussave add <numéro> pour la restreindre.",
+    "plugins.statussave.disabled": "✅ Sauvegarde automatique des statuts désactivée.",
+    "plugins.statussave.forced_by_env": "⚠️ AUTO_STATUS_SAVE=true est défini dans la configuration du bot : la sauvegarde reste ACTIVE quoi que fasse cette commande. Mettez-le à false dans config.env et redémarrez le bot pour la désactiver.",
+    "plugins.statussave.add_usage": "Indiquez un numéro à ajouter, par ex. {0}statussave add 237600000000",
+    "plugins.statussave.rm_usage": "Indiquez un numéro à retirer, par ex. {0}statussave rm 237600000000",
+    "plugins.statussave.invalid_number": "❌ Numéro invalide. Utilisez uniquement des chiffres, avec l'indicatif du pays (ex. 237600000000).",
+    "plugins.statussave.added": "✅ Ajouté.\nNuméros surveillés : {0}",
+    "plugins.statussave.removed": "✅ Retiré.\nNuméros surveillés : {0}",
+    "plugins.statussave.not_in_list": "ℹ️ Ce numéro n'est pas dans la liste.",
+    "plugins.statussave.status": "*Sauvegarde automatique des statuts :* {0}\n*Numéros surveillés :* {1}",
+    "plugins.statussave.list_empty": "(vide : tous les contacts)",
+    "plugins.statussave.unknown": "❌ Sous-commande inconnue. Utilisez {0}statussave on, off, add, rm ou list.",
+    "plugins.statussave.caption": "📱 Statut de {0}"
+  }
+}

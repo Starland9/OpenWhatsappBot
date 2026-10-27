@@ -1,139 +1,118 @@
-const { jidNormalizedUser } = require("baileys");
+const { getLang } = require("../lib/utils/language");
+const { isLidJid, isPnJid, jidUser, normalizeJid } = require("../lib/utils/permissions");
+
+/**
+ * Export contacts: Baileys v7 has no contact store, so the people the bot can
+ * see are the members of its groups.
+ *   - in a group: the members of that group
+ *   - in a private chat: the members of every group the bot is in
+ * The file is always sent by DM to the sender, never into a group.
+ */
+
+/** Neutralise spreadsheet formulas: =, +, -, @ (and tab / CR) at the start of a value */
+function csvCell(value) {
+  let text = String(value ?? "");
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Merge the participants of one or several groups into unique contacts.
+ * @param {Array<{ subject?: string, participants?: Array }>} groups
+ */
+function collectContacts(groups) {
+  const byKey = new Map();
+  for (const group of groups) {
+    const subject = group.subject || group.id || "";
+    for (const p of group.participants || []) {
+      const forms = [p.phoneNumber, p.id, p.lid].map(normalizeJid).filter(Boolean);
+      const pn = forms.find(isPnJid) || "";
+      const lid = forms.find(isLidJid) || "";
+      const key = pn || lid;
+      if (!key) continue;
+
+      let contact = byKey.get(key);
+      if (!contact) {
+        contact = {
+          phone: pn ? jidUser(pn) : "",
+          jid: pn || lid,
+          lid,
+          admin: false,
+          groups: [],
+        };
+        byKey.set(key, contact);
+      }
+      if (p.admin) contact.admin = true;
+      if (subject && !contact.groups.includes(subject)) contact.groups.push(subject);
+    }
+  }
+  return [...byKey.values()];
+}
+
+function toCsv(contacts) {
+  const header = ["phone", "jid", "lid", "admin", "groups"].join(",");
+  const rows = contacts.map((c) =>
+    [c.phone, c.jid, c.lid, c.admin ? "yes" : "no", c.groups.join("; ")].map(csvCell).join(","),
+  );
+  return [header, ...rows].join("\n");
+}
 
 module.exports = {
   command: {
     pattern: "exportcontacts",
-    desc: "Export contacts (JSON) and send as a document. Owner only.",
+    desc: getLang("plugins.exportcontacts.desc"),
     type: "utility",
-    fromMe: false,
-    onlyGroup: false,
-    onlyPm: false,
-    ownerOnly: true,
+    fromMe: true,
   },
 
   async execute(message, argsString) {
-    // Only allow bot owners (ownerOnly handled by registry but double-check)
-    if (!message.isSudo()) {
-      return await message.reply(
-        "❌ Vous devez être propriétaire du bot pour utiliser cette commande.",
-      );
+    const wantCsv = String(argsString || "").trim().toLowerCase() === "csv";
+    const sock = message.client.getSocket();
+
+    await message.reply(getLang("plugins.exportcontacts.fetching"));
+
+    let groups;
+    if (message.isGroup) {
+      const metadata = await message.getGroupMetadata();
+      groups = metadata ? [metadata] : [];
+    } else {
+      const all = await sock.groupFetchAllParticipating();
+      groups = Object.values(all || {});
     }
 
-    await message.reply(
-      "🔎 Récupération des contacts, ceci peut prendre une seconde...",
-    );
+    const contacts = collectContacts(groups);
+    if (contacts.length === 0) {
+      return await message.reply(getLang("plugins.exportcontacts.empty"));
+    }
 
-    try {
-      const client = message.client;
-
-      // Wait for client readiness to improve chance that contacts are synced.
-      if (typeof client.ready === "function" && !client.ready()) {
-        // wait for 'ready' event or timeout after 8s
-        await new Promise((resolve) => {
-          const onReady = () => {
-            clearTimeout(timeout);
-            client.removeListener("ready", onReady);
-            resolve();
-          };
-          const timeout = setTimeout(() => {
-            client.removeListener("ready", onReady);
-            resolve();
-          }, 8000);
-          client.once("ready", onReady);
-        });
-      }
-
-      // store may be a Baileys in-memory store; contacts can be a Map or an object
-      const rawContacts = client.store?.contacts || null;
-
-      let contactsArray = [];
-
-      if (!rawContacts) {
-        // Fallback: try socket state
-        const sock = client.getSocket();
-        const state = sock?.state || null;
-        const sContacts = state?.contacts || null;
-        if (sContacts) {
-          // state.contacts is an object mapping jid -> contact
-          contactsArray = Object.keys(sContacts).map((k) => ({
-            jid: k,
-            ...sContacts[k],
-          }));
-        }
-      } else if (typeof rawContacts.forEach === "function") {
-        // It's a Map-like
-        rawContacts.forEach((value, key) => {
-          const jid = value?.id || key;
-          contactsArray.push({
-            jid,
-            displayName: value?.notify || value?.vname || value?.name || "",
-            raw: value,
-          });
-        });
-      } else if (typeof rawContacts === "object") {
-        contactsArray = Object.keys(rawContacts).map((k) => {
-          const v = rawContacts[k] || {};
-          const jid = v.id || k;
-          return {
-            jid,
-            displayName: v.notify || v.vname || v.name || "",
-            raw: v,
-          };
-        });
-      }
-
-      if (!contactsArray || contactsArray.length === 0) {
-        return await message.reply(
-          "ℹ️ Aucun contact trouvé dans le store. Assurez-vous que le client est connecté et synchronisé.",
-        );
-      }
-
-      // If argsString contains 'csv' export CSV instead
-      const wantCsv = argsString && argsString.trim().toLowerCase() === "csv";
-
-      if (wantCsv) {
-        // Build CSV: jid, displayName
-        const header = "jid,displayName\n";
-        const rows = contactsArray
-          .map(
-            (c) =>
-              `${c.jid.replace(/,/g, "")},"${(c.displayName || "").replace(
-                /"/g,
-                '""',
-              )}"`,
-          )
-          .join("\n");
-        const csv = header + rows;
-        const buffer = Buffer.from(csv, "utf8");
-        await message.sendDocument(buffer, {
+    const file = wantCsv
+      ? {
           fileName: "contacts.csv",
           mimetype: "text/csv",
-          caption: "Export contacts (CSV)",
-        });
-        return;
-      }
+          buffer: Buffer.from(toCsv(contacts), "utf8"),
+        }
+      : {
+          fileName: "contacts.json",
+          mimetype: "application/json",
+          buffer: Buffer.from(JSON.stringify(contacts, null, 2), "utf8"),
+        };
 
-      // Default: JSON export with simplified fields + raw
-      const exportPayload = contactsArray.map((c) => ({
-        jid: c.jid,
-        displayName: c.displayName || "",
-        raw: c.raw || null,
-      }));
+    // Always to the sender's DM: member lists must never land in a group
+    const target = message.isGroup ? message.sender || message.senderLid : message.jid;
+    await sock.sendMessage(target, {
+      document: file.buffer,
+      fileName: file.fileName,
+      mimetype: file.mimetype,
+      caption: getLang(
+        "plugins.exportcontacts.caption",
+        contacts.length,
+        groups.length,
+        wantCsv ? "CSV" : "JSON",
+      ),
+    });
 
-      const jsonBuffer = Buffer.from(
-        JSON.stringify(exportPayload, null, 2),
-        "utf8",
-      );
-      await message.sendDocument(jsonBuffer, {
-        fileName: "contacts.json",
-        mimetype: "application/json",
-        caption: "Export contacts (JSON)",
-      });
-    } catch (error) {
-      console.error("exportcontacts error:", error);
-      await message.reply(
-        "❌ Une erreur est survenue lors de l'export des contacts.",
-      );
+    if (message.isGroup) {
+      await message.reply(getLang("plugins.exportcontacts.sent_dm"));
     }
   },
 };

@@ -1,174 +1,87 @@
+const { extractMessageContent, getContentType } = require("baileys");
+const pino = require("pino");
 const { getLang } = require("../lib/utils/language");
-const { downloadMedia } = require("../lib/baileys/mediaAdapter");
 const { ViewOnce } = require("../lib/database");
+const settingsCache = require("../lib/utils/settingsCache");
+const viewOnceHandler = require("../lib/utils/viewOnceHandler");
+const { getOwnerJids } = require("../lib/utils/permissions");
+const { safeLog } = require("../lib/utils/http");
 const config = require("../config");
 
+const logger = pino({ level: config.LOG_LEVEL });
+
+const KINDS = {
+  imageMessage: "image",
+  videoMessage: "video",
+  audioMessage: "audio",
+};
+
+/** Where the revealed media goes: the .setvv destination, else the current chat */
+async function resolveDestination(message) {
+  const settings = await settingsCache.get("view_once", async () => {
+    return await ViewOnce.findOne({ where: { id: 1 } });
+  });
+
+  if (settings && settings.enabled) {
+    if (settings.vvMode === "p") return getOwnerJids()[0] || message.jid;
+    if (settings.vvMode === "jid" && settings.vvJid) return settings.vvJid;
+  }
+  return message.jid;
+}
+
 /**
- * View Once Viewer - Download and forward view once messages
+ * View Once Viewer - Download and forward view once messages (owner only)
+ *
+ * Discreet on purpose: no reaction, and no reply when the quoted message is
+ * not a view-once media or cannot be downloaded.
  */
 module.exports = {
   command: {
     pattern: "vv",
     desc: getLang("plugins.viewonce.desc"),
     type: "media",
+    fromMe: true,
   },
 
-  async execute(message, query) {
+  async execute(message) {
+    // Nothing quoted: tell the owner how to use it
+    if (!message.quoted) {
+      return await message.reply(getLang("plugins.vv.usage", config.PREFIX));
+    }
+
+    const quotedMsg = message.quoted.message;
+    if (!quotedMsg || !viewOnceHandler.isViewOnce(quotedMsg)) return;
+
+    // Unwrapped content (viewOnceMessage, V2, V2Extension, ephemeral...)
+    const content = extractMessageContent(quotedMsg);
+    const messageType = getContentType(content);
+    const kind = KINDS[messageType];
+    if (!kind) return;
+    const mediaMessage = content[messageType];
+
+    let media;
     try {
-      // Vérifier si c'est une réponse à un message
-      if (!message.quoted) {
-        // return await message.reply(getLang("plugins.viewonce.reply_required"));
-        return; // MODE SILENCIEUX : Pas de message d'erreur
-      }
-
-      // MODE DISCRET : Pas de réactions visibles
-      // await message.react("⏳"); // DÉSACTIVÉ
-
-      // Récupérer le message cité - structure réelle
-      const quotedMsg = message.quoted.message;
-
-      if (!quotedMsg) {
-        // await message.react("❌"); // DÉSACTIVÉ
-        // return await message.reply(getLang("plugins.viewonce.no_message"));
-        return; // MODE SILENCIEUX : Pas de message d'erreur
-      }
-
-      // Détecter le type de média directement (la structure montre que viewOnce est une propriété du média)
-      let mediaMessage = null;
-      let messageType = null;
-
-      // Vérifier imageMessage avec viewOnce: true
-      if (quotedMsg.imageMessage?.viewOnce) {
-        mediaMessage = quotedMsg.imageMessage;
-        messageType = "image";
-      }
-      // Vérifier videoMessage avec viewOnce: true
-      else if (quotedMsg.videoMessage?.viewOnce) {
-        mediaMessage = quotedMsg.videoMessage;
-        messageType = "video";
-      }
-      // Vérifier audioMessage avec viewOnce: true
-      else if (quotedMsg.audioMessage?.viewOnce) {
-        mediaMessage = quotedMsg.audioMessage;
-        messageType = "audio";
-      }
-      // Support ancienne structure viewOnceMessage (rétrocompatibilité)
-      else if (quotedMsg.viewOnceMessage) {
-        const viewOnceMsg = quotedMsg.viewOnceMessage.message;
-        if (viewOnceMsg.imageMessage) {
-          mediaMessage = viewOnceMsg.imageMessage;
-          messageType = "image";
-        } else if (viewOnceMsg.videoMessage) {
-          mediaMessage = viewOnceMsg.videoMessage;
-          messageType = "video";
-        } else if (viewOnceMsg.audioMessage) {
-          mediaMessage = viewOnceMsg.audioMessage;
-          messageType = "audio";
-        }
-      }
-      // Support viewOnceMessageV2
-      else if (quotedMsg.viewOnceMessageV2) {
-        const viewOnceMsg = quotedMsg.viewOnceMessageV2.message;
-        if (viewOnceMsg.imageMessage) {
-          mediaMessage = viewOnceMsg.imageMessage;
-          messageType = "image";
-        } else if (viewOnceMsg.videoMessage) {
-          mediaMessage = viewOnceMsg.videoMessage;
-          messageType = "video";
-        } else if (viewOnceMsg.audioMessage) {
-          mediaMessage = viewOnceMsg.audioMessage;
-          messageType = "audio";
-        }
-      }
-
-      if (!mediaMessage || !messageType) {
-        // await message.react("❌"); // DÉSACTIVÉ
-        return; // MODE SILENCIEUX : Pas de message d'erreur
-      }
-
-      // Télécharger le média en utilisant la structure correcte
-      const quotedShape = {
-        key: message.quoted.key,
-        message: { [messageType + "Message"]: mediaMessage },
-      };
-
-      const buffer = await downloadMedia(
-        message.client.getSocket(),
-        quotedShape,
-        "buffer",
-      );
-
-      if (!buffer) {
-        // await message.react("❌"); // DÉSACTIVÉ
-        return; // MODE SILENCIEUX : Pas de message d'erreur
-      }
-
-      // Extraire la caption si présente
-      const caption =
-        mediaMessage.caption || getLang("plugins.viewonce.forwarded");
-
-      // Récupérer les paramètres de transfert automatique
-      const settings = await ViewOnce.findOne({ where: { id: 1 } });
-      let targetJid = null;
-
-      // Déterminer la destination en fonction des paramètres
-      if (settings && settings.enabled) {
-        const mode = settings.vvMode;
-
-        if (mode === "g") {
-          // Envoyer au même chat (groupe ou privé)
-          targetJid = message.jid;
-        } else if (mode === "p") {
-          // Envoyer au chat privé du sudo (propriétaire)
-          const sudoNumber = config.SUDO.split(",")[0].trim();
-          if (sudoNumber) {
-            targetJid = sudoNumber.includes("@")
-              ? sudoNumber
-              : `${sudoNumber}@s.whatsapp.net`;
-          } else {
-            // Fallback: envoyer au chat courant si SUDO non configuré
-            targetJid = message.jid;
-          }
-        } else if (mode === "jid") {
-          // Envoyer à un JID personnalisé
-          targetJid = settings.vvJid;
-        }
-      }
-
-      // Si aucun paramètre ou mode désactivé, envoyer au chat courant
-      if (!targetJid) {
-        targetJid = message.jid;
-      }
-
-      // Envoyer le média selon son type à la destination configurée
-      const socket = message.client.getSocket();
-
-      if (messageType === "image") {
-        await socket.sendMessage(targetJid, {
-          image: buffer,
-          caption: caption,
-        });
-      } else if (messageType === "video") {
-        await socket.sendMessage(targetJid, {
-          video: buffer,
-          caption: caption,
-        });
-      } else if (messageType === "audio") {
-        await socket.sendMessage(targetJid, {
-          audio: buffer,
-          mimetype: mediaMessage.mimetype || "audio/mp4",
-          ptt: mediaMessage.ptt || false,
-        });
-      }
-
-      // await message.react("✅"); // DÉSACTIVÉ - Mode discret total
-
-      // MODE DISCRET : Pas de notification même si envoyé ailleurs
-      // L'utilisateur ne saura pas que le média a été transféré
+      // Size cap (MAX_UPLOAD) is checked before the download
+      media = await message.getQuotedMedia();
     } catch (error) {
-      // await message.react("❌"); // DÉSACTIVÉ
-      console.error("ViewOnce error:", error);
-      // MODE SILENCIEUX : Pas de message d'erreur visible
+      if (error?.code === "MEDIA_TOO_LARGE") throw error;
+      logger.error(safeLog(error), "ViewOnce download error");
+      return;
+    }
+    if (!media) return;
+
+    const targetJid = await resolveDestination(message);
+    const socket = message.client.getSocket();
+
+    if (kind === "audio") {
+      await socket.sendMessage(targetJid, {
+        audio: media.buffer,
+        mimetype: media.mimetype || "audio/mp4",
+        ptt: !!mediaMessage.ptt,
+      });
+    } else {
+      const caption = mediaMessage.caption || getLang("plugins.viewonce.forwarded");
+      await socket.sendMessage(targetJid, { [kind]: media.buffer, caption });
     }
   },
 };

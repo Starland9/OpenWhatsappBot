@@ -1,72 +1,92 @@
+const { getLang } = require("../lib/utils/language");
 const statusListStore = require("../lib/utils/statusListStore");
+const config = require("../config");
+
+const MIN_DIGITS = 6;
+const MAX_DIGITS = 16;
+
+/** Digits of the number given after the subcommand (spaces and "+" allowed), or "" */
+function parseNumber(parts) {
+  const number = statusListStore.normalizeNumber(parts.slice(1).join(""));
+  return number.length >= MIN_DIGITS && number.length <= MAX_DIGITS ? number : "";
+}
+
+function listText(st) {
+  return st.list.length > 0 ? st.list.join(", ") : getLang("plugins.statussave.list_empty");
+}
 
 module.exports = {
   command: {
     pattern: "statussave|ss",
-    desc: "Gérer l'auto-save des statuses (on/off/add/rm/list)",
+    desc: getLang("plugins.statussave.desc"),
     type: "admin",
-    fromMe: false,
-    onlyGroup: false,
-    onlyPm: false,
+    fromMe: true,
   },
 
   async execute(message, argsString = "") {
-    if (!message.isSudo()) return await message.reply("Permission refusée.");
-
-    const parts = argsString.trim().split(/\s+/).filter(Boolean);
+    const parts = String(argsString).trim().split(/\s+/).filter(Boolean);
     const cmd = parts[0] ? parts[0].toLowerCase() : "";
+    const prefix = config.PREFIX;
 
-    try {
-      if (!cmd || cmd === "help") {
-        return await message.reply(
-          "Usage: statussave on|off|add <number>|rm <number>|list",
-        );
-      }
-
-      if (cmd === "on") {
-        const st = await statusListStore.setEnabled(true);
-        return await message.reply(
-          `Auto status save activé. Liste: ${st.list.join(", ")}`,
-        );
-      }
-
-      if (cmd === "off") {
-        const st = await statusListStore.setEnabled(false);
-        return await message.reply(`Auto status save désactivé.`);
-      }
-
-      if (cmd === "add") {
-        const num = parts[1];
-        if (!num)
-          return await message.reply(
-            "Spécifie un numéro à ajouter (sans @...).",
-          );
-        const st = await statusListStore.add(num);
-        return await message.reply(`Ajouté. Liste: ${st.list.join(", ")}`);
-      }
-
-      if (cmd === "rm" || cmd === "remove" || cmd === "del") {
-        const num = parts[1];
-        if (!num) return await message.reply("Spécifie un numéro à supprimer.");
-        const st = await statusListStore.remove(num);
-        return await message.reply(`Retiré. Liste: ${st.list.join(", ")}`);
-      }
-
-      if (cmd === "list") {
-        const st = await statusListStore.get();
-        return await message.reply(
-          `Auto save: ${st.enabled ? "ON" : "OFF"}\nListe: ${st.list.join(", ") || "(vide)"}`,
-        );
-      }
-
-      return await message.reply(
-        "Commande inconnue. Utilise: on|off|add|rm|list",
-      );
-    } catch (err) {
-      console.error("statussave plugin error:", err);
-      return await message.reply(
-        "Erreur interne lors de la commande statussave.",
-      );
+    if (!cmd || cmd === "help") {
+      return await message.reply(getLang("plugins.statussave.usage", prefix));
     }
+
+    if (cmd === "on") {
+      const st = await statusListStore.setEnabled(true);
+      let text = getLang("plugins.statussave.enabled", listText(st));
+      // An empty list saves the statuses of every contact: say it
+      if (st.list.length === 0) {
+        text += `\n\n${getLang("plugins.statussave.enabled_all_warning", prefix)}`;
+      }
+      return await message.reply(text);
+    }
+
+    if (cmd === "off") {
+      const st = await statusListStore.setEnabled(false);
+      let text = getLang("plugins.statussave.disabled");
+      if (st.forcedByEnv) text += `\n\n${getLang("plugins.statussave.forced_by_env")}`;
+      return await message.reply(text);
+    }
+
+    if (cmd === "add") {
+      if (parts.length < 2) {
+        return await message.reply(getLang("plugins.statussave.add_usage", prefix));
+      }
+      const number = parseNumber(parts);
+      if (!number) return await message.reply(getLang("plugins.statussave.invalid_number"));
+      const st = await statusListStore.add(number);
+      return await message.reply(getLang("plugins.statussave.added", listText(st)));
+    }
+
+    if (cmd === "rm" || cmd === "remove" || cmd === "del") {
+      if (parts.length < 2) {
+        return await message.reply(getLang("plugins.statussave.rm_usage", prefix));
+      }
+      const number = parseNumber(parts);
+      if (!number) return await message.reply(getLang("plugins.statussave.invalid_number"));
+      const before = await statusListStore.get();
+      if (!before.list.includes(number)) {
+        return await message.reply(getLang("plugins.statussave.not_in_list"));
+      }
+      const st = await statusListStore.remove(number);
+      return await message.reply(getLang("plugins.statussave.removed", listText(st)));
+    }
+
+    if (cmd === "list") {
+      const st = await statusListStore.get();
+      let text = getLang(
+        "plugins.statussave.status",
+        st.active ? getLang("common.status_enabled") : getLang("common.status_disabled"),
+        listText(st),
+      );
+      if (st.forcedByEnv) text += `\n\n${getLang("plugins.statussave.forced_by_env")}`;
+      if (st.active && st.list.length === 0) {
+        text += `\n\n${getLang("plugins.statussave.enabled_all_warning", prefix)}`;
+      }
+      return await message.reply(text);
+    }
+
+    return await message.reply(getLang("plugins.statussave.unknown", prefix));
   },
 };

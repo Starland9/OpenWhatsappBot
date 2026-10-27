@@ -1,0 +1,8 @@
+{
+  "en": {
+    "plugins.vv.usage": "Reply to a view-once message with {0}vv to reveal it."
+  },
+  "fr": {
+    "plugins.vv.usage": "Répondez à un message à vue unique avec {0}vv pour le révéler."
+  }
+}

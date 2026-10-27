@@ -1,0 +1,24 @@
+{
+  "en": {
+    "plugins.feedback.desc": "Send feedback to the bot owner (your number is shared with them)",
+    "plugins.feedback.usage": "Usage: {0}feedback <message> (or reply to a message)\n\n_Your number is shared with the bot owner._",
+    "plugins.feedback.sent": "✅ Feedback sent to the bot owner (your number is attached). Thank you!",
+    "plugins.feedback.failed": "❌ Your feedback could not be delivered. Please try again later.",
+    "plugins.feedback.too_long": "❌ Your feedback is too long (max {0} characters).",
+    "plugins.feedback.report": "📨 *Feedback*\n\n*From:* @{0}\n*Chat:* {1}\n\n{2}",
+    "plugins.feedback.private_chat": "Private chat",
+    "plugins.feedback.unknown_group": "Unknown group",
+    "plugins.feedback.quote_only": "_(quoted message only)_"
+  },
+  "fr": {
+    "plugins.feedback.desc": "Envoyer un feedback au propriétaire du bot (votre numéro lui est communiqué)",
+    "plugins.feedback.usage": "Utilisation : {0}feedback <message> (ou répondre à un message)\n\n_Votre numéro est communiqué au propriétaire du bot._",
+    "plugins.feedback.sent": "✅ Feedback envoyé au propriétaire du bot (votre numéro est joint). Merci !",
+    "plugins.feedback.failed": "❌ Votre feedback n'a pas pu être livré. Veuillez réessayer plus tard.",
+    "plugins.feedback.too_long": "❌ Votre feedback est trop long (maximum {0} caractères).",
+    "plugins.feedback.report": "📨 *Feedback*\n\n*De :* @{0}\n*Chat :* {1}\n\n{2}",
+    "plugins.feedback.private_chat": "Chat privé",
+    "plugins.feedback.unknown_group": "Groupe inconnu",
+    "plugins.feedback.quote_only": "_(message cité uniquement)_"
+  }
+}

@@ -1,5 +1,27 @@
+const { extractMessageContent } = require("baileys");
 const { getLang } = require("../lib/utils/language");
 const { StickerCommand } = require("../lib/database");
+const config = require("../config");
+
+// A WhatsApp message cannot hold an unbounded list
+const MAX_LISTED = 30;
+
+/**
+ * Hex hash of the quoted sticker, as the pipeline computes it.
+ * @returns {{ isSticker: boolean, hash: string|null }}
+ */
+function quotedStickerHash(message) {
+  const content = extractMessageContent(message.quoted?.message);
+  const sticker = content?.stickerMessage;
+  if (!sticker) return { isSticker: false, hash: null };
+
+  const sha = sticker.fileSha256;
+  if (!sha || (typeof sha !== "string" && !sha.length)) {
+    return { isSticker: true, hash: null };
+  }
+  const bytes = typeof sha === "string" ? Buffer.from(sha, "base64") : Buffer.from(sha);
+  return { isSticker: true, hash: bytes.toString("hex") };
+}
 
 /**
  * Get command assigned to a sticker or list all sticker commands
@@ -7,62 +29,49 @@ const { StickerCommand } = require("../lib/database");
 module.exports = {
   command: {
     pattern: "getcmd",
-    desc: "Voir la commande d'un sticker ou lister toutes les commandes",
+    desc: getLang("plugins.getcmd.desc"),
     type: "utility",
     fromMe: true,
   },
 
-  async execute(message, query) {
-    try {
-      // Si réponse à un sticker, afficher sa commande
-      if (message.quoted && message.quoted.message?.stickerMessage) {
-        const stickerMsg = message.quoted.message.stickerMessage;
-        const fileSha256 = stickerMsg.fileSha256;
+  async execute(message) {
+    const prefix = config.PREFIX;
 
-        if (!fileSha256) {
-          return await message.reply("❌ Impossible d'identifier ce sticker");
-        }
-
-        const stickerHash = Buffer.from(fileSha256).toString("hex");
-        const stickerCmd = await StickerCommand.findOne({
-          where: { stickerHash },
-        });
-
-        if (!stickerCmd) {
-          return await message.reply(
-            "❌ Aucune commande assignée à ce sticker\n\n_Utilisez `.setcmd <commande>` pour en assigner une_"
-          );
-        }
-
-        return await message.reply(
-          `✅ *Commande assignée:*\n\n\`${stickerCmd.command}\`\n\n_Envoyez ce sticker pour l'exécuter_`
-        );
+    // In reply to a sticker: show its command
+    const { isSticker, hash } = quotedStickerHash(message);
+    if (isSticker) {
+      if (!hash) {
+        return await message.reply(getLang("plugins.getcmd.cannot_identify"));
       }
 
-      // Sinon, lister toutes les commandes de stickers
-      const allCommands = await StickerCommand.findAll({
-        order: [["createdAt", "DESC"]],
-      });
-
-      if (allCommands.length === 0) {
-        return await message.reply(
-          "❌ Aucune commande de sticker configurée\n\n_Utilisez `.setcmd <commande>` en répondant à un sticker_"
-        );
+      const stickerCmd = await StickerCommand.findOne({ where: { stickerHash: hash } });
+      if (!stickerCmd) {
+        return await message.reply(getLang("plugins.getcmd.none_for_sticker", prefix));
       }
 
-      let response = `📋 *Commandes de Stickers* (${allCommands.length})\n\n`;
-      allCommands.forEach((cmd, index) => {
-        response += `${index + 1}. \`${cmd.command}\`\n`;
-        response += `   Hash: \`${cmd.stickerHash.substring(0, 16)}...\`\n\n`;
-      });
-
-      response +=
-        "_Répondez à un sticker avec `.getcmd` pour voir sa commande_";
-
-      await message.reply(response);
-    } catch (error) {
-      console.error("GetCmd error:", error);
-      await message.reply(`❌ Erreur: ${error.message}`);
+      return await message.reply(getLang("plugins.getcmd.assigned", stickerCmd.command));
     }
+
+    // Otherwise, list every sticker command (most recent first)
+    const total = await StickerCommand.count();
+    if (total === 0) {
+      return await message.reply(getLang("plugins.getcmd.empty", prefix));
+    }
+
+    const rows = await StickerCommand.findAll({
+      order: [["createdAt", "DESC"]],
+      limit: MAX_LISTED,
+    });
+
+    const lines = rows.map((cmd, index) =>
+      getLang("plugins.getcmd.item", index + 1, cmd.command, cmd.stickerHash.substring(0, 16)),
+    );
+    let response = `${getLang("plugins.getcmd.list_title", total)}\n\n${lines.join("\n\n")}`;
+    if (total > rows.length) {
+      response += `\n\n${getLang("plugins.getcmd.more", total - rows.length)}`;
+    }
+    response += `\n\n${getLang("plugins.getcmd.footer", prefix)}`;
+
+    return await message.reply(response);
   },
 };

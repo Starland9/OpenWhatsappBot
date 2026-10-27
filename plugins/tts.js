@@ -4,7 +4,7 @@ const axios = require("axios");
 const { extractMessageContent, getContentType } = require("baileys");
 const translate = require("@vitalets/google-translate-api");
 const config = require("../config");
-const ffmpeg = require("fluent-ffmpeg");
+const { runFfmpeg } = require("../lib/utils/ffmpeg");
 const fs = require("fs").promises;
 const path = require("path");
 const os = require("os");
@@ -168,16 +168,17 @@ ar - Arabic`,
             await fs.writeFile(listFile, concatList);
 
             // Concatenate using ffmpeg
-            await new Promise((resolve, reject) => {
-              ffmpeg()
-                .input(listFile)
-                .inputOptions(["-f concat", "-safe 0"])
-                .outputOptions(["-c copy"])
-                .output(outputFile)
-                .on("end", resolve)
-                .on("error", reject)
-                .run();
-            });
+            await runFfmpeg([
+              "-f",
+              "concat",
+              "-safe",
+              "0",
+              "-i",
+              listFile,
+              "-c",
+              "copy",
+              outputFile,
+            ]);
 
             // Read concatenated file
             buffer = await fs.readFile(outputFile);

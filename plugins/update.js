@@ -1,5 +1,5 @@
 const { getLang } = require("../lib/utils/language");
-const simpleGit = require("simple-git");
+const { simpleGit } = require("simple-git");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");

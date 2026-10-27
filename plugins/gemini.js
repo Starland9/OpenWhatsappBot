@@ -1,7 +1,6 @@
 const { getLang } = require("../lib/utils/language");
 const { GoogleGenAI } = require("@google/genai");
 const { downloadMedia } = require("../lib/baileys/mediaAdapter");
-const FileType = require("file-type");
 const config = require("../config");
 
 /**
@@ -72,7 +71,9 @@ module.exports = {
         // Detect mime type from buffer when possible
         let detectedMime = "image/jpeg";
         try {
-          const ft = await FileType.fromBuffer(imageBuffer);
+          // file-type is ESM-only: load it lazily
+          const { fileTypeFromBuffer } = await import("file-type");
+          const ft = await fileTypeFromBuffer(imageBuffer);
           if (ft && ft.mime) detectedMime = ft.mime;
         } catch (e) {
           // ignore detection errors, fallback to jpeg

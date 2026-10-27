@@ -256,7 +256,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 ### Implementation for User Story 4
 
-- [ ] T029 [P] [US4] Group-feature plugins per research R12, R14, R15, R18 and R19:
+- [X] T029 [P] [US4] Group-feature plugins per research R12, R14, R15, R18 and R19:
   - `plugins/setwelcome.js` and `plugins/goodbye.js`: `onGroupParticipants`; placeholders `@user` `@group` `@desc` in one global-regex pass; `.goodbye on|off|reset|<text>` using `Group.goodbye`; `rawArgs`; `findOrCreate`; previews with placeholders substituted; invalidate `group:<jid>`;
   - `plugins/addfilter.js`: `onMessage` with an escaped word-boundary match and a 10 s cooldown per (group, pattern); cached `filters:<jid>`;
   - `plugins/delfilter.js`: also accepts a list index;

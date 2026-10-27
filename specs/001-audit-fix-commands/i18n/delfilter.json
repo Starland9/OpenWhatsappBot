@@ -1,0 +1,14 @@
+{
+  "en": {
+    "plugins.delfilter.desc": "Delete an automatic reply (admins only)",
+    "plugins.delfilter.usage": "📌 *Usage:*\n{0}delfilter <word or phrase>\n{0}delfilter <number>\n\nThe numbers are shown by {0}filter list",
+    "plugins.delfilter.not_found": "❌ No filter matches \"{0}\".\nSee the list with {1}filter list",
+    "plugins.delfilter.deleted": "✅ Filter \"{0}\" deleted."
+  },
+  "fr": {
+    "plugins.delfilter.desc": "Supprimer une réponse automatique (admins uniquement)",
+    "plugins.delfilter.usage": "📌 *Utilisation :*\n{0}delfilter <mot ou phrase>\n{0}delfilter <numéro>\n\nLes numéros sont affichés par {0}filter list",
+    "plugins.delfilter.not_found": "❌ Aucun filtre ne correspond à « {0} ».\nVoyez la liste avec {1}filter list",
+    "plugins.delfilter.deleted": "✅ Filtre « {0} » supprimé."
+  }
+}

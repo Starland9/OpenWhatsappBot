@@ -1,0 +1,24 @@
+{
+  "en": {
+    "plugins.quote.menu_title": "💬 Group quotes",
+    "plugins.quote.menu": "Reply to a message with {0}quote add to save it. Then replay a random quote or list the latest ones.",
+    "plugins.quote.btn_random": "🎲 Random",
+    "plugins.quote.btn_list": "📋 List",
+    "plugins.quote.list_title": "💬 *Recent quotes*",
+    "plugins.quote.usage": "📌 *Usage:* {0}quote add|random|list|delete <id>",
+    "plugins.quote.reply_first": "❌ Reply to a message to save it as a quote.",
+    "plugins.quote.no_text": "❌ The quoted message has no text.",
+    "plugins.quote.not_found": "❌ Quote #*{0}* not found."
+  },
+  "fr": {
+    "plugins.quote.menu_title": "💬 Citations du groupe",
+    "plugins.quote.menu": "Répondez à un message avec {0}quote add pour le sauvegarder. Rejouez ensuite une citation au hasard ou listez les dernières.",
+    "plugins.quote.btn_random": "🎲 Au hasard",
+    "plugins.quote.btn_list": "📋 Liste",
+    "plugins.quote.list_title": "💬 *Citations récentes*",
+    "plugins.quote.usage": "📌 *Utilisation :* {0}quote add|random|list|delete <id>",
+    "plugins.quote.reply_first": "❌ Répondez à un message pour le sauvegarder comme citation.",
+    "plugins.quote.no_text": "❌ Le message cité ne contient pas de texte.",
+    "plugins.quote.not_found": "❌ Citation #*{0}* introuvable."
+  }
+}

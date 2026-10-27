@@ -1,0 +1,22 @@
+{
+  "en": {
+    "plugins.news.desc": "Get the latest news, crypto prices or stock prices",
+    "plugins.news.stock_usage": "📌 *Usage:* {0}stock <symbol>\n\nExample: {0}stock AAPL",
+    "plugins.news.stock_price": "*{0} stock price*",
+    "plugins.news.stock_quota": "⏳ The stock service quota is used up (Alpha Vantage free plan). Please try again later.",
+    "plugins.news.no_api_key": "⚙️ NEWS_API_KEY is not configured.",
+    "plugins.news.no_stock_api_key": "⚙️ ALPHA_VANTAGE_KEY is not configured.",
+    "plugins.news.no_news": "❌ No news articles found.",
+    "plugins.news.crypto_not_found": "❌ Cryptocurrency not found. Use its name or ticker (bitcoin, btc, eth...)."
+  },
+  "fr": {
+    "plugins.news.desc": "Obtenir les dernières actualités, les cours des cryptos ou des actions",
+    "plugins.news.stock_usage": "📌 *Utilisation :* {0}stock <symbole>\n\nExemple : {0}stock AAPL",
+    "plugins.news.stock_price": "*Cours de l'action {0}*",
+    "plugins.news.stock_quota": "⏳ Le quota du service de cours de bourse est épuisé (offre gratuite Alpha Vantage). Réessayez plus tard.",
+    "plugins.news.no_api_key": "⚙️ NEWS_API_KEY n'est pas configurée.",
+    "plugins.news.no_stock_api_key": "⚙️ ALPHA_VANTAGE_KEY n'est pas configurée.",
+    "plugins.news.no_news": "❌ Aucun article trouvé.",
+    "plugins.news.crypto_not_found": "❌ Cryptomonnaie introuvable. Utilisez son nom ou son symbole (bitcoin, btc, eth...)."
+  }
+}

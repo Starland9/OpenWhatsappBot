@@ -1,0 +1,14 @@
+{
+  "en": {
+    "plugins.translate.desc": "Translate a text into another language",
+    "plugins.translate.usage": "📌 *Usage:*\n{0}trt <language code> <text>\n{0}trt <text> (translates into the bot language)\nReply to a message with {0}trt [language code]\n\nExample: {0}trt es Hello world",
+    "plugins.translate.invalid_lang": "❌ Unknown language code. Use a two-letter ISO 639-1 code, e.g. en, fr, es, de, ar.\n\nExample: {0}trt es Hello world",
+    "plugins.translate.too_long": "❌ The text is too long (max {0} characters)."
+  },
+  "fr": {
+    "plugins.translate.desc": "Traduire un texte dans une autre langue",
+    "plugins.translate.usage": "📌 *Utilisation :*\n{0}trt <code langue> <texte>\n{0}trt <texte> (traduit dans la langue du bot)\nRépondez à un message avec {0}trt [code langue]\n\nExemple : {0}trt en Bonjour le monde",
+    "plugins.translate.invalid_lang": "❌ Code de langue inconnu. Utilisez un code ISO 639-1 à deux lettres, par exemple en, fr, es, de, ar.\n\nExemple : {0}trt en Bonjour le monde",
+    "plugins.translate.too_long": "❌ Le texte est trop long ({0} caractères maximum)."
+  }
+}

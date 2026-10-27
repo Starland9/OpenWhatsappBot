@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.chatgpt.desc": "AI chat using ChatGPT (OpenAI), with image support",
+    "plugins.chatgpt.no_key": "⚙️ OPENAI_API_KEY is not configured. Add it to config.env to use this command.",
+    "plugins.chatgpt.usage": "📌 *Usage:*\n{0}gpt <question>\n\nExample: {0}gpt What is Node.js?\nOr send / reply to an image with {0}gpt to analyze it.",
+    "plugins.chatgpt.default_image_prompt": "What's in this image? Describe it in detail.",
+    "plugins.chatgpt.reply": "🤖 *ChatGPT*\n\n{0}",
+    "plugins.chatgpt.reply_vision": "🤖 *ChatGPT Vision*\n\n{0}",
+    "plugins.chatgpt.no_answer": "❌ ChatGPT did not return an answer. Please try again."
+  },
+  "fr": {
+    "plugins.chatgpt.desc": "Discuter avec ChatGPT (OpenAI), avec prise en charge des images",
+    "plugins.chatgpt.no_key": "⚙️ OPENAI_API_KEY n'est pas configurée. Ajoutez-la dans config.env pour utiliser cette commande.",
+    "plugins.chatgpt.usage": "📌 *Utilisation :*\n{0}gpt <question>\n\nExemple : {0}gpt Qu'est-ce que Node.js ?\nOu envoyez / répondez à une image avec {0}gpt pour l'analyser.",
+    "plugins.chatgpt.default_image_prompt": "Que voit-on sur cette image ? Décris-la en détail.",
+    "plugins.chatgpt.reply": "🤖 *ChatGPT*\n\n{0}",
+    "plugins.chatgpt.reply_vision": "🤖 *ChatGPT Vision*\n\n{0}",
+    "plugins.chatgpt.no_answer": "❌ ChatGPT n'a pas renvoyé de réponse. Réessayez."
+  }
+}

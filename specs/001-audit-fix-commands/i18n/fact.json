@@ -1,0 +1,10 @@
+{
+  "en": {
+    "plugins.fact.desc": "Get a random interesting fact",
+    "plugins.fact.title": "💡 *Random fact*\n\n{0}"
+  },
+  "fr": {
+    "plugins.fact.desc": "Obtenir un fait intéressant au hasard",
+    "plugins.fact.title": "💡 *Le saviez-vous ?*\n\n{0}"
+  }
+}

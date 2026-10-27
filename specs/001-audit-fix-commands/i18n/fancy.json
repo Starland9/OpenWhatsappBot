@@ -1,0 +1,40 @@
+{
+  "en": {
+    "plugins.fancy.desc": "Generate fancy text in different styles",
+    "plugins.fancy.usage": "📝 *Fancy Text Styles*\n\n📌 *Usage:* {0}fancy <style> <text>\n*Example:* {0}fancy 5 Hello World\n\n*Available styles:*\n{1}\n\nUse {0}fancy all <text> to see every style.",
+    "plugins.fancy.no_text": "❌ Please provide a text to convert.\n\nExample: {0}fancy 5 Hello World",
+    "plugins.fancy.too_long": "❌ The text is too long (max {0} characters).",
+    "plugins.fancy.invalid_style": "❌ Invalid style. Use a number between 1 and {0}, or \"all\".",
+    "plugins.fancy.all_title": "📝 *Fancy Text - All styles*",
+    "plugins.fancy.style_spaced": "Spaced",
+    "plugins.fancy.style_bold": "Bold",
+    "plugins.fancy.style_italic": "Italic",
+    "plugins.fancy.style_monospace": "Monospace",
+    "plugins.fancy.style_script": "Script",
+    "plugins.fancy.style_circled": "Circled",
+    "plugins.fancy.style_squared": "Squared",
+    "plugins.fancy.style_negative_circled": "Negative circled",
+    "plugins.fancy.style_alternating": "Alternating case",
+    "plugins.fancy.style_double_struck": "Double-struck",
+    "plugins.fancy.style_negative_squared": "Negative squared"
+  },
+  "fr": {
+    "plugins.fancy.desc": "Générer du texte fantaisie dans différents styles",
+    "plugins.fancy.usage": "📝 *Styles de texte fantaisie*\n\n📌 *Utilisation :* {0}fancy <style> <texte>\n*Exemple :* {0}fancy 5 Bonjour le monde\n\n*Styles disponibles :*\n{1}\n\nUtilisez {0}fancy all <texte> pour voir tous les styles.",
+    "plugins.fancy.no_text": "❌ Indiquez le texte à convertir.\n\nExemple : {0}fancy 5 Bonjour le monde",
+    "plugins.fancy.too_long": "❌ Le texte est trop long ({0} caractères maximum).",
+    "plugins.fancy.invalid_style": "❌ Style invalide. Utilisez un nombre entre 1 et {0}, ou \"all\".",
+    "plugins.fancy.all_title": "📝 *Texte fantaisie - Tous les styles*",
+    "plugins.fancy.style_spaced": "Espacé",
+    "plugins.fancy.style_bold": "Gras",
+    "plugins.fancy.style_italic": "Italique",
+    "plugins.fancy.style_monospace": "Chasse fixe",
+    "plugins.fancy.style_script": "Cursif",
+    "plugins.fancy.style_circled": "Cerclé",
+    "plugins.fancy.style_squared": "Carré",
+    "plugins.fancy.style_negative_circled": "Cerclé noir",
+    "plugins.fancy.style_alternating": "Casse alternée",
+    "plugins.fancy.style_double_struck": "Double trait",
+    "plugins.fancy.style_negative_squared": "Carré noir"
+  }
+}

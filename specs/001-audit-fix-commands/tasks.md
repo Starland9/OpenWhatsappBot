@@ -205,7 +205,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
   - `plugins/imagesearch.js`: `GIPHY_API_KEY` required; `images.original.mp4`; `maxContentLength`.
 
   Write the i18n fragments. — agent E4 (sonnet)
-- [ ] T026 [P] [US3] AI and information plugins:
+- [X] T026 [P] [US3] AI and information plugins:
   - `plugins/chatgpt.js` (own desc key; timeout);
   - `plugins/gemini.js` (`config.GEMINI_MODEL`; `httpOptions.timeout`; empty `response.text` handled; validation before the ⏳ reaction; `getQuotedMedia`);
   - `plugins/imagen.js`: Gemini native image model from `config.IMAGE_MODEL`. **First** verify the current model id and call shape against the Google GenAI docs or `models.list` for the installed `@google/genai` version, use `config: { numberOfImages: 1, aspectRatio }`, and read the correct response shape;

@@ -1,6 +1,6 @@
 # Phase 1: data model
 
-All changes are **additive** because the schema is applied by `DATABASE.sync({ alter: true })` on production databases (SQLite and Postgres), with no migrations:
+All changes are **additive**. `lib/database/index.js#sync()` no longer uses `sync({ alter: true })` (on SQLite it turned composite unique keys into per-column UNIQUE constraints; on Postgres it piles up duplicate constraints). Each boot now creates missing tables, adds missing nullable/defaulted columns and missing indexes, and on SQLite rebuilds tables damaged by earlier `alter` runs (rows kept). Rules for new schema:
 - new tables;
 - new columns that are nullable or have a default;
 - no new unique index on an existing table (it would fail on existing duplicates).

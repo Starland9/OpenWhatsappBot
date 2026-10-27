@@ -578,13 +578,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/luxon@npm:~3.7.0":
-  version: 3.7.1
-  resolution: "@types/luxon@npm:3.7.1"
-  checksum: 10c0/2db30c13b58adcd86daa447faa3ba59515fe907ead8ee3e6bb716d662812af0619d712f6c1eb190cdd7f9d2c00444c3ecd80af0f36e8143eb0c5e7339d6b2aca
-  languageName: node
-  linkType: hard
-
 "@types/ms@npm:*":
   version: 2.1.0
   resolution: "@types/ms@npm:2.1.0"
@@ -1027,16 +1020,6 @@ __metadata:
   version: 2.0.0
   resolution: "content-type@npm:2.0.0"
   checksum: 10c0/491539fff707d7594b0ca4fabcc084bef2a31ffa754ff0a4f80c4377e3963cff0394317f9271c24087596c97fa675bc123d61fa34ffe65b4904e7d3d3098de72
-  languageName: node
-  linkType: hard
-
-"cron@npm:^4.4.0":
-  version: 4.4.0
-  resolution: "cron@npm:4.4.0"
-  dependencies:
-    "@types/luxon": "npm:~3.7.0"
-    luxon: "npm:~3.7.0"
-  checksum: 10c0/e3762fda4a9a2404ac2e54e1104a3c6c695747e14b2321bbc5531aa1192c75a319075695fcaf68b6927e0ffd877b5454f314c680f6586db1a78b2c25b76b8a32
   languageName: node
   linkType: hard
 
@@ -1892,7 +1875,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"luxon@npm:^3.7.2, luxon@npm:~3.7.0":
+"luxon@npm:^3.7.2":
   version: 3.7.2
   resolution: "luxon@npm:3.7.2"
   checksum: 10c0/ed8f0f637826c08c343a29dd478b00628be93bba6f068417b1d8896b61cb61c6deacbe1df1e057dbd9298334044afa150f9aaabbeb3181418ac8520acfdc2ae2
@@ -2166,7 +2149,6 @@ __metadata:
     "@vitalets/google-translate-api": "npm:^9.2.1"
     axios: "npm:^1.20.0"
     baileys: "npm:7.0.0-rc14"
-    cron: "npm:^4.4.0"
     dotenv: "npm:^18.0.9"
     file-type: "npm:^22.2.0"
     google-tts-api: "npm:^2.0.2"

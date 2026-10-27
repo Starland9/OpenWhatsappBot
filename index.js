@@ -1,13 +1,8 @@
 const { WhatsAppClient } = require("./lib/baileys/client");
-const { Message } = require("./lib/classes/Message");
 const PluginLoader = require("./lib/plugins/loader");
-const { executeCommand, getPlugin } = require("./lib/plugins/registry");
-const { DATABASE, sync, StickerCommand } = require("./lib/database");
+const { attachHandlers } = require("./lib/core/pipeline");
+const { DATABASE, sync } = require("./lib/database");
 const { VERSION } = require("./config");
-const autoResponderHandler = require("./lib/utils/autoResponderHandler");
-const viewOnceHandler = require("./lib/utils/viewOnceHandler");
-const antiDeleteHandler = require("./lib/utils/antiDeleteHandler");
-const statusSaver = require("./lib/utils/statusSaver");
 const memoryManager = require("./lib/utils/memoryManager");
 const pino = require("pino");
 
@@ -71,160 +66,15 @@ async function start() {
     await PluginLoader.loadAll();
     logger.info("✅ Plugins loaded");
 
-    // Initialize WhatsApp client
+    // Initialize WhatsApp client. The shared pipeline (lib/core/pipeline.js)
+    // handles messages, anti-delete, group participants and ready hooks; it is
+    // attached first so that no event is missed.
     const client = new WhatsAppClient();
+    attachHandlers(client);
     await client.initialize();
-
-    // Handle incoming messages
-    client.on("messages", async (messages) => {
-      // Process messages in parallel (with concurrency limit)
-      const concurrencyLimit = require("./config").MESSAGE_CONCURRENCY_LIMIT;
-      for (let i = 0; i < messages.length; i += concurrencyLimit) {
-        const batch = messages.slice(i, i + concurrencyLimit);
-        await Promise.allSettled(
-          batch.map((msg) => processMessage(msg, client)),
-        );
-      }
-    });
-
-    // Ready event
-    client.on("ready", () => {
-      logger.info("✅ Bot is ready and listening for messages");
-    });
-
-    // Handle message updates (for anti-delete)
-    client.on("messages.update", async (updates) => {
-      for (const update of updates) {
-        await antiDeleteHandler.handleMessageDelete(update, client);
-      }
-    });
   } catch (error) {
-    logger.error("Failed to start bot:", error);
+    logger.error({ err: error }, "Failed to start bot");
     process.exit(1);
-  }
-}
-
-/**
- * Process a single message
- */
-async function processMessage(msg, client) {
-  try {
-    // Handle status broadcasts separately (save status if enabled)
-    if (msg.key.remoteJid === "status@broadcast") {
-      try {
-        await statusSaver.handleStatus(msg, client);
-      } catch (e) {
-        logger.error("Status save error:", e);
-      }
-      return;
-    }
-
-    // Create Message instance
-    const message = new Message(client, msg);
-
-    // Cache message for anti-delete functionality (non-blocking)
-    setImmediate(() => antiDeleteHandler.cacheMessage(message));
-
-    // Handle view-once messages first (before any other processing)
-    const viewOnceHandled = await viewOnceHandler.handleMessage(message);
-    if (viewOnceHandled) {
-      logger.debug("View-once message handled");
-      // Continue processing for other handlers/commands
-    }
-
-    // Check if message is a reply to a quiz/game OR a button/single-select reply
-    // Many button plugins (level, leaderboard, idea, role, ginfo, tictactoe, etc.)
-    // send buttons whose `id` becomes the body. We route those via the same
-    // `handleReply` mechanism the quiz uses, but globally.
-    if (message.quoted || message.isInteractiveReply) {
-      // 1) Try the quiz plugin first (it requires a quoted reply)
-      if (message.quoted) {
-        const quizPlugin = getPlugin("quiz");
-        if (quizPlugin && quizPlugin.handleReply) {
-          const handled = await quizPlugin.handleReply(message);
-          if (handled) {
-            return; // Skip further processing
-          }
-        }
-      }
-
-      // 2) Global button/list reply dispatcher
-      //    Any plugin that exports a `handleButtonReply` (or `handleReply`) is
-      //    called. First to return true wins. This lets every button plugin
-      //    receive its own button clicks without a quoted message.
-      const body = (message.body || "").trim();
-      if (body) {
-        const { getPlugins } = require("./lib/plugins/registry");
-        const list = getPlugins();
-        for (const p of list) {
-          const handler = p.handleButtonReply || p.handleReply;
-          if (typeof handler !== "function") continue;
-          try {
-            const handled = await handler(message);
-            if (handled) {
-              return; // Skip further processing
-            }
-          } catch (err) {
-            logger.error("Button reply handler error:", err);
-          }
-        }
-      }
-    }
-
-    // Track message activity for stats, leaderboards, leveling (non-blocking)
-    try {
-      const tracker = getPlugin("trackmessages");
-      if (tracker && typeof tracker.trackMessage === "function") {
-        tracker.trackMessage(message);
-      }
-    } catch (trackErr) {
-      logger.error("Tracker error:", trackErr);
-    }
-
-    // Check if this is a sticker command (stealth mode)
-    if (
-      message.type === "stickerMessage" &&
-      message.data.message?.stickerMessage
-    ) {
-      try {
-        const fileSha256 = message.data.message.stickerMessage.fileSha256;
-        if (fileSha256) {
-          const stickerHash = Buffer.from(fileSha256).toString("hex");
-          const stickerCmd = await StickerCommand.findOne({
-            where: { stickerHash },
-          });
-
-          if (stickerCmd) {
-            // Execute the bound command silently
-            logger.debug(`Executing sticker command: ${stickerCmd.command}`);
-            message.body = require("./config").PREFIX + stickerCmd.command;
-            await executeCommand(message);
-            return; // Skip other handlers
-          }
-        }
-      } catch (error) {
-        logger.error("Sticker command error:", error);
-      }
-    }
-
-    // Try auto-responder first (only for non-command messages)
-    const isCommand = message.body.startsWith(require("./config").PREFIX);
-
-    if (
-      !isCommand &&
-      !message.fromMe &&
-      !message.isInteractiveReply // skip auto-responder for button clicks
-    ) {
-      const autoResponded = await autoResponderHandler.handleMessage(message);
-      if (autoResponded) {
-        return; // Skip command execution if auto-responded
-      }
-    }
-
-    // Execute commands (open to everyone, per-command restrictions in registry)
-    await executeCommand(message);
-  } catch (error) {
-    logger.error("Error processing message:", error);
   }
 }
 

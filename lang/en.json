@@ -500,6 +500,32 @@
     }
   },
   "extra": {
-    "group_cmd": "This command can only be used in groups."
+    "group_cmd": "This command can only be used in groups.",
+    "instance_close": "🔌 Connection closed ({0}).",
+    "reconnect": "🔄 Reconnecting ({0}) in {1}s...",
+    "connected": "✅ Connected ({0}) — WhatsApp Web v{1}"
+  },
+  "common": {
+    "error": "❌ An error occurred while running this command.",
+    "owner_only": "🔒 This command is reserved for the bot owner.",
+    "admin_only": "🔒 This command is reserved for group admins.",
+    "sender_not_admin": "🔒 You must be a group admin to use this command.",
+    "bot_not_admin": "❌ The bot must be a group admin to do this.",
+    "pm_only": "❌ This command can only be used in private chat.",
+    "service_unavailable": "⚠️ This service is temporarily unavailable. Please try again later.",
+    "not_configured": "⚙️ This feature is not configured on this bot (missing API key).",
+    "rate_limited": "⏳ Too many requests to this service. Please try again in a few minutes.",
+    "cooldown": "⏳ Please wait {0}s before using this again.",
+    "usage_prefix": "📌 *Usage:*",
+    "reply_required": "❌ Reply to a message to use this command.",
+    "media_too_large": "❌ This file is too large (limit: {0} MB).",
+    "no_media": "❌ No media found. Reply to an image, a video, an audio, a sticker or a document.",
+    "cannot_target_bot": "❌ I can't do that to myself.",
+    "cannot_target_owner": "❌ This action can't target a bot owner.",
+    "cannot_target_creator": "❌ This action can't target the group creator.",
+    "cannot_target_self": "❌ You can't target yourself.",
+    "not_admin": "❌ Bot must be admin to perform this action.",
+    "status_enabled": "✅ Enabled",
+    "status_disabled": "❌ Disabled"
   }
 }

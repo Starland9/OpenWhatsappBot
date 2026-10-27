@@ -14,14 +14,10 @@
 
 const http = require('http');
 const { WhatsAppClient } = require('./lib/baileys/client');
-const { Message } = require('./lib/classes/Message');
 const PluginLoader = require('./lib/plugins/loader');
-const { executeCommand, getPlugin } = require('./lib/plugins/registry');
-const { DATABASE, sync, StickerCommand } = require('./lib/database');
+const { attachHandlers } = require('./lib/core/pipeline');
+const { DATABASE, sync } = require('./lib/database');
 const config = require('./config');
-const autoResponderHandler = require('./lib/utils/autoResponderHandler');
-const viewOnceHandler = require('./lib/utils/viewOnceHandler');
-const antiDeleteHandler = require('./lib/utils/antiDeleteHandler');
 const memoryManager = require('./lib/utils/memoryManager');
 const pino = require('pino');
 
@@ -41,7 +37,6 @@ const logger = pino({
 // Cache config values at module level for better performance
 const VERSION = config.VERSION;
 const PREFIX = config.PREFIX;
-const MESSAGE_CONCURRENCY_LIMIT = config.MESSAGE_CONCURRENCY_LIMIT;
 
 // Configuration - Use config.js values when available
 const PORT = config.PANEL_PORT || parseInt(process.env.PORT) || 3000;
@@ -464,86 +459,16 @@ function startKeepAlive() {
 }
 
 /**
- * Process a single message
- * 
- * Note: setImmediate is used for anti-delete caching to make the operation
- * non-blocking. This allows the main message processing to continue without
- * waiting for caching. Any errors in caching are handled by the antiDeleteHandler
- * internally and won't affect message processing.
+ * Record a processing error for /status (keeps the last 100)
  */
-async function processMessage(msg, client) {
-  try {
-    // Update activity
-    botState.messagesProcessed++;
-    botState.lastActivity = new Date().toISOString();
-
-    // Skip broadcast messages
-    if (msg.key.remoteJid === 'status@broadcast') return;
-
-    // Create Message instance
-    const message = new Message(client, msg);
-
-    // Cache message for anti-delete functionality (non-blocking)
-    // Uses setImmediate to defer caching to next event loop tick
-    setImmediate(() => antiDeleteHandler.cacheMessage(message));
-
-    // Handle view-once messages first
-    const viewOnceHandled = await viewOnceHandler.handleMessage(message);
-    if (viewOnceHandled) {
-      logger.debug('View-once message handled');
-    }
-
-    // Check if message is a reply to a quiz/game
-    if (message.quoted) {
-      const quizPlugin = getPlugin('quiz');
-      if (quizPlugin && quizPlugin.handleReply) {
-        const handled = await quizPlugin.handleReply(message);
-        if (handled) return;
-      }
-    }
-
-    // Check if this is a sticker command (stealth mode)
-    if (message.type === 'stickerMessage' && message.data.message?.stickerMessage) {
-      try {
-        const fileSha256 = message.data.message.stickerMessage.fileSha256;
-        if (fileSha256) {
-          const stickerHash = Buffer.from(fileSha256).toString('hex');
-          const stickerCmd = await StickerCommand.findOne({ where: { stickerHash } });
-
-          if (stickerCmd) {
-            logger.debug(`Executing sticker command: ${stickerCmd.command}`);
-            message.body = PREFIX + stickerCmd.command;
-            await executeCommand(message);
-            return;
-          }
-        }
-      } catch (error) {
-        logger.error('Sticker command error:', error);
-      }
-    }
-
-    // Try auto-responder first (only for non-command messages)
-    // Uses cached PREFIX value for better performance
-    const isCommand = message.body.startsWith(PREFIX);
-
-    if (!isCommand && !message.fromMe) {
-      const autoResponded = await autoResponderHandler.handleMessage(message);
-      if (autoResponded) return;
-    }
-
-    // Execute commands
-    await executeCommand(message);
-  } catch (error) {
-    logger.error('Error processing message:', error);
-    botState.errors.push({
-      type: 'message_processing',
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
-    // Keep only last 100 errors
-    if (botState.errors.length > 100) {
-      botState.errors = botState.errors.slice(-100);
-    }
+function recordError(type, error) {
+  botState.errors.push({
+    type,
+    error: error?.message || String(error),
+    timestamp: new Date().toISOString(),
+  });
+  if (botState.errors.length > 100) {
+    botState.errors = botState.errors.slice(-100);
   }
 }
 
@@ -571,18 +496,17 @@ async function startBot() {
     await PluginLoader.loadAll();
     logger.info('✅ Plugins loaded');
 
-    // Initialize WhatsApp client
+    // Initialize WhatsApp client. Messages go through the shared pipeline
+    // (lib/core/pipeline.js), the same one index.js uses.
     const client = new WhatsAppClient();
-    await client.initialize();
     botState.client = client;
 
-    // Handle incoming messages
-    // Uses cached MESSAGE_CONCURRENCY_LIMIT for better performance
-    client.on('messages', async (messages) => {
-      for (let i = 0; i < messages.length; i += MESSAGE_CONCURRENCY_LIMIT) {
-        const batch = messages.slice(i, i + MESSAGE_CONCURRENCY_LIMIT);
-        await Promise.allSettled(batch.map((msg) => processMessage(msg, client)));
-      }
+    attachHandlers(client, {
+      onMessageProcessed: () => {
+        botState.messagesProcessed++;
+        botState.lastActivity = new Date().toISOString();
+      },
+      onError: (error) => recordError('message_processing', error),
     });
 
     // Ready event
@@ -590,14 +514,6 @@ async function startBot() {
       botState.status = 'running';
       botState.isConnected = true;
       botState.startTime = Date.now();
-      logger.info('✅ Bot is ready and listening for messages');
-    });
-
-    // Handle message updates (for anti-delete)
-    client.on('messages.update', async (updates) => {
-      for (const update of updates) {
-        await antiDeleteHandler.handleMessageDelete(update, client);
-      }
     });
 
     // Handle disconnection
@@ -605,6 +521,8 @@ async function startBot() {
       botState.isConnected = false;
       botState.status = 'disconnected';
     });
+
+    await client.initialize();
 
     return client;
   } catch (error) {

@@ -500,6 +500,32 @@
     }
   },
   "extra": {
-    "group_cmd": "Cette commande ne peut être utilisée que dans les groupes."
+    "group_cmd": "Cette commande ne peut être utilisée que dans les groupes.",
+    "instance_close": "🔌 Connexion fermée ({0}).",
+    "reconnect": "🔄 Reconnexion ({0}) dans {1} s...",
+    "connected": "✅ Connecté ({0}) — WhatsApp Web v{1}"
+  },
+  "common": {
+    "error": "❌ Une erreur est survenue lors de l'exécution de cette commande.",
+    "owner_only": "🔒 Cette commande est réservée au propriétaire du bot.",
+    "admin_only": "🔒 Cette commande est réservée aux administrateurs du groupe.",
+    "sender_not_admin": "🔒 Vous devez être administrateur du groupe pour utiliser cette commande.",
+    "bot_not_admin": "❌ Le bot doit être administrateur du groupe pour faire cela.",
+    "pm_only": "❌ Cette commande ne peut être utilisée qu'en discussion privée.",
+    "service_unavailable": "⚠️ Ce service est momentanément indisponible. Réessayez plus tard.",
+    "not_configured": "⚙️ Cette fonctionnalité n'est pas configurée sur ce bot (clé API manquante).",
+    "rate_limited": "⏳ Trop de requêtes vers ce service. Réessayez dans quelques minutes.",
+    "cooldown": "⏳ Patientez {0} s avant de recommencer.",
+    "usage_prefix": "📌 *Utilisation :*",
+    "reply_required": "❌ Répondez à un message pour utiliser cette commande.",
+    "media_too_large": "❌ Ce fichier est trop volumineux (limite : {0} Mo).",
+    "no_media": "❌ Aucun média trouvé. Répondez à une image, une vidéo, un audio, un sticker ou un document.",
+    "cannot_target_bot": "❌ Je ne peux pas faire ça sur moi-même.",
+    "cannot_target_owner": "❌ Cette action ne peut pas viser un propriétaire du bot.",
+    "cannot_target_creator": "❌ Cette action ne peut pas viser le créateur du groupe.",
+    "cannot_target_self": "❌ Vous ne pouvez pas vous viser vous-même.",
+    "not_admin": "❌ Le bot doit être administrateur pour effectuer cette action.",
+    "status_enabled": "✅ Activé",
+    "status_disabled": "❌ Désactivé"
   }
 }

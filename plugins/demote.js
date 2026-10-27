@@ -1,52 +1,93 @@
 const { getLang } = require("../lib/utils/language");
+const config = require("../config");
+const {
+  normalizeJid,
+  jidUser,
+  guardTarget,
+  assertParticipantResult,
+} = require("../lib/utils/permissions");
 
 /**
- * Demote command - Demote admin to member
+ * Targets of the command: every mention, otherwise the quoted sender.
+ * Normalized, deduplicated, empty values dropped.
+ */
+function resolveTargets(message) {
+  const unique = (jids) => [...new Set(jids.map(normalizeJid).filter(Boolean))];
+
+  const mentioned = unique(message.mentions || []);
+  if (mentioned.length) return mentioned;
+  return unique([message.quoted?.sender]);
+}
+
+/**
+ * Outcome of one target in Baileys' per-participant result
+ * (`[{ status: "200", jid }]`). "" when the target is missing from the result.
+ */
+function statusOf(res, targets, jid, index) {
+  const entry =
+    res.find((r) => normalizeJid(r?.jid) === jid) ||
+    (res.length === targets.length ? res[index] : undefined);
+  return entry ? String(entry.status) : "";
+}
+
+const mentionText = (jids) => jids.map((j) => `@${jidUser(j)}`).join(" ");
+
+/**
+ * Demote command - Demote one or more admins to regular members
  */
 module.exports = {
   command: {
     pattern: "demote",
     desc: getLang("plugins.demote.desc"),
     type: "group",
-    onlyGroup: true,
+    adminOnly: true,
   },
 
   async execute(message) {
-    if (!message.isGroup) {
-      return await message.reply(getLang("extra.group_cmd"));
+    const targets = resolveTargets(message);
+    if (!targets.length) {
+      return await message.reply(
+        `${getLang("common.usage_prefix")}\n${getLang("plugins.demote.usage", config.PREFIX)}`,
+      );
     }
 
-    // Check if sender is admin
-    const isSenderAdmin = await message.isSenderAdmin();
-    if (!isSenderAdmin && !message.isSudo()) {
-      return await message.reply(getLang("plugins.common.not_admin"));
+    if (!(await message.isBotAdmin())) {
+      return await message.reply(getLang("common.bot_not_admin"));
     }
 
-    // Check if bot is admin
-    const isBotAdmin = await message.isBotAdmin();
-    if (!isBotAdmin) {
-      return await message.reply(getLang("plugins.demote.not_admin"));
+    // Refuse the bot, the sender, the owners and the group creator
+    const allowed = [];
+    const refusals = new Set();
+    for (const jid of targets) {
+      const refusal = await guardTarget(message, jid);
+      if (refusal) refusals.add(refusal);
+      else allowed.push(jid);
     }
+    if (refusals.size) {
+      await message.reply([...refusals].map((key) => getLang(key)).join("\n"));
+    }
+    if (!allowed.length) return;
 
-    // Get target user
-    let target;
-
-    if (message.mentions && message.mentions.length > 0) {
-      target = message.mentions[0];
-    } else if (message.quoted) {
-      target = message.quoted.sender;
+    // WhatsApp answers with one status per participant ("200" = done)
+    const res = await message.demote(allowed);
+    const done = [];
+    const failed = [];
+    if (assertParticipantResult(res)) {
+      done.push(...allowed);
     } else {
-      return await message.reply(getLang("plugins.demote.mention_user"));
+      allowed.forEach((jid, i) => {
+        const ok = statusOf(res, allowed, jid, i) === "200";
+        (ok ? done : failed).push(jid);
+      });
     }
 
-    try {
-      await message.demote(target);
-      await message.reply(`✅ Demoted @${target.split("@")[0]} to member`, {
-        mentions: [target],
-      });
-    } catch (error) {
-      console.error("Demote error:", error);
-      await message.reply(`❌ Failed to demote: ${error.message}`);
+    const lines = [];
+    if (done.length) {
+      lines.push(getLang("plugins.demote.done", mentionText(done)));
     }
+    if (failed.length) {
+      lines.push(getLang("plugins.demote.failed", mentionText(failed)));
+    }
+    await message.reply(lines.join("\n"), { mentions: [...done, ...failed] });
   },
 };

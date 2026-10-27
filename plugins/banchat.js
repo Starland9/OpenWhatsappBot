@@ -1,44 +1,35 @@
 const { getLang } = require("../lib/utils/language");
+const { BannedChat } = require("../lib/database");
+const settingsCache = require("../lib/utils/settingsCache");
+const { BANNED_CHATS_KEY } = require("../lib/core/pipeline");
 const config = require("../config");
 
 /**
- * Ban/Unban Plugin
- * Deactivate/activate bot in specific chats
+ * Ban Plugin
+ * Deactivate the bot in the current chat (group or private). The chat is stored
+ * in BannedChat; the pipeline drops its messages, except `unban` from an owner.
  */
-
-// Store banned chats in memory (in production, use database)
-const bannedChats = new Set();
-
 module.exports = {
   command: {
     pattern: "ban",
-    desc: "Deactivate bot in current chat (owner only)",
+    desc: getLang("plugins.banchat.desc"),
     type: "owner",
+    fromMe: true,
   },
 
-  async execute(message, args) {
-    if (!message.isSudo()) {
-      return await message.reply("*This command is only for bot owners!*");
+  async execute(message) {
+    const [, created] = await BannedChat.findOrCreate({
+      where: { jid: message.jid },
+      defaults: { jid: message.jid, bannedBy: message.sender || message.senderLid || null },
+    });
+
+    // The pipeline gate reads the banned chats through the cache
+    settingsCache.invalidate(BANNED_CHATS_KEY);
+
+    if (!created) {
+      return await message.reply(getLang("plugins.banchat.already", config.PREFIX));
     }
 
-    try {
-      if (bannedChats.has(message.jid)) {
-        return await message.reply(
-          "*Bot is already deactivated in this chat!* ⚫"
-        );
-      }
-
-      bannedChats.add(message.jid);
-
-      await message.reply(
-        `*Bot deactivated in this chat!* ⚫\n\nThe bot will not respond to any commands here.\n\nUse .unban to reactivate.`
-      );
-    } catch (error) {
-      console.error("Ban command error:", error);
-      await message.reply("*Error deactivating bot!*");
-    }
+    await message.reply(getLang("plugins.banchat.done", config.PREFIX));
   },
-
-  // Export helper function to check if chat is banned
-  isBanned: (jid) => bannedChats.has(jid),
 };

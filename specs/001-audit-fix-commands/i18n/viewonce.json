@@ -1,0 +1,14 @@
+{
+  "en": {
+    "plugins.viewonce.desc": "Reveal a view-once message (reply to it). Owner only.",
+    "plugins.viewonce.usage": "*View-once management:*\n\n{0}vv - reply to a view-once message to reveal it\n{0}setvv g - auto-forward view-once messages to the same group/chat\n{0}setvv p - auto-forward to your private chat\n{0}setvv <jid or number> - auto-forward to a specific chat\n{0}setvv null - disable auto-forward\n{0}getvv - show the current settings",
+    "plugins.viewonce.not_set": "View-once forwarding is not configured.\n\nUse {0}setvv to configure it.",
+    "plugins.viewonce.forward_caption": "📸 *View-once message*\n*From:* @{0}"
+  },
+  "fr": {
+    "plugins.viewonce.desc": "Révéler un message à vue unique (en y répondant). Propriétaire uniquement.",
+    "plugins.viewonce.usage": "*Gestion des messages à vue unique :*\n\n{0}vv - répondre à un message à vue unique pour le révéler\n{0}setvv g - transférer automatiquement vers le même groupe/chat\n{0}setvv p - transférer automatiquement vers votre chat privé\n{0}setvv <jid ou numéro> - transférer automatiquement vers un chat précis\n{0}setvv null - désactiver le transfert automatique\n{0}getvv - afficher les réglages actuels",
+    "plugins.viewonce.not_set": "Le transfert des messages à vue unique n'est pas configuré.\n\nUtilisez {0}setvv pour le configurer.",
+    "plugins.viewonce.forward_caption": "📸 *Message à vue unique*\n*De :* @{0}"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "en": {
+    "plugins.hangman.desc": "Hangman: guess the word letter by letter",
+    "plugins.hangman.usage": "*Hangman*\n\n{0}hangman - Start a game\n{0}hangman <letter> - Guess a letter\n{0}hangman stop - End the game\n\nYou can also reply to the board with a letter.",
+    "plugins.hangman.board": "🎯 *Hangman*\n\n{0}\nWord: `{1}`\nWrong letters: {2}\nAttempts: {3}/{4}\n\n_Reply to this message with a letter, or send {5}hangman <letter>. {5}hangman stop ends the game._",
+    "plugins.hangman.already_running": "⏳ A game is already running in this chat (use {0}hangman stop to end it).",
+    "plugins.hangman.no_game": "❌ No game is running here. Start one with {0}hangman.",
+    "plugins.hangman.stop_denied": "🔒 Only the player who started the game, a group admin or an owner can stop it.",
+    "plugins.hangman.stopped": "🛑 Game stopped. The word was: *{0}*",
+    "plugins.hangman.invalid": "❌ Reply with a single letter (a-z).",
+    "plugins.hangman.already": "❌ `{0}` was already tried.",
+    "plugins.hangman.win": "🎉 You found it! The word was: *{0}*",
+    "plugins.hangman.lose": "💀 You lost. The word was: *{0}*"
+  },
+  "fr": {
+    "plugins.hangman.desc": "Jeu du pendu : devine le mot lettre par lettre",
+    "plugins.hangman.usage": "*Pendu*\n\n{0}hangman - Lancer une partie\n{0}hangman <lettre> - Proposer une lettre\n{0}hangman stop - Arrêter la partie\n\nTu peux aussi répondre au plateau avec une lettre.",
+    "plugins.hangman.board": "🎯 *Pendu*\n\n{0}\nMot : `{1}`\nLettres fausses : {2}\nEssais : {3}/{4}\n\n_Réponds à ce message avec une lettre, ou envoie {5}hangman <lettre>. {5}hangman stop arrête la partie._",
+    "plugins.hangman.already_running": "⏳ Une partie est déjà en cours dans cette discussion (utilise {0}hangman stop pour l'arrêter).",
+    "plugins.hangman.no_game": "❌ Aucune partie en cours ici. Lance-en une avec {0}hangman.",
+    "plugins.hangman.stop_denied": "🔒 Seul le joueur qui a lancé la partie, un admin du groupe ou un propriétaire peut l'arrêter.",
+    "plugins.hangman.stopped": "🛑 Partie arrêtée. Le mot était : *{0}*",
+    "plugins.hangman.invalid": "❌ Réponds avec une seule lettre (a-z).",
+    "plugins.hangman.already": "❌ `{0}` a déjà été essayée.",
+    "plugins.hangman.win": "🎉 Trouvé ! Le mot était : *{0}*",
+    "plugins.hangman.lose": "💀 Perdu. Le mot était : *{0}*"
+  }
+}

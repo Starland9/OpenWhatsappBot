@@ -1,0 +1,22 @@
+{
+  "en": {
+    "plugins.reddit.desc": "Browse Reddit posts (needs Reddit API keys)",
+    "plugins.reddit.usage": "*Provide a subreddit or a search!*\n\nExamples:\n• `{0}reddit r/memes`: hot posts\n• `{0}reddit r/memes cats`: search in a subreddit\n• `{0}reddit funny cats`: search all of Reddit",
+    "plugins.reddit.invalid_subreddit": "❌ Invalid subreddit name (letters, digits and _, 2 to 21 characters).",
+    "plugins.reddit.not_found": "❌ Subreddit not found or private.",
+    "plugins.reddit.no_results": "❌ No results found.\n\nTry other terms or another subreddit (adult posts are hidden).",
+    "plugins.reddit.header": "🔍 *Reddit results - r/{0}*",
+    "plugins.reddit.post": "*{0}. {1}*\n👤 u/{2}\n⬆️ {3} upvotes | 💬 {4} comments\n🔗 {5}",
+    "plugins.reddit.link": "📎 {0}"
+  },
+  "fr": {
+    "plugins.reddit.desc": "Parcourir les publications Reddit (nécessite des clés API Reddit)",
+    "plugins.reddit.usage": "*Indiquez un subreddit ou une recherche !*\n\nExemples :\n• `{0}reddit r/memes` : publications populaires\n• `{0}reddit r/memes chats` : recherche dans un subreddit\n• `{0}reddit funny cats` : recherche sur tout Reddit",
+    "plugins.reddit.invalid_subreddit": "❌ Nom de subreddit invalide (lettres, chiffres et _, de 2 à 21 caractères).",
+    "plugins.reddit.not_found": "❌ Subreddit introuvable ou privé.",
+    "plugins.reddit.no_results": "❌ Aucun résultat trouvé.\n\nEssayez d’autres termes ou un autre subreddit (les publications pour adultes sont masquées).",
+    "plugins.reddit.header": "🔍 *Résultats Reddit - r/{0}*",
+    "plugins.reddit.post": "*{0}. {1}*\n👤 u/{2}\n⬆️ {3} votes positifs | 💬 {4} commentaires\n🔗 {5}",
+    "plugins.reddit.link": "📎 {0}"
+  }
+}

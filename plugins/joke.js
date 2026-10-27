@@ -1,72 +1,74 @@
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
+const { fetchJson, safeLog } = require("../lib/utils/http");
+const config = require("../config");
 
 /**
  * Joke Plugin
- * Get random jokes for entertainment
+ * Get random jokes for entertainment (JokeAPI in French when the bot speaks French,
+ * Official Joke API / JokeAPI in English otherwise)
  */
+
+const JOKE_API = "https://v2.jokeapi.dev/joke/Any";
+const OFFICIAL_JOKE_API = "https://official-joke-api.appspot.com/random_joke";
+const TIMEOUT_MS = 10000;
+
+function fromJokeApi(data) {
+  if (!data || data.error) return null;
+  if (data.type === "single" && data.joke) return `${data.joke} 😂`;
+  if (data.type === "twopart" && data.setup && data.delivery) {
+    return `*${data.setup}*\n\n_${data.delivery}_ 😂`;
+  }
+  return null;
+}
+
+/** JokeAPI, in `lang` ("fr" has a small catalogue; the call fails when nothing matches) */
+async function jokeApi(lang) {
+  const data = await fetchJson(JOKE_API, {
+    params: { lang, "safe-mode": "" },
+    timeoutMs: TIMEOUT_MS,
+  });
+  return fromJokeApi(data);
+}
+
+async function officialJokeApi() {
+  const data = await fetchJson(OFFICIAL_JOKE_API, { timeoutMs: TIMEOUT_MS });
+  if (data?.setup && data?.punchline) {
+    return `*${data.setup}*\n\n_${data.punchline}_ 😂`;
+  }
+  return null;
+}
 
 module.exports = {
   command: {
     pattern: "joke",
-    desc: "Get a random joke",
+    desc: getLang("plugins.joke.desc"),
     type: "fun",
   },
 
-  async execute(message, args) {
-    try {
-      await message.react("😂");
+  async execute(message) {
+    await message.react("😂");
 
-      // Try multiple joke APIs for better coverage
-      let joke = null;
+    const sources =
+      config.LANG === "fr"
+        ? [() => jokeApi("fr"), officialJokeApi, () => jokeApi("en")]
+        : [officialJokeApi, () => jokeApi("en")];
 
-      // Method 1: Official Joke API
+    let joke = null;
+    for (const source of sources) {
       try {
-        const response = await axios.get(
-          "https://official-joke-api.appspot.com/random_joke",
-          { timeout: 10000 }
-        );
-
-        if (response.data && response.data.setup) {
-          joke = `*${response.data.setup}*\n\n_${response.data.punchline}_ 😂`;
-        }
-      } catch (e) {
-        console.log("Official Joke API failed");
+        joke = await source();
+      } catch (error) {
+        console.warn("Joke API failed:", safeLog(error));
       }
-
-      // Method 2: JokeAPI
-      if (!joke) {
-        try {
-          const response = await axios.get(
-            "https://v2.jokeapi.dev/joke/Any?safe-mode",
-            { timeout: 10000 }
-          );
-
-          if (response.data) {
-            if (response.data.type === "single") {
-              joke = `${response.data.joke} 😂`;
-            } else if (response.data.type === "twopart") {
-              joke = `*${response.data.setup}*\n\n_${response.data.delivery}_ 😂`;
-            }
-          }
-        } catch (e) {
-          console.log("JokeAPI failed");
-        }
-      }
-
-      if (joke) {
-        await message.reply(joke);
-        await message.react("✅");
-      } else {
-        await message.reply(
-          "*Couldn't fetch a joke right now!* 😅\n\nPlease try again later."
-        );
-        await message.react("❌");
-      }
-    } catch (error) {
-      console.error("Joke error:", error);
-      await message.reply("*Error fetching joke!*");
-      await message.react("❌");
+      if (joke) break;
     }
+
+    if (!joke) {
+      await message.react("❌");
+      return await message.reply(getLang("common.service_unavailable"));
+    }
+
+    await message.reply(joke);
+    await message.react("✅");
   },
 };

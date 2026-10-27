@@ -1,0 +1,24 @@
+{
+  "en": {
+    "plugins.apk.desc": "Search Android apps on Aptoide and download an APK",
+    "plugins.apk.usage": "*APK Downloader*\n\n{0}apk <app name> - Search Aptoide (top 5 results)\n{0}apk dl <number> - Download a result of your last search\n\n*Example:* {0}apk whatsapp, then {0}apk dl 1",
+    "plugins.apk.results_title": "📱 *APK results for \"{0}\"*",
+    "plugins.apk.results_hint": "➡️ Download one with {0}apk dl <number> (for example {0}apk dl 1).",
+    "plugins.apk.no_results": "❌ No app found for *{0}*.\n\nTry another name, or the official name of the app.",
+    "plugins.apk.no_search": "❌ No recent search in this chat. Search first with {0}apk <app name>.",
+    "plugins.apk.bad_number": "❌ Pick a number between 1 and {0}.",
+    "plugins.apk.query_too_long": "❌ Your search is too long (max {0} characters).",
+    "plugins.apk.caption": "*{0}* v{1}\n📦 {2}\n\n⚠️ Install at your own risk: only install apps you trust.\nSource: Aptoide"
+  },
+  "fr": {
+    "plugins.apk.desc": "Rechercher des applications Android sur Aptoide et télécharger un APK",
+    "plugins.apk.usage": "*Téléchargeur d'APK*\n\n{0}apk <nom de l'app> - Chercher sur Aptoide (5 premiers résultats)\n{0}apk dl <numéro> - Télécharger un résultat de ta dernière recherche\n\n*Exemple :* {0}apk whatsapp, puis {0}apk dl 1",
+    "plugins.apk.results_title": "📱 *Résultats APK pour « {0} »*",
+    "plugins.apk.results_hint": "➡️ Télécharge-en un avec {0}apk dl <numéro> (par exemple {0}apk dl 1).",
+    "plugins.apk.no_results": "❌ Aucune application trouvée pour *{0}*.\n\nEssaie un autre nom, ou le nom officiel de l'application.",
+    "plugins.apk.no_search": "❌ Aucune recherche récente dans cette discussion. Cherche d'abord avec {0}apk <nom de l'app>.",
+    "plugins.apk.bad_number": "❌ Choisis un numéro entre 1 et {0}.",
+    "plugins.apk.query_too_long": "❌ Ta recherche est trop longue ({0} caractères maximum).",
+    "plugins.apk.caption": "*{0}* v{1}\n📦 {2}\n\n⚠️ Installe à tes risques : n'installe que des applications de confiance.\nSource : Aptoide"
+  }
+}

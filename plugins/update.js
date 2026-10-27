@@ -1,11 +1,26 @@
-const { getLang } = require("../lib/utils/language");
-const simpleGit = require("simple-git");
+const { simpleGit } = require("simple-git");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
+const pino = require("pino");
+const { getLang } = require("../lib/utils/language");
+const { safeLog } = require("../lib/utils/http");
+const downloader = require("../lib/utils/downloader");
+const config = require("../config");
+
+const logger = pino({ level: config.LOG_LEVEL });
+
+const GIT_TIMEOUT_MS = 120000; // per git process, reset on output
+const INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
+const YTDLP_UPDATE_TIMEOUT_MS = 60000;
+const RESTART_DELAY_MS = 2000;
+
+// Only one update at a time (a second one would race on git and yarn)
+let updateRunning = false;
 
 /**
- * Helper to execute shell commands
+ * Run a command without a shell. Rejects with a short message; the output stays
+ * on `err.stderr` for the logs only.
  */
 const execCommand = (command, args = [], options = {}) => {
   return new Promise((resolve, reject) => {
@@ -22,9 +37,12 @@ const execCommand = (command, args = [], options = {}) => {
     });
 
     proc.on("error", reject);
-    proc.on("close", (code) => {
+    proc.on("close", (code, signal) => {
       if (code !== 0) {
-        reject(new Error(`Command failed with code ${code}: ${stderr}`));
+        const err = new Error(`${command} exited with ${code ?? signal}`);
+        err.code = code;
+        err.stderr = stderr.slice(-2000);
+        reject(err);
       } else {
         resolve({ stdout, stderr });
       }
@@ -32,9 +50,61 @@ const execCommand = (command, args = [], options = {}) => {
   });
 };
 
+/** Log line without credentials embedded in remote URLs (https://user:token@host) */
+function logSafe(err) {
+  const info = safeLog(err);
+  return { ...info, message: info.message.replace(/\/\/[^@\s/]+@/g, "//***@") };
+}
+
+/** Tracked files with local changes (untracked files do not block an update) */
+function hasTrackedChanges(status) {
+  return (
+    status.modified.length > 0 ||
+    status.deleted.length > 0 ||
+    status.created.length > 0 ||
+    status.renamed.length > 0 ||
+    status.staged.length > 0 ||
+    status.conflicted.length > 0
+  );
+}
+
+/** Best-effort `yt-dlp -U`: downloads break when the extractors get stale */
+async function updateYtDlp() {
+  try {
+    if (!(await downloader.isAvailable())) return;
+    await execCommand(config.YTDLP_PATH || "yt-dlp", ["-U"], {
+      timeout: YTDLP_UPDATE_TIMEOUT_MS,
+    });
+  } catch (error) {
+    // e.g. installed through a package manager: not fatal
+    logger.warn(logSafe(error), "yt-dlp self-update failed");
+  } finally {
+    downloader.resetCache();
+  }
+}
+
+/**
+ * Reply key for a failed update. The error text is only inspected, never sent.
+ * @param {Error} error
+ * @param {string} phase - "git" (status/revparse), "fetch" or "pull"
+ */
+function errorKey(error, phase) {
+  const text = String(error?.message || "");
+  if (/CONFLICT/i.test(text)) return "plugins.update.conflict_error";
+  if (/fast-forward|diverg|ff-only/i.test(text)) return "plugins.update.diverged";
+  // Reaching GitHub is the whole job of the fetch step
+  if (
+    phase === "fetch" ||
+    /could not resolve|unable to access|network|timed out|timeout|ENOTFOUND|ECONNREFUSED/i.test(text)
+  ) {
+    return "plugins.update.network_error";
+  }
+  return "plugins.update.error";
+}
+
 /**
  * Update Plugin - Auto-update bot from GitHub
- * Owner only - pulls latest code, installs dependencies, and restarts
+ * Owner only - pulls latest code (fast-forward only), installs dependencies, and restarts
  */
 
 module.exports = {
@@ -42,19 +112,20 @@ module.exports = {
     pattern: "update",
     desc: getLang("plugins.update.desc"),
     type: "owner",
-    ownerOnly: true,
+    fromMe: true,
   },
 
   async execute(message, query) {
-    // Strict owner-only check
-    if (!message.isSudo()) {
-      return await message.reply(getLang("plugins.update.owner_only"));
+    // Check if user wants to update
+    if (String(query || "").trim().toLowerCase() !== "now") {
+      return await message.reply(getLang("plugins.update.usage", config.PREFIX));
     }
 
-    // Check if user wants to update
-    if (query !== "now") {
-      return await message.reply(getLang("plugins.update.usage"));
+    if (updateRunning) {
+      return await message.reply(getLang("plugins.update.busy"));
     }
+    updateRunning = true;
+    let phase = "git";
 
     try {
       await message.react("⏳");
@@ -63,78 +134,86 @@ module.exports = {
       await message.reply(getLang("plugins.update.starting"));
 
       // Initialize git
-      const git = simpleGit();
+      const git = simpleGit({
+        baseDir: process.cwd(),
+        timeout: { block: GIT_TIMEOUT_MS },
+      });
 
       // Fetch latest changes
       await message.reply(getLang("plugins.update.fetching"));
 
-      // Check if there are uncommitted changes
+      // Local changes to tracked files would make the pull fail or merge badly
       const status = await git.status();
-      if (
-        status.modified.length > 0 ||
-        status.not_added.length > 0 ||
-        status.deleted.length > 0 ||
-        status.created.length > 0 ||
-        status.renamed.length > 0
-      ) {
+      if (hasTrackedChanges(status)) {
         await message.reply(getLang("plugins.update.uncommitted_changes"));
         await message.react("⚠️");
         return;
       }
 
-      // Get current branch
-      const currentBranch = status.current || "main";
+      if (!status.current || status.detached) {
+        await message.reply(getLang("plugins.update.detached"));
+        await message.react("⚠️");
+        return;
+      }
+      const currentBranch = status.current;
 
       // Fetch latest changes from remote
+      phase = "fetch";
       await git.fetch("origin", currentBranch);
 
-      // Pull latest changes from the current branch
-      const pullResult = await git.pull("origin", currentBranch);
+      // Compare with what was just fetched (locale independent): "ahead" = local
+      // commits missing from GitHub, "behind" = new commits to pull
+      phase = "pull";
+      const counts = await git.raw(["rev-list", "--left-right", "--count", "HEAD...FETCH_HEAD"]);
+      const [ahead = 0, behind = 0] = counts.trim().split(/\s+/).map(Number);
 
-      if (pullResult.summary.changes === 0) {
+      if (behind === 0) {
         await message.reply(getLang("plugins.update.already_updated"));
         await message.react("ℹ️");
         return;
       }
 
-      // Show what was updated
-      const filesChanged = pullResult.files.length;
-      const insertions = pullResult.summary.insertions;
-      const deletions = pullResult.summary.deletions;
+      if (ahead > 0) {
+        await message.reply(getLang("plugins.update.diverged"));
+        await message.react("⚠️");
+        return;
+      }
 
+      // Pull latest changes: fast-forward only, never a merge commit
+      const pullResult = await git.pull("origin", currentBranch, ["--ff-only"]);
+      phase = "after";
+
+      // Show what was updated
       await message.reply(
-        getLang("plugins.update.changes_detected")
-          .replace("{0}", filesChanged)
-          .replace("{1}", insertions)
-          .replace("{2}", deletions)
+        getLang(
+          "plugins.update.changes_detected",
+          pullResult.files?.length ?? 0,
+          pullResult.summary?.insertions ?? 0,
+          pullResult.summary?.deletions ?? 0,
+        ),
       );
 
       // Install dependencies
       await message.reply(getLang("plugins.update.installing_deps"));
 
       try {
-        // Use yarn install with frozen lockfile for deterministic builds
-        // Skip --production to ensure dev dependencies are also installed if needed
-        const { stdout, stderr } = await execCommand(
-          "yarn",
-          ["install", "--frozen-lockfile"],
-          {
-            cwd: process.cwd(),
-            timeout: 120000, // 2 minutes timeout
-          }
-        );
-
-        if (stderr && !stderr.includes("warning")) {
-          console.error("Yarn install stderr:", stderr);
-        }
+        // Deterministic install: fails instead of rewriting the lockfile
+        await execCommand("yarn", ["install", "--immutable"], {
+          cwd: process.cwd(),
+          timeout: INSTALL_TIMEOUT_MS,
+        });
       } catch (installError) {
-        console.error("Yarn install error:", installError);
-        await message.reply(
-          getLang("plugins.update.install_failed") + "\n" + installError.message
+        logger.error(
+          { ...logSafe(installError), stderr: installError.stderr },
+          "Yarn install failed during update",
         );
+        await message.reply(getLang("plugins.update.install_failed"));
         await message.react("❌");
         return;
       }
+
+      // Keep downloads working: refresh yt-dlp too (best effort)
+      await updateYtDlp();
 
       // Restart bot
       await message.reply(getLang("plugins.update.restarting"));
@@ -143,57 +222,33 @@ module.exports = {
       // Success message before restart
       await message.reply(getLang("plugins.update.success"));
 
-      // Get PM2 app name from environment or package.json
-      let appName = process.env.PM2_APP_NAME || "open-whatsapp-bot";
-
-      // Try to get from package.json with error handling
+      // PM2 app name: package.json name, else the default
+      let appName = "open-whatsapp-bot";
       try {
         const packageJsonPath = path.join(__dirname, "..", "package.json");
-        const packageJsonContent = fs.readFileSync(packageJsonPath, "utf8");
-        const packageJson = JSON.parse(packageJsonContent);
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
         appName = packageJson.name || appName;
       } catch (pkgError) {
-        console.warn(
-          "Could not read package.json, using default app name:",
-          appName
-        );
+        logger.warn(`Could not read package.json, using default app name: ${appName}`);
       }
 
-      // Helper function to delay execution
-      const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
       // Give time for messages to be sent before restart
-      await delay(2000);
+      await new Promise((resolve) => setTimeout(resolve, RESTART_DELAY_MS));
 
       try {
         // Restart with PM2 using spawn for security (prevents command injection)
-        await execCommand("pm2", ["restart", appName], {
-          timeout: 10000,
-        });
+        await execCommand("pm2", ["restart", appName], { timeout: 10000 });
       } catch (pm2Error) {
-        // If PM2 fails, try alternative restart method
-        console.log(
-          "PM2 restart failed, trying process exit:",
-          pm2Error.message
-        );
+        // If PM2 fails, exit and let the process manager (Docker, systemd...) restart us
+        logger.warn(logSafe(pm2Error), "PM2 restart failed, exiting the process");
         process.exit(0);
       }
     } catch (error) {
       await message.react("❌");
-      console.error("Update error:", error);
-
-      let errorMsg = getLang("plugins.update.error");
-
-      // Handle specific git errors
-      if (error.message.includes("CONFLICT")) {
-        errorMsg = getLang("plugins.update.conflict_error");
-      } else if (error.message.includes("fetch")) {
-        errorMsg = getLang("plugins.update.network_error");
-      } else {
-        errorMsg += ": " + error.message;
-      }
-
-      await message.reply("❌ " + errorMsg);
+      logger.error(logSafe(error), "Update error");
+      await message.reply(getLang(errorKey(error, phase)));
+    } finally {
+      updateRunning = false;
     }
   },
 };

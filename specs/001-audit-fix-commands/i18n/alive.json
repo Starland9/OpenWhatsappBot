@@ -1,0 +1,28 @@
+{
+  "en": {
+    "plugins.alive.title": "BOT STATUS",
+    "plugins.alive.version": "Version",
+    "plugins.alive.uptime": "Uptime",
+    "plugins.alive.uptime_value": "{0}h {1}m {2}s",
+    "plugins.alive.memory": "Memory",
+    "plugins.alive.memory_value": "{0} MB / {1} MB",
+    "plugins.alive.system": "System",
+    "plugins.alive.system_value": "{0} GB / {1} GB",
+    "plugins.alive.platform": "Platform",
+    "plugins.alive.node": "Node",
+    "plugins.alive.running": "✅ *Bot is alive and running!*"
+  },
+  "fr": {
+    "plugins.alive.title": "ÉTAT DU BOT",
+    "plugins.alive.version": "Version",
+    "plugins.alive.uptime": "Disponibilité",
+    "plugins.alive.uptime_value": "{0} h {1} min {2} s",
+    "plugins.alive.memory": "Mémoire",
+    "plugins.alive.memory_value": "{0} Mo / {1} Mo",
+    "plugins.alive.system": "Système",
+    "plugins.alive.system_value": "{0} Go / {1} Go",
+    "plugins.alive.platform": "Plateforme",
+    "plugins.alive.node": "Node",
+    "plugins.alive.running": "✅ *Le bot est en ligne et fonctionne !*"
+  }
+}

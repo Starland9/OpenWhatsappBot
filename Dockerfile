@@ -9,6 +9,12 @@ RUN apk add --no-cache \
     g++ \
     git
 
+# yt-dlp: official release binary (latest), used by the download commands.
+# The standalone script needs python3 (installed above); `yt-dlp -U` can update it
+RUN wget -q -O /usr/local/bin/yt-dlp \
+      https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+    && chmod a+rx /usr/local/bin/yt-dlp
+
 WORKDIR /app
 
 # Yarn 4 is vendored in the repo (.yarnrc.yml -> yarnPath)

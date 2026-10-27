@@ -1,0 +1,32 @@
+{
+  "en": {
+    "plugins.youtube.desc": "Download YouTube videos and audio, or search YouTube",
+    "plugins.youtube.usage_download": "❌ Provide a YouTube link.\n\nExample: {0}ytdl https://youtube.com/watch?v=...\n\n• {0}ytdl / {0}ytv: video (15 min max)\n• {0}yta: audio (60 min max)\n• {0}yts <query>: search",
+    "plugins.youtube.usage_search": "❌ Provide something to search for.\n\nExample: {0}yts despacito",
+    "plugins.youtube.invalid_link": "❌ Invalid or unavailable link. Send the link of a public YouTube video (youtube.com or youtu.be).",
+    "plugins.youtube.too_long": "❌ Video too long: {0} (max: {1}).",
+    "plugins.youtube.downloading": "📥 *Downloading...*\n\n*Title:* {0}\n*Duration:* {1}\n*Type:* {2}",
+    "plugins.youtube.type_audio": "Audio 🎵",
+    "plugins.youtube.type_video": "Video 🎬",
+    "plugins.youtube.no_results": "❌ No results found.",
+    "plugins.youtube.unknown": "Unknown",
+    "plugins.youtube.search_header": "🔍 *YouTube results*",
+    "plugins.youtube.search_item": "{0}. *{1}*\n   👤 {2}\n   ⏱️ {3}\n   🔗 {4}",
+    "plugins.youtube.search_footer": "_To download: {0}ytdl <link>_"
+  },
+  "fr": {
+    "plugins.youtube.desc": "Télécharger des vidéos et des audios YouTube, ou rechercher sur YouTube",
+    "plugins.youtube.usage_download": "❌ Indiquez un lien YouTube.\n\nExemple : {0}ytdl https://youtube.com/watch?v=...\n\n• {0}ytdl / {0}ytv : vidéo (15 min max)\n• {0}yta : audio (60 min max)\n• {0}yts <recherche> : recherche",
+    "plugins.youtube.usage_search": "❌ Indiquez ce que vous cherchez.\n\nExemple : {0}yts despacito",
+    "plugins.youtube.invalid_link": "❌ Lien invalide ou indisponible. Envoyez le lien d’une vidéo YouTube publique (youtube.com ou youtu.be).",
+    "plugins.youtube.too_long": "❌ Vidéo trop longue : {0} (max : {1}).",
+    "plugins.youtube.downloading": "📥 *Téléchargement...*\n\n*Titre :* {0}\n*Durée :* {1}\n*Type :* {2}",
+    "plugins.youtube.type_audio": "Audio 🎵",
+    "plugins.youtube.type_video": "Vidéo 🎬",
+    "plugins.youtube.no_results": "❌ Aucun résultat trouvé.",
+    "plugins.youtube.unknown": "Inconnu",
+    "plugins.youtube.search_header": "🔍 *Résultats YouTube*",
+    "plugins.youtube.search_item": "{0}. *{1}*\n   👤 {2}\n   ⏱️ {3}\n   🔗 {4}",
+    "plugins.youtube.search_footer": "_Pour télécharger : {0}ytdl <lien>_"
+  }
+}

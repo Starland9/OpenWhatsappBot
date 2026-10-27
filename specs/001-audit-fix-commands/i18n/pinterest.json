@@ -1,0 +1,10 @@
+{
+  "en": {
+    "plugins.pinterest.desc": "Pinterest search (currently unavailable)",
+    "plugins.pinterest.hint": "💡 Try {0}image <search> to find images instead."
+  },
+  "fr": {
+    "plugins.pinterest.desc": "Recherche Pinterest (actuellement indisponible)",
+    "plugins.pinterest.hint": "💡 Essayez plutôt {0}image <recherche> pour trouver des images."
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "en": {
+    "plugins.music.desc": "Search music (iTunes, Spotify) and play 30 s previews",
+    "plugins.music.usage": "🎵 Provide a song name.\n\n*Examples:*\n• {0}music Bohemian Rhapsody: search\n• {0}play Bohemian Rhapsody: send a 30 s preview\n• {0}spotify Bohemian Rhapsody: search on Spotify\n\nFor lyrics, use {0}lyrics.",
+    "plugins.music.no_results": "❌ No results found.",
+    "plugins.music.search_results": "🎵 *Search results*",
+    "plugins.music.spotify_results": "🎵 *Spotify results*",
+    "plugins.music.no_preview": "❌ No preview available for this track.",
+    "plugins.music.downloading": "⏳ Sending the 30 s preview...",
+    "plugins.music.unknown_track": "Unknown title"
+  },
+  "fr": {
+    "plugins.music.desc": "Rechercher de la musique (iTunes, Spotify) et écouter des extraits de 30 s",
+    "plugins.music.usage": "🎵 Indiquez le nom d’une chanson.\n\n*Exemples :*\n• {0}music Bohemian Rhapsody : recherche\n• {0}play Bohemian Rhapsody : envoie un extrait de 30 s\n• {0}spotify Bohemian Rhapsody : recherche sur Spotify\n\nPour les paroles, utilisez {0}lyrics.",
+    "plugins.music.no_results": "❌ Aucun résultat trouvé.",
+    "plugins.music.search_results": "🎵 *Résultats de la recherche*",
+    "plugins.music.spotify_results": "🎵 *Résultats Spotify*",
+    "plugins.music.no_preview": "❌ Aucun extrait disponible pour ce titre.",
+    "plugins.music.downloading": "⏳ Envoi de l’extrait de 30 s...",
+    "plugins.music.unknown_track": "Titre inconnu"
+  }
+}

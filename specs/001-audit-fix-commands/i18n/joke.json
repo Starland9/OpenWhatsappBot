@@ -1,0 +1,8 @@
+{
+  "en": {
+    "plugins.joke.desc": "Get a random joke"
+  },
+  "fr": {
+    "plugins.joke.desc": "Obtenir une blague au hasard"
+  }
+}

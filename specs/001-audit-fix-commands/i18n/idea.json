@@ -1,0 +1,26 @@
+{
+  "en": {
+    "plugins.idea.title": "💡 Ideas",
+    "plugins.idea.list_title": "💡 *Ideas* — Page {0}/{1}",
+    "plugins.idea.page_footer": "Page {0}/{1}",
+    "plugins.idea.top_title": "🏆 *Top Ideas*",
+    "plugins.idea.btn_add": "➕ Add",
+    "plugins.idea.btn_add_idea": "➕ Add idea",
+    "plugins.idea.btn_list": "📋 List",
+    "plugins.idea.btn_top": "🏆 Top",
+    "plugins.idea.add_hint": "✍️ Send your idea with {0}idea add <your idea>.",
+    "plugins.idea.menu": "💡 *Ideas*\n\n{0}\n\n_Or use the buttons below._"
+  },
+  "fr": {
+    "plugins.idea.title": "💡 Idées",
+    "plugins.idea.list_title": "💡 *Idées* — Page {0}/{1}",
+    "plugins.idea.page_footer": "Page {0}/{1}",
+    "plugins.idea.top_title": "🏆 *Top des idées*",
+    "plugins.idea.btn_add": "➕ Ajouter",
+    "plugins.idea.btn_add_idea": "➕ Ajouter une idée",
+    "plugins.idea.btn_list": "📋 Liste",
+    "plugins.idea.btn_top": "🏆 Top",
+    "plugins.idea.add_hint": "✍️ Envoie ton idée avec {0}idea add <ton idée>.",
+    "plugins.idea.menu": "💡 *Idées*\n\n{0}\n\n_Ou utilise les boutons ci-dessous._"
+  }
+}

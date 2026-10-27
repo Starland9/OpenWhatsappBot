@@ -1,0 +1,24 @@
+{
+  "en": {
+    "plugins.voice.desc": "Transcribe a voice note to text (transcribe) or read a text aloud (speak)",
+    "plugins.voice.reply_audio": "❌ Reply to a voice note or an audio message with {0}transcribe.",
+    "plugins.voice.download_failed": "❌ Couldn't download the audio.",
+    "plugins.voice.transcription": "📝 *Transcription:*\n\n{0}",
+    "plugins.voice.no_speech": "❌ No speech detected in this audio.",
+    "plugins.voice.error": "❌ Couldn't process this audio. It may be corrupted or in an unsupported format.",
+    "plugins.voice.tts_usage": "{0}speak <text>\nOr reply to a text message with {0}speak.\n\nThe text is read aloud in the bot language (max {1} characters).",
+    "plugins.voice.text_too_long": "❌ Text too long (max {0} characters).",
+    "plugins.voice.tts_error": "❌ Text-to-speech failed. Please try again with a shorter text."
+  },
+  "fr": {
+    "plugins.voice.desc": "Transcrire un message vocal en texte (transcribe) ou lire un texte à voix haute (speak)",
+    "plugins.voice.reply_audio": "❌ Répondez à un message vocal ou à un audio avec {0}transcribe.",
+    "plugins.voice.download_failed": "❌ Impossible de télécharger l'audio.",
+    "plugins.voice.transcription": "📝 *Transcription :*\n\n{0}",
+    "plugins.voice.no_speech": "❌ Aucune parole détectée dans cet audio.",
+    "plugins.voice.error": "❌ Impossible de traiter cet audio. Il est peut-être corrompu ou dans un format non pris en charge.",
+    "plugins.voice.tts_usage": "{0}speak <texte>\nOu répondez à un message texte avec {0}speak.\n\nLe texte est lu à voix haute dans la langue du bot ({1} caractères max).",
+    "plugins.voice.text_too_long": "❌ Texte trop long ({0} caractères max).",
+    "plugins.voice.tts_error": "❌ La synthèse vocale a échoué. Réessayez avec un texte plus court."
+  }
+}

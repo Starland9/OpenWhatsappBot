@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.gemini.example": "📌 *Usage:*\n{0}gemini <question>\n\nExample: {0}gemini What is AI?\nOr send / reply to an image with {0}gemini to analyze it, or reply to a text to ask about it.",
+    "plugins.gemini.default_image_prompt": "What's in this image? Describe it in detail.",
+    "plugins.gemini.reply": "🌟 *Gemini*\n\n{0}",
+    "plugins.gemini.reply_vision": "🌟 *Gemini Vision*\n\n{0}",
+    "plugins.gemini.no_answer": "❌ Gemini did not return an answer. Please try again or rephrase.",
+    "plugins.gemini.blocked": "❌ Gemini refused to answer this request (safety filters).",
+    "plugins.gemini.model_not_found": "⚙️ The Gemini model is not available. Check GEMINI_MODEL and GEMINI_VISION_MODEL in config.env."
+  },
+  "fr": {
+    "plugins.gemini.example": "📌 *Utilisation :*\n{0}gemini <question>\n\nExemple : {0}gemini Qu'est-ce que l'IA ?\nOu envoyez / répondez à une image avec {0}gemini pour l'analyser, ou répondez à un texte pour poser une question dessus.",
+    "plugins.gemini.default_image_prompt": "Que voit-on sur cette image ? Décris-la en détail.",
+    "plugins.gemini.reply": "🌟 *Gemini*\n\n{0}",
+    "plugins.gemini.reply_vision": "🌟 *Gemini Vision*\n\n{0}",
+    "plugins.gemini.no_answer": "❌ Gemini n'a pas renvoyé de réponse. Réessayez ou reformulez.",
+    "plugins.gemini.blocked": "❌ Gemini a refusé de répondre à cette demande (filtres de sécurité).",
+    "plugins.gemini.model_not_found": "⚙️ Le modèle Gemini n'est pas disponible. Vérifiez GEMINI_MODEL et GEMINI_VISION_MODEL dans config.env."
+  }
+}

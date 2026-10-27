@@ -1,0 +1,18 @@
+{
+  "en": {
+    "plugins.eval.desc": "Run JavaScript code (owner only, private chat, dangerous)",
+    "plugins.eval.usage": "*⚠️ JavaScript executor*\n\n*Usage:* {0}eval <code>\n\n*Examples:*\n{0}eval return 2 + 2\n{0}eval return process.version\n{0}eval return Object.keys(message)\n\n*Warning:* this runs ANY code with the bot's privileges. Secrets from the configuration are hidden in the output.",
+    "plugins.eval.result": "*✅ Result:*\n\n{0}",
+    "plugins.eval.no_return": "*✅ Done, no return value.*",
+    "plugins.eval.error": "*❌ Error:*\n\n{0}",
+    "plugins.eval.truncated": "...(truncated)"
+  },
+  "fr": {
+    "plugins.eval.desc": "Exécuter du code JavaScript (propriétaire uniquement, en privé, dangereux)",
+    "plugins.eval.usage": "*⚠️ Exécuteur JavaScript*\n\n*Utilisation :* {0}eval <code>\n\n*Exemples :*\n{0}eval return 2 + 2\n{0}eval return process.version\n{0}eval return Object.keys(message)\n\n*Attention :* cela exécute N'IMPORTE QUEL code avec les droits du bot. Les secrets de la configuration sont masqués dans la sortie.",
+    "plugins.eval.result": "*✅ Résultat :*\n\n{0}",
+    "plugins.eval.no_return": "*✅ Terminé, aucune valeur retournée.*",
+    "plugins.eval.error": "*❌ Erreur :*\n\n{0}",
+    "plugins.eval.truncated": "...(tronqué)"
+  }
+}

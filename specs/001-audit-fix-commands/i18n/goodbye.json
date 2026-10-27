@@ -1,0 +1,30 @@
+{
+  "en": {
+    "plugins.goodbye.desc": "Set the goodbye message for members who leave (admins only)",
+    "plugins.goodbye.status": "👋 *Goodbye message*\n*Status:* {0}",
+    "plugins.goodbye.current": "*Current message:*\n{0}",
+    "plugins.goodbye.preview": "*Preview:*\n{0}",
+    "plugins.goodbye.help": "*Commands:*\n• {0}goodbye on / off: enable or disable\n• {0}goodbye reset: back to the default message\n• {0}goodbye <text>: set your own message\n\n*Variables:*\n• @user: the member(s) who left\n• @group: the group name\n\n*Example:*\n{0}goodbye Goodbye @user, see you soon! 👋",
+    "plugins.goodbye.enabled": "✅ Goodbye messages enabled.",
+    "plugins.goodbye.disabled": "❌ Goodbye messages disabled.",
+    "plugins.goodbye.reset": "🔄 The goodbye message is back to the default.",
+    "plugins.goodbye.updated": "✅ Goodbye message updated and enabled.\n\n*Preview:*\n{0}",
+    "plugins.goodbye.too_long": "❌ The message is too long (max {0} characters).",
+    "plugins.goodbye.default_left": "👋 @user left *@group*.",
+    "plugins.goodbye.default_removed": "👋 Removed from *@group*: @user"
+  },
+  "fr": {
+    "plugins.goodbye.desc": "Définir le message d'au revoir des membres qui partent (admins uniquement)",
+    "plugins.goodbye.status": "👋 *Message d'au revoir*\n*Statut :* {0}",
+    "plugins.goodbye.current": "*Message actuel :*\n{0}",
+    "plugins.goodbye.preview": "*Aperçu :*\n{0}",
+    "plugins.goodbye.help": "*Commandes :*\n• {0}goodbye on / off : activer ou désactiver\n• {0}goodbye reset : revenir au message par défaut\n• {0}goodbye <texte> : définir votre propre message\n\n*Variables :*\n• @user : le ou les membres partis\n• @group : le nom du groupe\n\n*Exemple :*\n{0}goodbye Au revoir @user, à bientôt ! 👋",
+    "plugins.goodbye.enabled": "✅ Messages d'au revoir activés.",
+    "plugins.goodbye.disabled": "❌ Messages d'au revoir désactivés.",
+    "plugins.goodbye.reset": "🔄 Le message d'au revoir est revenu à sa valeur par défaut.",
+    "plugins.goodbye.updated": "✅ Message d'au revoir mis à jour et activé.\n\n*Aperçu :*\n{0}",
+    "plugins.goodbye.too_long": "❌ Le message est trop long (max {0} caractères).",
+    "plugins.goodbye.default_left": "👋 Au revoir @user !",
+    "plugins.goodbye.default_removed": "👋 Retiré(s) de *@group* : @user"
+  }
+}

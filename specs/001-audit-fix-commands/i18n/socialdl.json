@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.socialdl.desc": "Download media from TikTok, Instagram, Facebook, X, YouTube, Pinterest and Reddit",
+    "plugins.socialdl.usage": "*Social Media Downloader*\n\n{0}dl <link>: detect the platform and download\n{0}dl <link> audio: audio only\n\nYou can also reply to a message that contains the link.\n\n*Supported platforms:*\n• TikTok\n• Instagram (posts, reels, stories)\n• Facebook\n• X (Twitter)\n• YouTube\n• Pinterest\n• Reddit",
+    "plugins.socialdl.invalid_url": "❌ Please provide a valid link.",
+    "plugins.socialdl.unsupported": "❌ Unsupported platform. Supported: TikTok, Instagram, Facebook, X (Twitter), YouTube, Pinterest, Reddit.",
+    "plugins.socialdl.downloading": "⏳ Downloading from *{0}*...",
+    "plugins.socialdl.failed": "❌ Download failed. The content may be private or unavailable.",
+    "plugins.socialdl.success": "✅ Downloaded from *{0}*"
+  },
+  "fr": {
+    "plugins.socialdl.desc": "Télécharger des médias depuis TikTok, Instagram, Facebook, X, YouTube, Pinterest et Reddit",
+    "plugins.socialdl.usage": "*Téléchargeur de réseaux sociaux*\n\n{0}dl <lien> : détecte la plateforme et télécharge\n{0}dl <lien> audio : audio uniquement\n\nVous pouvez aussi répondre à un message qui contient le lien.\n\n*Plateformes prises en charge :*\n• TikTok\n• Instagram (publications, reels, stories)\n• Facebook\n• X (Twitter)\n• YouTube\n• Pinterest\n• Reddit",
+    "plugins.socialdl.invalid_url": "❌ Veuillez fournir un lien valide.",
+    "plugins.socialdl.unsupported": "❌ Plateforme non prise en charge. Disponibles : TikTok, Instagram, Facebook, X (Twitter), YouTube, Pinterest, Reddit.",
+    "plugins.socialdl.downloading": "⏳ Téléchargement depuis *{0}*...",
+    "plugins.socialdl.failed": "❌ Échec du téléchargement. Le contenu est peut-être privé ou indisponible.",
+    "plugins.socialdl.success": "✅ Téléchargé depuis *{0}*"
+  }
+}

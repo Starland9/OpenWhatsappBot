@@ -1,0 +1,14 @@
+{
+  "en": {
+    "plugins.demote.desc": "Demote one or more admins to regular members (admins only)",
+    "plugins.demote.usage": "{0}demote @user [@user2 …]\nOr reply to an admin's message with {0}demote.",
+    "plugins.demote.done": "✅ Demoted to member: {0}",
+    "plugins.demote.failed": "❌ Could not demote: {0}"
+  },
+  "fr": {
+    "plugins.demote.desc": "Rétrograder un ou plusieurs administrateurs en simples membres (admins uniquement)",
+    "plugins.demote.usage": "{0}demote @membre [@membre2 …]\nOu répondez au message d'un administrateur avec {0}demote.",
+    "plugins.demote.done": "✅ Rétrogradé(s) au rang de membre : {0}",
+    "plugins.demote.failed": "❌ Impossible de rétrograder : {0}"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.imagesearch.desc": "Search photos (Unsplash) and GIFs (Giphy)",
+    "plugins.imagesearch.gif_usage": "*GIF Search:*\n\n{0}gif <query>: search an animated GIF\n\nExample: `{0}gif happy dance`",
+    "plugins.imagesearch.usage": "*Image Search:*\n\n{0}image <query>: search a photo\n\nExample: `{0}image mountain lake`",
+    "plugins.imagesearch.no_gifs": "❌ No GIFs found for your query.",
+    "plugins.imagesearch.no_images": "❌ No images found for your query.",
+    "plugins.imagesearch.gif_caption": "🎬 *{0}*\n\n_via Giphy_",
+    "plugins.imagesearch.image_caption": "📸 *{0}*\n\n📷 _Photo by {1} on Unsplash_"
+  },
+  "fr": {
+    "plugins.imagesearch.desc": "Rechercher des photos (Unsplash) et des GIF (Giphy)",
+    "plugins.imagesearch.gif_usage": "*Recherche de GIF :*\n\n{0}gif <recherche> : cherche un GIF animé\n\nExemple : `{0}gif danse joyeuse`",
+    "plugins.imagesearch.usage": "*Recherche d’images :*\n\n{0}image <recherche> : cherche une photo\n\nExemple : `{0}image lac de montagne`",
+    "plugins.imagesearch.no_gifs": "❌ Aucun GIF trouvé pour votre recherche.",
+    "plugins.imagesearch.no_images": "❌ Aucune image trouvée pour votre recherche.",
+    "plugins.imagesearch.gif_caption": "🎬 *{0}*\n\n_via Giphy_",
+    "plugins.imagesearch.image_caption": "📸 *{0}*\n\n📷 _Photo de {1} sur Unsplash_"
+  }
+}

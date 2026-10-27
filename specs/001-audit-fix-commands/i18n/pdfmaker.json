@@ -1,0 +1,22 @@
+{
+  "en": {
+    "plugins.pdfmaker.desc": "Create a PDF from a text or from a quoted image",
+    "plugins.pdfmaker.usage": "• {0}pdf <text>: create a PDF from the text (line breaks are kept)\n• Reply to a text message with {0}pdf: the quoted text becomes the PDF\n• Reply to an image with {0}pdf: the image becomes a PDF page\n\nExample:\n{0}pdf This is my document content\n\nLimitation: the PDF uses a standard font, so only Latin characters (accents included) are rendered. Emoji and other alphabets (Arabic, Chinese, Cyrillic…) are replaced by ?.",
+    "plugins.pdfmaker.text_too_long": "❌ Text too long (max {0} characters).",
+    "plugins.pdfmaker.download_failed": "❌ Couldn't download the image.",
+    "plugins.pdfmaker.image_caption": "📄 Image converted to PDF.",
+    "plugins.pdfmaker.doc_caption": "📄 PDF created.",
+    "plugins.pdfmaker.doc_caption_replaced": "📄 PDF created. Characters the PDF font can't render (emoji, non-Latin alphabets) were replaced by ?.",
+    "plugins.pdfmaker.error": "❌ Couldn't create the PDF. If you sent an image, it may be corrupted or in an unsupported format."
+  },
+  "fr": {
+    "plugins.pdfmaker.desc": "Créer un PDF à partir d'un texte ou d'une image citée",
+    "plugins.pdfmaker.usage": "• {0}pdf <texte> : crée un PDF avec le texte (les retours à la ligne sont conservés)\n• Répondez à un message texte avec {0}pdf : le texte cité devient le PDF\n• Répondez à une image avec {0}pdf : l'image devient une page PDF\n\nExemple :\n{0}pdf Voici le contenu de mon document\n\nLimite : le PDF utilise une police standard, donc seuls les caractères latins (accents compris) sont affichés. Les emoji et les autres alphabets (arabe, chinois, cyrillique…) sont remplacés par ?.",
+    "plugins.pdfmaker.text_too_long": "❌ Texte trop long ({0} caractères max).",
+    "plugins.pdfmaker.download_failed": "❌ Impossible de télécharger l'image.",
+    "plugins.pdfmaker.image_caption": "📄 Image convertie en PDF.",
+    "plugins.pdfmaker.doc_caption": "📄 PDF créé.",
+    "plugins.pdfmaker.doc_caption_replaced": "📄 PDF créé. Les caractères que la police du PDF ne sait pas afficher (emoji, alphabets non latins) ont été remplacés par ?.",
+    "plugins.pdfmaker.error": "❌ Impossible de créer le PDF. Si vous avez envoyé une image, elle est peut-être corrompue ou dans un format non pris en charge."
+  }
+}

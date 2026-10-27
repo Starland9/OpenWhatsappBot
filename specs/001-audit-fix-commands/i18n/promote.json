@@ -1,0 +1,14 @@
+{
+  "en": {
+    "plugins.promote.desc": "Promote one or more members to admin (admins only)",
+    "plugins.promote.usage": "{0}promote @user [@user2 …]\nOr reply to a member's message with {0}promote.",
+    "plugins.promote.done": "✅ Promoted to admin: {0}",
+    "plugins.promote.failed": "❌ Could not promote: {0}"
+  },
+  "fr": {
+    "plugins.promote.desc": "Promouvoir un ou plusieurs membres administrateurs (admins uniquement)",
+    "plugins.promote.usage": "{0}promote @membre [@membre2 …]\nOu répondez au message d'un membre avec {0}promote.",
+    "plugins.promote.done": "✅ Promu(s) administrateur(s) : {0}",
+    "plugins.promote.failed": "❌ Impossible de promouvoir : {0}"
+  }
+}

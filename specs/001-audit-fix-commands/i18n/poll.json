@@ -1,0 +1,16 @@
+{
+  "en": {
+    "plugins.poll.desc": "Create a native poll in the chat (poll+ allows several answers)",
+    "plugins.poll.usage": "📌 *Polls*\n\n{0}poll Question? option 1, option 2, option 3\n{0}poll+ Question? option 1, option 2 (several answers allowed)\n\nYou can also separate with | :\n{0}poll Question | option 1 | option 2\n\n2 to 12 different options. WhatsApp counts the votes.",
+    "plugins.poll.format_error": "❌ Invalid format.\nUse: {0}poll Question? option 1, option 2",
+    "plugins.poll.min_options": "❌ Provide at least 2 different options.",
+    "plugins.poll.max_options": "❌ Maximum 12 options."
+  },
+  "fr": {
+    "plugins.poll.desc": "Créer un sondage natif dans le chat (poll+ autorise plusieurs réponses)",
+    "plugins.poll.usage": "📌 *Sondages*\n\n{0}poll Question ? option 1, option 2, option 3\n{0}poll+ Question ? option 1, option 2 (plusieurs réponses possibles)\n\nVous pouvez aussi séparer avec | :\n{0}poll Question | option 1 | option 2\n\nDe 2 à 12 options différentes. WhatsApp compte les votes.",
+    "plugins.poll.format_error": "❌ Format invalide.\nUtilisation : {0}poll Question ? option 1, option 2",
+    "plugins.poll.min_options": "❌ Indiquez au moins 2 options différentes.",
+    "plugins.poll.max_options": "❌ Maximum 12 options."
+  }
+}

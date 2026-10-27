@@ -1,82 +1,94 @@
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
+const { fetchJson, safeLog } = require("../lib/utils/http");
+const config = require("../config");
 
 /**
  * Fact Plugin
- * Get random interesting facts
+ * Get random interesting facts.
+ *
+ * Useless Facts (v2) only answers in English or German, so a French bot uses the
+ * local list; the local lists are also the fallback when the API is down.
  */
+
+const FACTS_API = "https://uselessfacts.jsph.pl/api/v2/facts/random";
+
+const LOCAL_FACTS = {
+  en: [
+    "Honey never spoils: archaeologists have found 3,000-year-old honey in Egyptian tombs that was still edible.",
+    "A day on Venus is longer than a year on Venus.",
+    "Bananas are berries, but strawberries are not.",
+    "Octopuses have three hearts and blue blood.",
+    "The human brain is about 2% of body weight but uses about 20% of the body's energy.",
+    "The Eiffel Tower can grow about 15 cm taller in summer because the iron expands in the heat.",
+    "Wombats produce cube-shaped droppings.",
+    "There are more trees on Earth than stars in the Milky Way.",
+    "The Great Wall of China is not visible to the naked eye from space.",
+    "Giraffes have the same number of neck vertebrae as humans: seven.",
+    "A shrimp's heart is located in its head.",
+    "A solar day on Mercury lasts about 176 Earth days.",
+    "Koalas have fingerprints that are almost identical to human ones.",
+    "The smallest bone in the human body, the stapes, is in the ear.",
+    "Cats cannot taste sweetness.",
+    "Lightning strikes the Earth about 100 times every second.",
+    "The Sun holds about 99.86% of the mass of the solar system.",
+    "An average cumulus cloud can weigh more than 500 tonnes.",
+  ],
+  fr: [
+    "Le miel ne se périme jamais : des archéologues ont retrouvé dans des tombes égyptiennes du miel vieux de 3 000 ans, encore comestible.",
+    "Un jour sur Vénus dure plus longtemps qu'une année sur Vénus.",
+    "Les bananes sont des baies, mais pas les fraises.",
+    "Les pieuvres ont trois cœurs et du sang bleu.",
+    "Le cerveau humain représente environ 2 % du poids du corps, mais consomme environ 20 % de son énergie.",
+    "La tour Eiffel peut grandir d'environ 15 cm en été, car le métal se dilate avec la chaleur.",
+    "Les wombats produisent des crottes en forme de cubes.",
+    "Il y a plus d'arbres sur Terre que d'étoiles dans la Voie lactée.",
+    "La Grande Muraille de Chine n'est pas visible à l'œil nu depuis l'espace.",
+    "Les girafes ont le même nombre de vertèbres cervicales que les humains : sept.",
+    "Le cœur d'une crevette se trouve dans sa tête.",
+    "Un jour solaire sur Mercure dure environ 176 jours terrestres.",
+    "Les koalas ont des empreintes digitales presque identiques à celles des humains.",
+    "Le plus petit os du corps humain, l'étrier, se trouve dans l'oreille.",
+    "Les chats ne perçoivent pas le goût sucré.",
+    "La foudre frappe la Terre environ 100 fois par seconde.",
+    "Le Soleil concentre environ 99,86 % de la masse du système solaire.",
+    "Un cumulus moyen peut peser plus de 500 tonnes.",
+  ],
+};
+
+function localFact() {
+  const list = config.LANG === "fr" ? LOCAL_FACTS.fr : LOCAL_FACTS.en;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+async function remoteFact() {
+  const data = await fetchJson(FACTS_API, {
+    params: { language: "en" },
+    timeoutMs: 10000,
+  });
+  const text = typeof data?.text === "string" ? data.text.trim() : "";
+  return text || null;
+}
 
 module.exports = {
   command: {
     pattern: "fact",
-    desc: "Get a random interesting fact",
+    desc: getLang("plugins.fact.desc"),
     type: "fun",
   },
 
-  async execute(message, args) {
-    try {
-      await message.react("💡");
+  async execute(message) {
+    await message.react("💡");
 
-      // Try multiple fact APIs
-      let fact = null;
-
-      // Method 1: Useless Facts API
+    let fact = null;
+    if (config.LANG !== "fr") {
       try {
-        const response = await axios.get(
-          "https://uselessfacts.jsph.pl/random.json?language=en",
-          { timeout: 10000 }
-        );
-
-        if (response.data && response.data.text) {
-          fact = `💡 *Random Fact:*\n\n${response.data.text}`;
-        }
-      } catch (e) {
-        console.log("Useless Facts API failed");
+        fact = await remoteFact();
+      } catch (error) {
+        console.warn("Useless Facts API failed:", safeLog(error));
       }
-
-      // Method 2: API Ninjas Facts
-      if (!fact) {
-        try {
-          const response = await axios.get(
-            "https://api.api-ninjas.com/v1/facts?limit=1",
-            {
-              headers: { "X-Api-Key": "demo" },
-              timeout: 10000,
-            }
-          );
-
-          if (response.data && response.data[0] && response.data[0].fact) {
-            fact = `💡 *Random Fact:*\n\n${response.data[0].fact}`;
-          }
-        } catch (e) {
-          console.log("API Ninjas failed");
-        }
-      }
-
-      // Fallback facts
-      const fallbackFacts = [
-        "Honey never spoils. Archaeologists have found 3000-year-old honey in Egyptian tombs that's still edible!",
-        "A day on Venus is longer than a year on Venus.",
-        "Bananas are berries, but strawberries aren't!",
-        "There are more stars in the universe than grains of sand on all Earth's beaches.",
-        "Your brain uses 20% of your body's energy despite being only 2% of your body weight.",
-        "Octopuses have three hearts and blue blood.",
-        "Water can boil and freeze at the same time (triple point).",
-        "A single bolt of lightning contains enough energy to toast 100,000 slices of bread.",
-      ];
-
-      if (!fact) {
-        const randomFact =
-          fallbackFacts[Math.floor(Math.random() * fallbackFacts.length)];
-        fact = `💡 *Random Fact:*\n\n${randomFact}`;
-      }
-
-      await message.reply(fact);
-      await message.react("✅");
-    } catch (error) {
-      console.error("Fact error:", error);
-      await message.reply("*Error fetching fact!*");
-      await message.react("❌");
     }
+
+    await message.reply(getLang("plugins.fact.title", fact || localFact()));
+    await message.react("✅");
   },
 };

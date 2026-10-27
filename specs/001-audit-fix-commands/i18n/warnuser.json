@@ -1,0 +1,28 @@
+{
+  "en": {
+    "plugins.warnuser.desc": "Warn a member; they are removed at the warning limit (admins only)",
+    "plugins.warnuser.usage": "{0}warn @user [reason] - warn a member (or reply to their message)\n{0}warn list - show the group's warnings\n{0}warn reset @user - clear a member's warnings",
+    "plugins.warnuser.no_reason": "No reason provided",
+    "plugins.warnuser.vip_exempt": "👑 {0} is a VIP and can't be warned.",
+    "plugins.warnuser.kick_failed": "❌ {0} reached the warning limit but could not be removed. Their warnings were kept; check that I am a group admin.",
+    "plugins.warnuser.list_header": "⚠️ *Group warnings*",
+    "plugins.warnuser.list_empty": "✅ No warnings in this group.",
+    "plugins.warnuser.list_item": "• {0} - {1}/{2} - {3}",
+    "plugins.warnuser.list_more": "… and {0} more",
+    "plugins.warnuser.reset_done": "✅ Warnings cleared for {0}.",
+    "plugins.warnuser.reset_none": "ℹ️ {0} has no warnings."
+  },
+  "fr": {
+    "plugins.warnuser.desc": "Avertir un membre ; il est retiré à la limite d'avertissements (admins uniquement)",
+    "plugins.warnuser.usage": "{0}warn @membre [raison] - avertir un membre (ou répondre à son message)\n{0}warn list - afficher les avertissements du groupe\n{0}warn reset @membre - effacer les avertissements d'un membre",
+    "plugins.warnuser.no_reason": "Aucune raison indiquée",
+    "plugins.warnuser.vip_exempt": "👑 {0} est VIP et ne peut pas être averti.",
+    "plugins.warnuser.kick_failed": "❌ {0} a atteint la limite d'avertissements mais n'a pas pu être retiré. Ses avertissements sont conservés ; vérifiez que je suis administrateur du groupe.",
+    "plugins.warnuser.list_header": "⚠️ *Avertissements du groupe*",
+    "plugins.warnuser.list_empty": "✅ Aucun avertissement dans ce groupe.",
+    "plugins.warnuser.list_item": "• {0} - {1}/{2} - {3}",
+    "plugins.warnuser.list_more": "… et {0} autre(s)",
+    "plugins.warnuser.reset_done": "✅ Avertissements effacés pour {0}.",
+    "plugins.warnuser.reset_none": "ℹ️ {0} n'a aucun avertissement."
+  }
+}

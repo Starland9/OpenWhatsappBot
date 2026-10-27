@@ -1,119 +1,124 @@
-const { getLang } = require("../lib/utils/language");
-const { downloadMedia } = require("../lib/baileys/mediaAdapter");
 const OpenAI = require("openai");
+const { extractMessageContent, getContentType } = require("baileys");
+const { getLang } = require("../lib/utils/language");
+const { classifyError, replyKeyFor, safeLog } = require("../lib/utils/http");
+const cooldown = require("../lib/utils/cooldown");
 const config = require("../config");
 
 /**
  * ChatGPT command - AI chat using OpenAI with multimodal support
+ *   .gpt <question>
+ *   .gpt <question>   (with, or replying to, an image)
  */
+
+// gpt-4o-mini is scheduled for removal on 2027-01-14: set OPENAI_MODEL to override
+const DEFAULT_MODEL = "gpt-4o-mini";
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const COOLDOWN_MS = 5000;
+const SYSTEM_PROMPT =
+  "You are a helpful assistant integrated into a WhatsApp bot. Keep responses concise and friendly. Answer in the language of the user's message.";
+
+/** Image attached to the command message, or to the message it quotes */
+async function getImage(message) {
+  if (message.hasMedia && message.type === "imageMessage") {
+    const buffer = await message.downloadMedia();
+    if (buffer) {
+      return {
+        buffer,
+        mimetype: message.content?.imageMessage?.mimetype || "image/jpeg",
+      };
+    }
+  }
+
+  // Look at the type first so that a quoted video is never downloaded
+  const quotedContent = extractMessageContent(message.quoted?.message);
+  if (quotedContent && getContentType(quotedContent) === "imageMessage") {
+    const media = await message.getQuotedMedia({ maxBytes: MAX_IMAGE_BYTES });
+    if (media && media.type === "image") {
+      return { buffer: media.buffer, mimetype: media.mimetype || "image/jpeg" };
+    }
+  }
+  return null;
+}
+
 module.exports = {
   command: {
     pattern: "gpt",
-    desc: getLang("plugins.groq.desc"),
+    desc: getLang("plugins.chatgpt.desc"),
     type: "ai",
   },
 
-  async execute(message, query) {
+  async execute(message, query, ctx) {
     if (!config.OPENAI_API_KEY) {
-      return await message.reply(
-        "❌ OpenAI API key not configured. Set OPENAI_API_KEY in config.env",
-      );
+      return await message.reply(getLang("common.not_configured"));
+    }
+
+    const question = (ctx?.rawArgs ?? query ?? "").trim();
+    const quotedText = message.getQuotedText();
+
+    // Validate everything before reacting or spending a request
+    const image = await getImage(message);
+    if (!image && !question && !quotedText) {
+      return await message.reply(getLang("plugins.chatgpt.usage", config.PREFIX));
+    }
+
+    if (!message.isSudo()) {
+      const wait = cooldown.hit(message.sender, "gpt", COOLDOWN_MS);
+      if (wait) {
+        return await message.reply(getLang("common.cooldown", Math.ceil(wait / 1000)));
+      }
     }
 
     try {
       await message.react("⏳");
 
-      const openai = new OpenAI({ apiKey: config.OPENAI_API_KEY });
-      const messages = [
-        {
-          role: "system",
-          content:
-            "You are a helpful assistant integrated into a WhatsApp bot. Keep responses concise and friendly.",
-        },
-      ];
+      const openai = new OpenAI({
+        apiKey: config.OPENAI_API_KEY,
+        timeout: 60000,
+        maxRetries: 0,
+      });
 
-      // Check for image in quoted message or current message
-      let hasImage = false;
-      let imageBuffer = null;
+      const prompt =
+        [quotedText, question].filter(Boolean).join("\n\n") ||
+        getLang("plugins.chatgpt.default_image_prompt");
 
-      if (message.quoted && message.quoted.message?.imageMessage) {
-        // Normalize quoted message shape
-        const quotedMessage = {
-          key: {
-            remoteJid: message.jid,
-            id: message.quoted.id,
-          },
-          message: message.quoted.message,
-        };
-
-        imageBuffer = await downloadMedia(
-          message.client.getSocket(),
-          quotedMessage,
-          "buffer",
-        );
-        hasImage = true;
-      } else if (message.hasMedia && message.type === "imageMessage") {
-        imageBuffer = await message.downloadMedia();
-        hasImage = true;
-      }
-
-      if (hasImage && imageBuffer) {
-        // Use GPT-4 Vision for image analysis
-        const base64Image = imageBuffer.toString("base64");
-
-        messages.push({
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: query || "What's in this image? Describe it in detail.",
-            },
+      const userContent = image
+        ? [
+            { type: "text", text: prompt },
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`,
+                url: `data:${image.mimetype};base64,${image.buffer.toString("base64")}`,
               },
             },
-          ],
-        });
+          ]
+        : prompt;
 
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages,
-          max_tokens: 1000,
-        });
+      const completion = await openai.chat.completions.create({
+        model: config.OPENAI_MODEL || DEFAULT_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userContent },
+        ],
+        max_completion_tokens: 1000,
+      });
 
-        const response = completion.choices[0].message.content;
-        await message.react("✅");
-        await message.reply(`🤖 *ChatGPT Vision*\n\n${response}`);
-      } else {
-        // Text-only query
-        if (!query) {
-          return await message.reply(
-            "❌ Please provide a question or reply to an image\n\nExample: .gpt What is Node.js?",
-          );
-        }
-
-        messages.push({
-          role: "user",
-          content: query,
-        });
-
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages,
-          max_tokens: 1000,
-          temperature: 0.7,
-        });
-
-        const response = completion.choices[0].message.content;
-        await message.react("✅");
-        await message.reply(`🤖 *ChatGPT*\n\n${response}`);
+      const answer = completion?.choices?.[0]?.message?.content?.trim();
+      if (!answer) {
+        await message.react("❌");
+        return await message.reply(getLang("plugins.chatgpt.no_answer"));
       }
+
+      await message.react("✅");
+      await message.reply(
+        getLang(image ? "plugins.chatgpt.reply_vision" : "plugins.chatgpt.reply", answer),
+      );
     } catch (error) {
       await message.react("❌");
-      console.error("ChatGPT error:", error);
-      await message.reply(`❌ Error: ${error.message}`);
+      console.error("ChatGPT error:", safeLog(error));
+      await message.reply(
+        getLang(replyKeyFor(classifyError(error, { hasKey: !!config.OPENAI_API_KEY }))),
+      );
     }
   },
 };

@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.imagen.no_query": "📌 *Usage:*\n{0}imagen <description>\n\nExample: {0}imagen sunset over mountains",
+    "plugins.imagen.too_long": "❌ The description is too long (max {0} characters).",
+    "plugins.imagen.caption": "🎨 *Imagen AI*\n\n{0}",
+    "plugins.imagen.safety": "❌ Request blocked by safety filters.",
+    "plugins.imagen.no_image": "❌ No image was generated. Try rephrasing your description.",
+    "plugins.imagen.paid_only": "⚙️ Image generation is not available with this Gemini API key: it needs a paid plan (billing enabled) or access to the image model.",
+    "plugins.imagen.model_not_found": "⚙️ The image model is not available. Check IMAGE_MODEL in config.env."
+  },
+  "fr": {
+    "plugins.imagen.no_query": "📌 *Utilisation :*\n{0}imagen <description>\n\nExemple : {0}imagen coucher de soleil sur les montagnes",
+    "plugins.imagen.too_long": "❌ La description est trop longue ({0} caractères maximum).",
+    "plugins.imagen.caption": "🎨 *Imagen AI*\n\n{0}",
+    "plugins.imagen.safety": "❌ Requête bloquée par les filtres de sécurité.",
+    "plugins.imagen.no_image": "❌ Aucune image n'a été générée. Essayez de reformuler votre description.",
+    "plugins.imagen.paid_only": "⚙️ La génération d'images n'est pas disponible avec cette clé API Gemini : elle demande une offre payante (facturation activée) ou l'accès au modèle d'image.",
+    "plugins.imagen.model_not_found": "⚙️ Le modèle d'image n'est pas disponible. Vérifiez IMAGE_MODEL dans config.env."
+  }
+}

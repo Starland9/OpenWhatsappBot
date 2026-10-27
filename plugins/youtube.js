@@ -1,183 +1,213 @@
 const { getLang } = require("../lib/utils/language");
-const play = require("play-dl");
-const fs = require("fs").promises;
-const path = require("path");
+const config = require("../config");
+const downloader = require("../lib/utils/downloader");
+const { classifyError, replyKeyFor, safeLog } = require("../lib/utils/http");
+
+/**
+ * YouTube plugin (yt-dlp through lib/utils/downloader.js)
+ *   .ytdl / .ytv <link>  video (15 minutes max)
+ *   .yta <link>          audio (m4a, 60 minutes max)
+ *   .yts <query>         search
+ */
+
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "music.youtube.com",
+  "youtu.be",
+]);
+
+const MAX_VIDEO_SECONDS = 15 * 60;
+const MAX_AUDIO_SECONDS = 60 * 60;
+const SEARCH_RESULTS = 5;
+
+// yt-dlp failures that mean "this link does not work", not "the service is down"
+const BAD_LINK_CODES = new Set(["YTDLP_UNAVAILABLE", "YTDLP_UNSUPPORTED", "INVALID_URL"]);
+
+const VIDEO_ID = "[\\w-]{11}";
+const SHORT_PATH_RE = new RegExp(`^/${VIDEO_ID}(?:/|$)`);
+const VIDEO_PATH_RE = new RegExp(`^/(?:shorts|live|embed|v)/${VIDEO_ID}(?:/|$)`);
+
+function extractUrl(text) {
+  const match = String(text || "").match(/https?:\/\/[^\s<>"]+/i);
+  return match ? match[0].replace(/[).,;!?]+$/, "") : null;
+}
+
+/**
+ * First YouTube *video* link of a text, as a URL object, or null.
+ * Channels and playlists are refused: yt-dlp would download every entry.
+ */
+function parseYoutubeUrl(text) {
+  const raw = extractUrl(text);
+  if (!raw) return null;
+
+  let url;
+  try {
+    url = new URL(raw);
+  } catch (e) {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+
+  const host = url.hostname.toLowerCase();
+  if (!YOUTUBE_HOSTS.has(host)) return null;
+
+  if (host === "youtu.be") return SHORT_PATH_RE.test(url.pathname) ? url : null;
+
+  const isWatch =
+    url.pathname === "/watch" && new RegExp(`^${VIDEO_ID}$`).test(url.searchParams.get("v") || "");
+  return isWatch || VIDEO_PATH_RE.test(url.pathname) ? url : null;
+}
+
+function formatDuration(seconds) {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) return "?";
+  const total = Math.round(seconds);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(secs).padStart(2, "0")}`;
+}
+
+/**
+ * Reply to a failure. Unexpected errors are rethrown: the registry answers
+ * common.error and sends the stack to the owner.
+ */
+async function fail(message, err) {
+  await message.react("❌");
+
+  if (BAD_LINK_CODES.has(err?.code)) {
+    return await message.reply(getLang("plugins.youtube.invalid_link"));
+  }
+
+  const kind = classifyError(err, { userUrl: true });
+  if (kind === "error") throw err;
+
+  console.error("YouTube error:", safeLog(err));
+  return await message.reply(getLang(replyKeyFor(kind), config.MAX_UPLOAD));
+}
+
+async function searchVideos(message, query) {
+  const text = String(query || "").trim();
+  if (!text) {
+    return await message.reply(getLang("plugins.youtube.usage_search", config.PREFIX));
+  }
+
+  try {
+    await message.react("🔍");
+    const results = await downloader.search(text, SEARCH_RESULTS);
+
+    if (!results.length) {
+      await message.react("❌");
+      return await message.reply(getLang("plugins.youtube.no_results"));
+    }
+
+    const lines = results.map((video, index) =>
+      getLang(
+        "plugins.youtube.search_item",
+        index + 1,
+        video.title,
+        video.channel || getLang("plugins.youtube.unknown"),
+        formatDuration(video.duration),
+        video.url
+      )
+    );
+
+    await message.reply(
+      `${getLang("plugins.youtube.search_header")}\n\n${lines.join("\n\n")}\n\n${getLang(
+        "plugins.youtube.search_footer",
+        config.PREFIX
+      )}`
+    );
+    await message.react("✅");
+  } catch (err) {
+    await fail(message, err);
+  }
+}
+
+async function downloadMedia(message, argsString, audio) {
+  const input = argsString || message.getQuotedText();
+  if (!input) {
+    return await message.reply(getLang("plugins.youtube.usage_download", config.PREFIX));
+  }
+
+  const url = parseYoutubeUrl(input);
+  if (!url) {
+    return await message.reply(getLang("plugins.youtube.invalid_link"));
+  }
+
+  try {
+    await message.react("⏳");
+
+    // Metadata first: refuse a live stream or a too long video before downloading it
+    const info = await downloader.getInfo(url.href, { audio });
+    if (info.isLive) {
+      await message.react("❌");
+      return await message.reply(getLang("plugins.youtube.invalid_link"));
+    }
+
+    const maxSeconds = audio ? MAX_AUDIO_SECONDS : MAX_VIDEO_SECONDS;
+    if (info.duration !== null && info.duration > maxSeconds) {
+      await message.react("❌");
+      return await message.reply(
+        getLang(
+          "plugins.youtube.too_long",
+          formatDuration(info.duration),
+          formatDuration(maxSeconds)
+        )
+      );
+    }
+
+    await message.reply(
+      getLang(
+        "plugins.youtube.downloading",
+        info.title || url.href,
+        formatDuration(info.duration),
+        getLang(audio ? "plugins.youtube.type_audio" : "plugins.youtube.type_video")
+      )
+    );
+
+    const media = await downloader.download(url.href, { audio });
+
+    if (audio) {
+      await message.sendAudioFile(media.buffer);
+    } else if (media.mimetype === "video/mp4") {
+      await message.sendVideo(media.buffer, media.title, {
+        mimetype: "video/mp4",
+        fileName: media.fileName,
+      });
+    } else {
+      // webm/mkv do not play inline in WhatsApp
+      await message.sendDocument(media.buffer, {
+        fileName: media.fileName,
+        mimetype: media.mimetype,
+        caption: media.title,
+      });
+    }
+
+    await message.react("✅");
+  } catch (err) {
+    await fail(message, err);
+  }
+}
 
 module.exports = {
   command: {
     pattern: "ytdl|ytv|yta|yts",
-    desc: getLang("plugins.video.desc"),
+    desc: getLang("plugins.youtube.desc"),
     type: "downloader",
   },
 
-  async execute(message, query) {
-    try {
-      const command = message.body
-        .split(" ")[0]
-        .replace(require("../config").PREFIX, "")
-        .trim()
-        .toLowerCase();
+  async execute(message, argsString, ctx) {
+    const command = ctx?.command || "ytdl";
 
-      if (command === "yts") {
-        if (!query) {
-          return await message.reply(
-            "❌ Utilisation: .yts <terme>\n\nExemple: .yts despacito"
-          );
-        }
-
-        try {
-          await message.react("🔍");
-          const results = await play.search(query, {
-            limit: 5,
-            source: { youtube: "video" },
-          });
-
-          if (!results || results.length === 0) {
-            await message.react("❌");
-            return await message.reply("❌ Aucun résultat trouvé");
-          }
-
-          let response = "🔍 *Résultats YouTube*\n\n";
-          results.forEach((video, index) => {
-            const duration = formatDuration(video.durationInSec);
-            response += `${index + 1}. *${video.title}*\n`;
-            response += `   👤 ${video.channel?.name || "Inconnu"}\n`;
-            response += `   ⏱️ ${duration}\n`;
-            response += `   🔗 ${video.url}\n\n`;
-          });
-
-          response += "_Pour télécharger: .ytdl <url>_";
-          await message.react("✅");
-          return await message.reply(response);
-        } catch (error) {
-          await message.react("❌");
-          console.error("YouTube search error:", error);
-          return await message.reply(`❌ Erreur: ${error.message}`);
-        }
-      }
-
-      if (!query) {
-        return await message.reply(
-          "❌ Fournissez une URL YouTube\n\nExemple: .ytdl https://youtube.com/watch?v=..."
-        );
-      }
-
-      try {
-        await message.react("⏳");
-        const isAudio = command === "yta";
-
-        const validateResult = play.yt_validate(query);
-        if (!validateResult || validateResult === "false") {
-          await message.react("❌");
-          return await message.reply("❌ URL YouTube invalide");
-        }
-
-        const info = await play.video_info(query);
-        const video = info.video_details;
-        const title = video.title;
-        const duration = video.durationInSec;
-        const author = video.channel?.name || "Inconnu";
-
-        const maxDuration = isAudio ? 3600 : 900;
-        if (duration > maxDuration) {
-          await message.react("❌");
-          return await message.reply(
-            `❌ Vidéo trop longue: ${formatDuration(
-              duration
-            )} (Max: ${formatDuration(maxDuration)})`
-          );
-        }
-
-        await message.reply(
-          `📥 *Téléchargement...*\n\n*Titre:* ${title}\n*Auteur:* ${author}\n*Durée:* ${formatDuration(
-            duration
-          )}\n*Type:* ${isAudio ? "Audio 🎵" : "Vidéo 🎬"}`
-        );
-
-        const tempDir = path.join(__dirname, "..", "media", "temp");
-        await fs.mkdir(tempDir, { recursive: true });
-        const fileName = `${Date.now()}_${sanitizeFilename(title)}`;
-        const filePath = path.join(tempDir, fileName);
-
-        if (isAudio) {
-          const stream = await play.stream(query, { quality: 2 });
-          const audioPath = `${filePath}.mp3`;
-          const writeStream = require("fs").createWriteStream(audioPath);
-          stream.stream.pipe(writeStream);
-
-          await new Promise((resolve, reject) => {
-            writeStream.on("finish", resolve);
-            writeStream.on("error", reject);
-          });
-
-          const buffer = await fs.readFile(audioPath);
-          await message.sendAudio(buffer, {
-            mimetype: "audio/mp4",
-            fileName: `${sanitizeFilename(title)}.mp3`,
-          });
-          await fs.unlink(audioPath).catch(() => {});
-        } else {
-          const stream = await play.stream(query, { quality: 1 });
-          const videoPath = `${filePath}.mp4`;
-          const writeStream = require("fs").createWriteStream(videoPath);
-          stream.stream.pipe(writeStream);
-
-          await new Promise((resolve, reject) => {
-            writeStream.on("finish", resolve);
-            writeStream.on("error", reject);
-          });
-
-          const stats = await fs.stat(videoPath);
-          const sizeMB = stats.size / 1024 / 1024;
-
-          if (sizeMB > 100) {
-            await fs.unlink(videoPath).catch(() => {});
-            await message.react("❌");
-            return await message.reply(
-              `❌ Fichier trop volumineux: ${sizeMB.toFixed(2)}MB (Max: 100MB)`
-            );
-          }
-
-          const buffer = await fs.readFile(videoPath);
-          await message.sendVideo(buffer, title, {
-            mimetype: "video/mp4",
-            fileName: `${sanitizeFilename(title)}.mp4`,
-          });
-          await fs.unlink(videoPath).catch(() => {});
-        }
-
-        await message.react("✅");
-      } catch (error) {
-        await message.react("❌");
-        console.error("YouTube download error:", error);
-        await message.reply(`❌ Erreur: ${error.message}`);
-      }
-    } catch (error) {
-      console.error("YouTube plugin critical error:", error);
-      try {
-        await message.react("❌");
-        await message.reply(
-          "❌ Une erreur critique est survenue. Veuillez réessayer."
-        );
-      } catch (e) {
-        console.error("Failed to send error message:", e);
-      }
-    }
+    if (command === "yts") return await searchVideos(message, argsString);
+    return await downloadMedia(message, argsString, command === "yta");
   },
+
+  // exposed for tests
+  parseYoutubeUrl,
 };
-
-function formatDuration(seconds) {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, "0")}`;
-}
-
-function sanitizeFilename(filename) {
-  return filename.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 50);
-}

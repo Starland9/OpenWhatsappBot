@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.buttons.reply_number": "Quote this message and reply with the number of your choice.",
+    "plugins.buttons.pick_list": "Quote this message and reply with the number of the option you want.",
+    "plugins.buttons.prev": "◀ Prev",
+    "plugins.buttons.next": "Next ▶",
+    "plugins.buttons.yes": "✅ Yes",
+    "plugins.buttons.no": "❌ No",
+    "plugins.buttons.nav_title": "Navigation"
+  },
+  "fr": {
+    "plugins.buttons.reply_number": "Cite ce message et réponds avec le numéro de ton choix.",
+    "plugins.buttons.pick_list": "Cite ce message et réponds avec le numéro de l'option souhaitée.",
+    "plugins.buttons.prev": "◀ Préc.",
+    "plugins.buttons.next": "Suiv. ▶",
+    "plugins.buttons.yes": "✅ Oui",
+    "plugins.buttons.no": "❌ Non",
+    "plugins.buttons.nav_title": "Navigation"
+  }
+}

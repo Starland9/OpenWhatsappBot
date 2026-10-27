@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.buttonmenu.intro": "📋 *Command menu*\n> Prefix: {0}\n> Commands: {1}\n\n_Pick a category to browse its commands._",
+    "plugins.buttonmenu.categories": "Categories",
+    "plugins.buttonmenu.cat_count": "{0} commands",
+    "plugins.buttonmenu.category_intro": "📂 *{0}*\n{1} commands.\n\n_Pick a command to see its details._",
+    "plugins.buttonmenu.navigation": "Navigation",
+    "plugins.buttonmenu.back": "◀ Back",
+    "plugins.buttonmenu.back_desc": "Back to the categories"
+  },
+  "fr": {
+    "plugins.buttonmenu.intro": "📋 *Menu des commandes*\n> Préfixe : {0}\n> Commandes : {1}\n\n_Choisis une catégorie pour parcourir ses commandes._",
+    "plugins.buttonmenu.categories": "Catégories",
+    "plugins.buttonmenu.cat_count": "{0} commandes",
+    "plugins.buttonmenu.category_intro": "📂 *{0}*\n{1} commandes.\n\n_Choisis une commande pour voir son détail._",
+    "plugins.buttonmenu.navigation": "Navigation",
+    "plugins.buttonmenu.back": "◀ Retour",
+    "plugins.buttonmenu.back_desc": "Retour aux catégories"
+  }
+}

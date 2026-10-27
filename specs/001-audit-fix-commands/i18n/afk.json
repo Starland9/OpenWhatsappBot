@@ -1,0 +1,30 @@
+{
+  "en": {
+    "plugins.afk.desc": "Mark yourself as away (AFK); the bot tells people who mention you",
+    "plugins.afk.set": "💤 You are now AFK. I'll tell people who mention you, and you'll be marked as back at your next message.",
+    "plugins.afk.set_reason": "💤 You are now AFK.\n*Reason:* {0}\nI'll tell people who mention you, and you'll be marked as back at your next message.",
+    "plugins.afk.updated": "💤 You are still AFK.",
+    "plugins.afk.updated_reason": "💤 AFK status updated.\n*Reason:* {0}",
+    "plugins.afk.back": "👋 Welcome back {0}! You were away for {1}.",
+    "plugins.afk.notice": "💤 {0} is AFK (for {1}).",
+    "plugins.afk.notice_reason": "💤 {0} is AFK: {1} (for {2}).",
+    "plugins.afk.unit_d": "{0} d",
+    "plugins.afk.unit_h": "{0} h",
+    "plugins.afk.unit_m": "{0} min",
+    "plugins.afk.unit_s": "{0} s"
+  },
+  "fr": {
+    "plugins.afk.desc": "Vous marquer comme absent (AFK) ; le bot prévient ceux qui vous mentionnent",
+    "plugins.afk.set": "💤 Vous êtes maintenant AFK. Je préviendrai ceux qui vous mentionnent, et vous serez de retour dès votre prochain message.",
+    "plugins.afk.set_reason": "💤 Vous êtes maintenant AFK.\n*Raison :* {0}\nJe préviendrai ceux qui vous mentionnent, et vous serez de retour dès votre prochain message.",
+    "plugins.afk.updated": "💤 Vous êtes toujours AFK.",
+    "plugins.afk.updated_reason": "💤 Statut AFK mis à jour.\n*Raison :* {0}",
+    "plugins.afk.back": "👋 Bon retour {0} ! Vous étiez absent depuis {1}.",
+    "plugins.afk.notice": "💤 {0} est AFK (depuis {1}).",
+    "plugins.afk.notice_reason": "💤 {0} est AFK : {1} (depuis {2}).",
+    "plugins.afk.unit_d": "{0} j",
+    "plugins.afk.unit_h": "{0} h",
+    "plugins.afk.unit_m": "{0} min",
+    "plugins.afk.unit_s": "{0} s"
+  }
+}

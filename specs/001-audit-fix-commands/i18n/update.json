@@ -1,0 +1,20 @@
+{
+  "en": {
+    "plugins.update.usage": "*Bot Update:*\n\nUse *{0}update now* to update the bot to the latest version from GitHub.\n\n⚠️ *Warning:* This will:\n• Pull the latest code from GitHub (fast-forward only)\n• Install new dependencies\n• Restart the bot automatically",
+    "plugins.update.busy": "⏳ An update is already running.",
+    "plugins.update.detached": "⚠️ The repository is not on a branch (detached HEAD). Update cancelled.",
+    "plugins.update.diverged": "❌ *Cannot fast-forward!*\n\nThe local history differs from GitHub. Please resolve it manually before updating.",
+    "plugins.update.uncommitted_changes": "⚠️ *Warning:* tracked files have local changes.\n\nPlease commit or discard them before updating. Untracked files are ignored.",
+    "plugins.update.install_failed": "❌ Failed to install dependencies. Check the server logs.",
+    "plugins.update.error": "❌ Update failed. Check the server logs."
+  },
+  "fr": {
+    "plugins.update.usage": "*Mise à jour du bot :*\n\nUtilisez *{0}update now* pour mettre à jour le bot vers la dernière version depuis GitHub.\n\n⚠️ *Attention :* cela va :\n• Récupérer le dernier code de GitHub (fast-forward uniquement)\n• Installer les nouvelles dépendances\n• Redémarrer le bot automatiquement",
+    "plugins.update.busy": "⏳ Une mise à jour est déjà en cours.",
+    "plugins.update.detached": "⚠️ Le dépôt n'est pas sur une branche (HEAD détaché). Mise à jour annulée.",
+    "plugins.update.diverged": "❌ *Fast-forward impossible !*\n\nL'historique local diffère de celui de GitHub. Veuillez le résoudre manuellement avant la mise à jour.",
+    "plugins.update.uncommitted_changes": "⚠️ *Attention :* des fichiers suivis ont des modifications locales.\n\nVeuillez les valider ou les annuler avant la mise à jour. Les fichiers non suivis sont ignorés.",
+    "plugins.update.install_failed": "❌ Échec de l'installation des dépendances. Consultez les logs du serveur.",
+    "plugins.update.error": "❌ La mise à jour a échoué. Consultez les logs du serveur."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "en": {
+    "plugins.exportcontacts.desc": "Export the members of the current group (or of all your groups, in private) as JSON or CSV, sent to your DM. Owner only.",
+    "plugins.exportcontacts.fetching": "🔎 Collecting contacts, this may take a moment...",
+    "plugins.exportcontacts.empty": "ℹ️ No contacts found: the bot has no group members to export.",
+    "plugins.exportcontacts.caption": "Contacts export ({2}): {0} contacts from {1} group(s)",
+    "plugins.exportcontacts.sent_dm": "✅ The file was sent to your private chat."
+  },
+  "fr": {
+    "plugins.exportcontacts.desc": "Exporter les membres du groupe actuel (ou de tous vos groupes, en privé) en JSON ou CSV, envoyé en message privé. Propriétaire uniquement.",
+    "plugins.exportcontacts.fetching": "🔎 Récupération des contacts, cela peut prendre un instant...",
+    "plugins.exportcontacts.empty": "ℹ️ Aucun contact trouvé : le bot n'a aucun membre de groupe à exporter.",
+    "plugins.exportcontacts.caption": "Export des contacts ({2}) : {0} contacts depuis {1} groupe(s)",
+    "plugins.exportcontacts.sent_dm": "✅ Le fichier a été envoyé dans votre discussion privée."
+  }
+}

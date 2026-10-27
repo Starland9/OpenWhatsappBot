@@ -1,0 +1,10 @@
+{
+  "en": {
+    "plugins.quoteof.format": "✨ *Quote of the moment*\n\n_\"{0}\"_\n\n— *{1}*",
+    "plugins.quoteof.unknown_author": "Unknown"
+  },
+  "fr": {
+    "plugins.quoteof.format": "✨ *Citation du moment*\n\n_« {0} »_\n\n— *{1}*",
+    "plugins.quoteof.unknown_author": "Inconnu"
+  }
+}

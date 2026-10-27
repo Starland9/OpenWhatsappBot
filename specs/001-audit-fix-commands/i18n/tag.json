@@ -1,0 +1,18 @@
+{
+  "en": {
+    "plugins.tag.desc": "Mention all group members in one message (admins only)",
+    "plugins.tag.default_header": "📢 *Attention everyone*",
+    "plugins.tag.no_metadata": "❌ Could not get the group information.",
+    "plugins.tag.no_members": "❌ No member found in this group.",
+    "plugins.tag.failed": "❌ The mention message could not be sent.",
+    "plugins.tag.partial": "⚠️ Only {0} of {1} messages could be sent."
+  },
+  "fr": {
+    "plugins.tag.desc": "Mentionner tous les membres du groupe en un seul message (admins uniquement)",
+    "plugins.tag.default_header": "📢 *Attention, tout le monde*",
+    "plugins.tag.no_metadata": "❌ Impossible de récupérer les informations du groupe.",
+    "plugins.tag.no_members": "❌ Aucun membre trouvé dans ce groupe.",
+    "plugins.tag.failed": "❌ Le message de mention n'a pas pu être envoyé.",
+    "plugins.tag.partial": "⚠️ Seuls {0} messages sur {1} ont pu être envoyés."
+  }
+}

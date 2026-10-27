@@ -1,31 +1,173 @@
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
 const config = require("../config");
-const fs = require("fs");
-const path = require("path");
-const { promisify } = require("util");
-const stream = require("stream");
-const pipeline = promisify(stream.pipeline);
+const {
+  fetchJson,
+  fetchBuffer,
+  classifyError,
+  replyKeyFor,
+  safeLog,
+} = require("../lib/utils/http");
 
 /**
- * Music Search Plugin - Search music on Spotify/YouTube
+ * Music plugin: track search (iTunes), Spotify search (needs keys) and
+ * .play, which sends the 30 second preview iTunes provides.
+ * Lyrics live in plugins/lyrics.js.
  */
+
+const ITUNES_URL = "https://itunes.apple.com/search";
+const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
+const SPOTIFY_SEARCH_URL = "https://api.spotify.com/v1/search";
+
+const SEARCH_LIMIT = 5;
+// A preview is about 1 MB; anything much bigger is not a preview
+const PREVIEW_MAX_BYTES = 10 * 1024 * 1024;
+
+let spotifyToken = null; // { value, expiresAt }
+
+function hasSpotifyKeys() {
+  return !!(config.SPOTIFY_CLIENT_ID && config.SPOTIFY_CLIENT_SECRET);
+}
+
+async function getSpotifyToken() {
+  if (spotifyToken && spotifyToken.expiresAt > Date.now() + 30000) return spotifyToken.value;
+
+  const credentials = Buffer.from(
+    `${config.SPOTIFY_CLIENT_ID}:${config.SPOTIFY_CLIENT_SECRET}`
+  ).toString("base64");
+
+  const auth = await fetchJson(SPOTIFY_TOKEN_URL, {
+    method: "POST",
+    data: "grant_type=client_credentials",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${credentials}`,
+    },
+    timeoutMs: 15000,
+  });
+
+  if (!auth || !auth.access_token) {
+    const err = new Error("Spotify returned no access token");
+    err.code = "ERR_BAD_RESPONSE_FORMAT";
+    throw err;
+  }
+
+  spotifyToken = {
+    value: auth.access_token,
+    expiresAt: Date.now() + (Number(auth.expires_in) || 3600) * 1000,
+  };
+  return spotifyToken.value;
+}
+
+/** One line per known field: a missing artist or album is skipped, never "undefined" */
+function trackLines(name, artist, album, prefix = "🎵 ") {
+  const lines = [`${prefix}*${name || getLang("plugins.music.unknown_track")}*`];
+  if (artist) lines.push(`   🎤 ${artist}`);
+  if (album) lines.push(`   💿 ${album}`);
+  return lines;
+}
+
+async function searchItunes(term, limit) {
+  const data = await fetchJson(ITUNES_URL, {
+    params: { term, media: "music", entity: "song", limit },
+    timeoutMs: 10000,
+  });
+  return Array.isArray(data?.results) ? data.results : [];
+}
+
+async function handleMusicSearch(message, query) {
+  const results = await searchItunes(query, SEARCH_LIMIT);
+
+  if (results.length === 0) {
+    await message.react("❌");
+    return await message.reply(getLang("plugins.music.no_results"));
+  }
+
+  let text = `${getLang("plugins.music.search_results")}\n\n🔍 _${query}_\n\n`;
+  results.slice(0, SEARCH_LIMIT).forEach((track, index) => {
+    const lines = trackLines(track.trackName, track.artistName, track.collectionName, `${index + 1}. `);
+    if (track.previewUrl) lines.push(`   🎧 ${track.previewUrl}`);
+    text += `${lines.join("\n")}\n\n`;
+  });
+
+  await message.reply(text.trimEnd());
+  await message.react("✅");
+}
+
+async function handleSpotify(message, query) {
+  if (!hasSpotifyKeys()) {
+    await message.react("❌");
+    return await message.reply(getLang("common.not_configured"));
+  }
+
+  const token = await getSpotifyToken();
+  const data = await fetchJson(SPOTIFY_SEARCH_URL, {
+    params: { q: query, type: "track", limit: SEARCH_LIMIT },
+    headers: { Authorization: `Bearer ${token}` },
+    timeoutMs: 10000,
+  });
+
+  const items = Array.isArray(data?.tracks?.items) ? data.tracks.items : [];
+  if (items.length === 0) {
+    await message.react("❌");
+    return await message.reply(getLang("plugins.music.no_results"));
+  }
+
+  let text = `${getLang("plugins.music.spotify_results")}\n\n`;
+  items.forEach((track, index) => {
+    const artists = (track.artists || []).map((a) => a?.name).filter(Boolean).join(", ");
+    const lines = trackLines(track.name, artists, track.album?.name, `${index + 1}. `);
+    if (track.external_urls?.spotify) lines.push(`   🔗 ${track.external_urls.spotify}`);
+    text += `${lines.join("\n")}\n\n`;
+  });
+
+  await message.reply(text.trimEnd());
+  await message.react("✅");
+}
+
+async function handlePlay(message, query) {
+  const results = await searchItunes(query, SEARCH_LIMIT);
+
+  if (results.length === 0) {
+    await message.react("❌");
+    return await message.reply(getLang("plugins.music.no_results"));
+  }
+
+  const track = results.find((t) => t.previewUrl);
+  if (!track) {
+    await message.react("❌");
+    return await message.reply(getLang("plugins.music.no_preview"));
+  }
+
+  await message.reply(
+    `${getLang("plugins.music.downloading")}\n\n${trackLines(
+      track.trackName,
+      track.artistName,
+      track.collectionName
+    ).join("\n")}`
+  );
+
+  // In memory: no temp file to clean up
+  const { buffer } = await fetchBuffer(track.previewUrl, {
+    maxBytes: PREVIEW_MAX_BYTES,
+    timeoutMs: 30000,
+  });
+
+  await message.sendAudioFile(buffer);
+  await message.react("✅");
+}
+
 module.exports = {
   command: {
-    pattern: "music|song|spotify|lyrics|play",
+    pattern: "music|song|spotify|play",
     desc: getLang("plugins.music.desc"),
     type: "media",
   },
 
-  async execute(message, query) {
-    const command = message.body
-      .split(" ")[0]
-      .replace(config.PREFIX, "")
-      .trim()
-      .toLowerCase();
+  async execute(message, query, ctx) {
+    const command = ctx?.command || "music";
 
     if (!query) {
-      return await message.reply(getLang("plugins.music.usage"));
+      return await message.reply(getLang("plugins.music.usage", config.PREFIX));
     }
 
     try {
@@ -33,228 +175,23 @@ module.exports = {
 
       if (command === "spotify") {
         await handleSpotify(message, query);
-      } else if (command === "lyrics") {
-        await handleLyrics(message, query);
       } else if (command === "play") {
         await handlePlay(message, query);
       } else {
-        // Default to music search
         await handleMusicSearch(message, query);
       }
-    } catch (error) {
+    } catch (err) {
       await message.react("❌");
-      console.error("Music search error:", error);
-      await message.reply(
-        `❌ ${getLang("plugins.music.error")}: ${error.message}`
-      );
+      // the cached token may have expired early
+      if (err?.response?.status === 401) spotifyToken = null;
+
+      const kind = classifyError(err, {
+        hasKey: command === "spotify" ? hasSpotifyKeys() : undefined,
+      });
+      if (kind === "error") throw err;
+
+      console.error("Music error:", safeLog(err));
+      await message.reply(getLang(replyKeyFor(kind), config.MAX_UPLOAD));
     }
   },
 };
-
-async function handleMusicSearch(message, query) {
-  // Search using iTunes API (free, no key required)
-  const response = await axios.get("https://itunes.apple.com/search", {
-    params: {
-      term: query,
-      media: "music",
-      entity: "song",
-      limit: 5,
-    },
-    timeout: 10000,
-  });
-
-  if (!response.data.results || response.data.results.length === 0) {
-    await message.react("❌");
-    return await message.reply(`❌ ${getLang("plugins.music.no_results")}`);
-  }
-
-  let musicText = `🎵 *${getLang("plugins.music.search_results")}*\n\n`;
-  musicText += `🔍 _${query}_\n\n`;
-
-  response.data.results.slice(0, 5).forEach((track, index) => {
-    musicText += `${index + 1}. *${track.trackName}*\n`;
-    musicText += `   🎤 ${track.artistName}\n`;
-    musicText += `   💿 ${track.collectionName}\n`;
-    if (track.previewUrl) {
-      musicText += `   🎧 ${track.previewUrl}\n`;
-    }
-    musicText += `\n`;
-  });
-
-  await message.react("✅");
-  await message.reply(musicText);
-}
-
-async function handleSpotify(message, query) {
-  const SPOTIFY_CLIENT_ID =
-    config.SPOTIFY_CLIENT_ID || process.env.SPOTIFY_CLIENT_ID;
-  const SPOTIFY_CLIENT_SECRET =
-    config.SPOTIFY_CLIENT_SECRET || process.env.SPOTIFY_CLIENT_SECRET;
-
-  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
-    return await message.reply(`❌ ${getLang("plugins.music.no_spotify_api")}`);
-  }
-
-  // Get Spotify access token
-  const authResponse = await axios.post(
-    "https://accounts.spotify.com/api/token",
-    "grant_type=client_credentials",
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${Buffer.from(
-          `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
-        ).toString("base64")}`,
-      },
-    }
-  );
-
-  const accessToken = authResponse.data.access_token;
-
-  // Search for tracks
-  const searchResponse = await axios.get("https://api.spotify.com/v1/search", {
-    params: {
-      q: query,
-      type: "track",
-      limit: 5,
-    },
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-
-  if (
-    !searchResponse.data.tracks.items ||
-    searchResponse.data.tracks.items.length === 0
-  ) {
-    await message.react("❌");
-    return await message.reply(`❌ ${getLang("plugins.music.no_results")}`);
-  }
-
-  let spotifyText = `🎵 *Spotify ${getLang(
-    "plugins.music.search_results"
-  )}*\n\n`;
-
-  searchResponse.data.tracks.items.forEach((track, index) => {
-    spotifyText += `${index + 1}. *${track.name}*\n`;
-    spotifyText += `   🎤 ${track.artists.map((a) => a.name).join(", ")}\n`;
-    spotifyText += `   💿 ${track.album.name}\n`;
-    spotifyText += `   🔗 ${track.external_urls.spotify}\n\n`;
-  });
-
-  await message.react("✅");
-  await message.reply(spotifyText);
-}
-
-async function handleLyrics(message, query) {
-  // Use lyrics.ovh API (free, no key required)
-  const [artist, ...songParts] = query.split("-");
-  const song = songParts.join("-").trim();
-
-  if (!artist || !song) {
-    return await message.reply(getLang("plugins.music.lyrics_format"));
-  }
-
-  const response = await axios.get(
-    `https://api.lyrics.ovh/v1/${encodeURIComponent(
-      artist.trim()
-    )}/${encodeURIComponent(song)}`,
-    { timeout: 15000 }
-  );
-
-  if (!response.data.lyrics) {
-    await message.react("❌");
-    return await message.reply(`❌ ${getLang("plugins.music.no_lyrics")}`);
-  }
-
-  let lyrics = response.data.lyrics;
-
-  // Limit to first 2000 characters for WhatsApp
-  if (lyrics.length > 2000) {
-    lyrics =
-      lyrics.substring(0, 2000) +
-      "\n\n... _" +
-      getLang("plugins.music.lyrics_truncated") +
-      "_";
-  }
-
-  const lyricsText =
-    `🎵 *${getLang("plugins.music.lyrics_title")}*\n\n` +
-    `🎤 *${getLang("plugins.music.artist")}:* ${artist.trim()}\n` +
-    `🎵 *${getLang("plugins.music.song")}:* ${song}\n\n` +
-    `${lyrics}`;
-
-  await message.react("✅");
-  await message.reply(lyricsText);
-}
-
-async function handlePlay(message, query) {
-  // Search using iTunes API
-  const response = await axios.get("https://itunes.apple.com/search", {
-    params: {
-      term: query,
-      media: "music",
-      entity: "song",
-      limit: 1,
-    },
-    timeout: 10000,
-  });
-
-  if (!response.data.results || response.data.results.length === 0) {
-    await message.react("❌");
-    return await message.reply(`❌ ${getLang("plugins.music.no_results")}`);
-  }
-
-  const track = response.data.results[0];
-
-  if (!track.previewUrl) {
-    await message.react("❌");
-    return await message.reply(`❌ ${getLang("plugins.music.no_preview")}`);
-  }
-
-  await message.reply(
-    `🎵 ${getLang("plugins.music.downloading")}\n\n` +
-      `🎤 *${track.artistName}*\n` +
-      `🎵 *${track.trackName}*\n` +
-      `💿 ${track.collectionName}`
-  );
-
-  // Download the preview
-  const tempDir = path.join(__dirname, "..", "media", "temp");
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-  }
-
-  const fileName = `${Date.now()}_${track.trackName
-    .replace(/[^a-zA-Z0-9]/g, "_")
-    .substring(0, 50)}.m4a`;
-  const filePath = path.join(tempDir, fileName);
-
-  // Download audio
-  const audioResponse = await axios.get(track.previewUrl, {
-    responseType: "stream",
-    timeout: 30000,
-  });
-
-  await pipeline(audioResponse.data, fs.createWriteStream(filePath));
-
-  // Read file as buffer
-  const audioBuffer = fs.readFileSync(filePath);
-
-  // Send as audio
-  await message.sendAudio(audioBuffer, {
-    caption:
-      `🎵 *${track.trackName}*\n` +
-      `🎤 ${track.artistName}\n` +
-      `💿 ${track.collectionName}`,
-  });
-
-  // Clean up
-  try {
-    fs.unlinkSync(filePath);
-  } catch (err) {
-    console.error("Error deleting temp file:", err);
-  }
-
-  await message.react("✅");
-}

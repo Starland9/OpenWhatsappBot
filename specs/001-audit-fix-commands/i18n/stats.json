@@ -1,0 +1,18 @@
+{
+  "en": {
+    "plugins.stats.desc": "View group statistics (messages, media and commands per member)",
+    "plugins.stats.no_data": "❌ No activity recorded in this group yet.",
+    "plugins.stats.summary": "📊 *Group statistics*\n\n💬 Messages: *{0}*\n🖼 Media: *{1}*\n⚙ Commands: *{2}*\n👥 Active members: *{3}*\n\n🏆 *Top members*\n{4}",
+    "plugins.stats.top_line": "  {0}. {1} — _{2} messages · {3} media · {4} commands_",
+    "plugins.stats.reset": "✅ Statistics reset for this group ({0} members): messages, media, commands and XP are back to zero.",
+    "plugins.stats.usage": "*Stats commands:*\n\n{0}stats — Group statistics\n{0}stats reset — Reset the group's statistics (admins only)"
+  },
+  "fr": {
+    "plugins.stats.desc": "Voir les statistiques du groupe (messages, médias et commandes par membre)",
+    "plugins.stats.no_data": "❌ Aucune activité enregistrée dans ce groupe pour le moment.",
+    "plugins.stats.summary": "📊 *Statistiques du groupe*\n\n💬 Messages : *{0}*\n🖼 Médias : *{1}*\n⚙ Commandes : *{2}*\n👥 Membres actifs : *{3}*\n\n🏆 *Meilleurs membres*\n{4}",
+    "plugins.stats.top_line": "  {0}. {1} — _{2} messages · {3} médias · {4} commandes_",
+    "plugins.stats.reset": "✅ Statistiques du groupe réinitialisées ({0} membres) : messages, médias, commandes et XP remis à zéro.",
+    "plugins.stats.usage": "*Commandes stats :*\n\n{0}stats — Statistiques du groupe\n{0}stats reset — Réinitialiser les statistiques du groupe (admins uniquement)"
+  }
+}

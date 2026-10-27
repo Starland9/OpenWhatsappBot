@@ -7,21 +7,18 @@
  * Features:
  * - Health check endpoint for uptime monitoring
  * - Keep-alive ping mechanism
- * - Panel status API endpoints
+ * - Panel status API endpoints (POST /api/restart needs PANEL_TOKEN)
  * - Graceful shutdown handling
  * - Configurable port via environment variables
  */
 
 const http = require('http');
+const crypto = require('crypto');
 const { WhatsAppClient } = require('./lib/baileys/client');
-const { Message } = require('./lib/classes/Message');
 const PluginLoader = require('./lib/plugins/loader');
-const { executeCommand, getPlugin } = require('./lib/plugins/registry');
-const { DATABASE, sync, StickerCommand } = require('./lib/database');
+const { attachHandlers } = require('./lib/core/pipeline');
+const { DATABASE, sync } = require('./lib/database');
 const config = require('./config');
-const autoResponderHandler = require('./lib/utils/autoResponderHandler');
-const viewOnceHandler = require('./lib/utils/viewOnceHandler');
-const antiDeleteHandler = require('./lib/utils/antiDeleteHandler');
 const memoryManager = require('./lib/utils/memoryManager');
 const pino = require('pino');
 
@@ -41,12 +38,12 @@ const logger = pino({
 // Cache config values at module level for better performance
 const VERSION = config.VERSION;
 const PREFIX = config.PREFIX;
-const MESSAGE_CONCURRENCY_LIMIT = config.MESSAGE_CONCURRENCY_LIMIT;
 
 // Configuration - Use config.js values when available
 const PORT = config.PANEL_PORT || parseInt(process.env.PORT) || 3000;
 const HOST = config.PANEL_HOST || '0.0.0.0';
 const KEEP_ALIVE_INTERVAL = config.KEEP_ALIVE_INTERVAL || 60000; // 60 seconds
+const RESTART_DELAY = 1000; // ms between the /api/restart answer and process.exit
 
 // Bot state tracking
 let botState = {
@@ -108,8 +105,9 @@ function createServer() {
 
       case '/api/restart':
         if (method === 'POST') {
-          handleRestart(res);
+          handleRestart(req, res);
         } else {
+          res.setHeader('Allow', 'POST');
           res.writeHead(405);
           res.end(JSON.stringify({ error: 'Method not allowed' }));
         }
@@ -230,9 +228,36 @@ function handleBotInfo(res) {
 }
 
 /**
- * Restart endpoint handler
+ * Check `Authorization: Bearer <token>` against the configured token.
+ * Both sides are hashed first so that the buffers handed to timingSafeEqual always have the
+ * same length (a token of another length takes the same time and leaks nothing).
  */
-function handleRestart(res) {
+function hasValidToken(req, token) {
+  const match = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '');
+  if (!match) return false;
+  const digest = (value) => crypto.createHash('sha256').update(value).digest();
+  return crypto.timingSafeEqual(digest(match[1].trim()), digest(token));
+}
+
+/**
+ * Restart endpoint handler. Disabled (403) unless PANEL_TOKEN is set; then it needs
+ * `Authorization: Bearer <PANEL_TOKEN>` (401 otherwise). config.PANEL_TOKEN is read per request.
+ */
+function handleRestart(req, res) {
+  const token = config.PANEL_TOKEN;
+  if (!token) {
+    res.writeHead(403);
+    res.end(JSON.stringify({ error: 'Restart endpoint disabled: PANEL_TOKEN is not configured' }));
+    return;
+  }
+  if (!hasValidToken(req, token)) {
+    logger.warn('Rejected unauthorized /api/restart request');
+    res.setHeader('WWW-Authenticate', 'Bearer');
+    res.writeHead(401);
+    res.end(JSON.stringify({ error: 'Unauthorized' }));
+    return;
+  }
+
   res.writeHead(200);
   res.end(JSON.stringify({
     message: 'Bot restart initiated',
@@ -243,7 +268,7 @@ function handleRestart(res) {
   setTimeout(() => {
     logger.info('Restart requested via panel API');
     process.exit(0); // PM2/panel will restart the process
-  }, 1000);
+  }, RESTART_DELAY);
 }
 
 /**
@@ -464,86 +489,16 @@ function startKeepAlive() {
 }
 
 /**
- * Process a single message
- * 
- * Note: setImmediate is used for anti-delete caching to make the operation
- * non-blocking. This allows the main message processing to continue without
- * waiting for caching. Any errors in caching are handled by the antiDeleteHandler
- * internally and won't affect message processing.
+ * Record a processing error for /status (keeps the last 100)
  */
-async function processMessage(msg, client) {
-  try {
-    // Update activity
-    botState.messagesProcessed++;
-    botState.lastActivity = new Date().toISOString();
-
-    // Skip broadcast messages
-    if (msg.key.remoteJid === 'status@broadcast') return;
-
-    // Create Message instance
-    const message = new Message(client, msg);
-
-    // Cache message for anti-delete functionality (non-blocking)
-    // Uses setImmediate to defer caching to next event loop tick
-    setImmediate(() => antiDeleteHandler.cacheMessage(message));
-
-    // Handle view-once messages first
-    const viewOnceHandled = await viewOnceHandler.handleMessage(message);
-    if (viewOnceHandled) {
-      logger.debug('View-once message handled');
-    }
-
-    // Check if message is a reply to a quiz/game
-    if (message.quoted) {
-      const quizPlugin = getPlugin('quiz');
-      if (quizPlugin && quizPlugin.handleReply) {
-        const handled = await quizPlugin.handleReply(message);
-        if (handled) return;
-      }
-    }
-
-    // Check if this is a sticker command (stealth mode)
-    if (message.type === 'stickerMessage' && message.data.message?.stickerMessage) {
-      try {
-        const fileSha256 = message.data.message.stickerMessage.fileSha256;
-        if (fileSha256) {
-          const stickerHash = Buffer.from(fileSha256).toString('hex');
-          const stickerCmd = await StickerCommand.findOne({ where: { stickerHash } });
-
-          if (stickerCmd) {
-            logger.debug(`Executing sticker command: ${stickerCmd.command}`);
-            message.body = PREFIX + stickerCmd.command;
-            await executeCommand(message);
-            return;
-          }
-        }
-      } catch (error) {
-        logger.error('Sticker command error:', error);
-      }
-    }
-
-    // Try auto-responder first (only for non-command messages)
-    // Uses cached PREFIX value for better performance
-    const isCommand = message.body.startsWith(PREFIX);
-
-    if (!isCommand && !message.fromMe) {
-      const autoResponded = await autoResponderHandler.handleMessage(message);
-      if (autoResponded) return;
-    }
-
-    // Execute commands
-    await executeCommand(message);
-  } catch (error) {
-    logger.error('Error processing message:', error);
-    botState.errors.push({
-      type: 'message_processing',
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
-    // Keep only last 100 errors
-    if (botState.errors.length > 100) {
-      botState.errors = botState.errors.slice(-100);
-    }
+function recordError(type, error) {
+  botState.errors.push({
+    type,
+    error: error?.message || String(error),
+    timestamp: new Date().toISOString(),
+  });
+  if (botState.errors.length > 100) {
+    botState.errors = botState.errors.slice(-100);
   }
 }
 
@@ -571,18 +526,17 @@ async function startBot() {
     await PluginLoader.loadAll();
     logger.info('✅ Plugins loaded');
 
-    // Initialize WhatsApp client
+    // Initialize WhatsApp client. Messages go through the shared pipeline
+    // (lib/core/pipeline.js), the same one index.js uses.
     const client = new WhatsAppClient();
-    await client.initialize();
     botState.client = client;
 
-    // Handle incoming messages
-    // Uses cached MESSAGE_CONCURRENCY_LIMIT for better performance
-    client.on('messages', async (messages) => {
-      for (let i = 0; i < messages.length; i += MESSAGE_CONCURRENCY_LIMIT) {
-        const batch = messages.slice(i, i + MESSAGE_CONCURRENCY_LIMIT);
-        await Promise.allSettled(batch.map((msg) => processMessage(msg, client)));
-      }
+    attachHandlers(client, {
+      onMessageProcessed: () => {
+        botState.messagesProcessed++;
+        botState.lastActivity = new Date().toISOString();
+      },
+      onError: (error) => recordError('message_processing', error),
     });
 
     // Ready event
@@ -590,21 +544,16 @@ async function startBot() {
       botState.status = 'running';
       botState.isConnected = true;
       botState.startTime = Date.now();
-      logger.info('✅ Bot is ready and listening for messages');
-    });
-
-    // Handle message updates (for anti-delete)
-    client.on('messages.update', async (updates) => {
-      for (const update of updates) {
-        await antiDeleteHandler.handleMessageDelete(update, client);
-      }
     });
 
     // Handle disconnection
     client.on('close', () => {
       botState.isConnected = false;
-      botState.status = 'disconnected';
+      // stop() closes the socket during shutdown: keep the shutting_down status
+      if (botState.status !== 'shutting_down') botState.status = 'disconnected';
     });
+
+    await client.initialize();
 
     return client;
   } catch (error) {
@@ -632,7 +581,7 @@ function setupGracefulShutdown(server) {
       logger.info('HTTP server closed');
     });
 
-    // Stop WhatsApp client
+    // Stop WhatsApp client (closes the connection, keeps the linked device: no new QR on restart)
     if (botState.client) {
       try {
         await botState.client.stop();

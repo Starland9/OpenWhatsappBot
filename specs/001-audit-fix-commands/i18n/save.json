@@ -1,0 +1,8 @@
+{
+  "en": {
+    "plugins.save.header": "📱 *Status from:* @{0}"
+  },
+  "fr": {
+    "plugins.save.header": "📱 *Statut de :* @{0}"
+  }
+}

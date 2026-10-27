@@ -1,106 +1,97 @@
 const { getLang } = require("../lib/utils/language");
 const config = require("../config");
+const { safeLog } = require("../lib/utils/http");
 
 /**
- * Poll Plugin - Create interactive polls in groups
+ * Poll plugin: creates a native WhatsApp poll (WhatsApp counts the votes).
+ *   .poll Question? option 1, option 2, option 3     → one answer per member
+ *   .poll+ Question? option 1, option 2, option 3    → several answers allowed
+ *   .poll Question | option 1 | option 2             → "|" (or one option per line) also works
+ * Aliases: vote, pollplus (same as poll+).
  */
 
-// Store poll data
-const polls = new Map(); // messageId -> {question, options, votes}
+const MIN_OPTIONS = 2;
+const MAX_OPTIONS = 12;
+const MAX_QUESTION_LENGTH = 255;
+const MAX_OPTION_LENGTH = 100;
+const MULTI_COMMANDS = new Set(["poll+", "pollplus"]);
+
+const tidy = (text) => String(text).replace(/\s+/g, " ").trim();
+
+/**
+ * Split "Question? a, b, c" at the FIRST "?". Options are separated by "|",
+ * else by line breaks, else by commas. Without a "?", "Question | a | b" works.
+ * @returns {{ question: string, options: string[] }|null} options are trimmed,
+ *   capped and deduplicated (case-insensitive); the count is not checked
+ */
+function parsePoll(raw) {
+  const text = String(raw || "").trim();
+  const q = text.indexOf("?");
+  const bar = text.indexOf("|");
+
+  let question;
+  let parts;
+  if (bar !== -1 && (q === -1 || bar < q)) {
+    [question, ...parts] = text.split("|");
+  } else if (q !== -1) {
+    question = text.slice(0, q + 1);
+    const rest = text.slice(q + 1);
+    if (rest.includes("|")) parts = rest.split("|");
+    else if (rest.trim().includes("\n")) parts = rest.split(/\r?\n/);
+    else parts = rest.split(",");
+  } else {
+    return null;
+  }
+
+  question = tidy(question).slice(0, MAX_QUESTION_LENGTH);
+  if (!tidy(question.replace(/\?/g, ""))) return null;
+
+  const seen = new Set();
+  const options = [];
+  for (const part of parts) {
+    const option = tidy(part).slice(0, MAX_OPTION_LENGTH).trim();
+    const key = option.toLowerCase();
+    if (!option || seen.has(key)) continue;
+    seen.add(key);
+    options.push(option);
+  }
+  return { question, options };
+}
 
 module.exports = {
   command: {
-    pattern: "vote",
+    pattern: "poll|vote|poll+|pollplus",
     desc: getLang("plugins.poll.desc"),
     type: "group",
     onlyGroup: true,
   },
 
-  async execute(message, query) {
-    const chatId = message.jid;
+  async execute(message, argsString, ctx) {
+    const raw = String(ctx?.rawArgs ?? argsString ?? "");
+    if (!raw.trim()) {
+      return await message.reply(getLang("plugins.poll.usage", config.PREFIX));
+    }
 
+    const poll = parsePoll(raw);
+    if (!poll) {
+      return await message.reply(getLang("plugins.poll.format_error", config.PREFIX));
+    }
+    if (poll.options.length < MIN_OPTIONS) {
+      return await message.reply(getLang("plugins.poll.min_options"));
+    }
+    if (poll.options.length > MAX_OPTIONS) {
+      return await message.reply(getLang("plugins.poll.max_options"));
+    }
+
+    // selectableCount 1 = single answer; as many as there are options = multiple answers
+    const multiple = MULTI_COMMANDS.has(ctx?.command);
     try {
-      if (!query) {
-        return await message.reply(getLang("plugins.poll.usage"));
-      }
-
-      // Parse poll format: poll Question? Option1, Option2, Option3
-      const parts = query.split("?");
-      if (parts.length < 2) {
-        return await message.reply(getLang("plugins.poll.format_error"));
-      }
-
-      const question = parts[0].trim() + "?";
-      const optionsText = parts[1].trim();
-
-      const options = optionsText
-        .split(",")
-        .map((opt) => opt.trim())
-        .filter((opt) => opt.length > 0);
-
-      if (options.length < 2) {
-        return await message.reply(getLang("plugins.poll.min_options"));
-      }
-
-      if (options.length > 12) {
-        return await message.reply(getLang("plugins.poll.max_options"));
-      }
-
-      await message.react("📊");
-
-      try {
-        // Try to send native WhatsApp poll (requires recent WhatsApp version)
-        await message.sendPoll(question, options, { selectableCount: 1 });
-        await message.react("✅");
-      } catch (pollError) {
-        // Fallback to manual poll with reactions
-        console.log("Native poll not supported, using manual poll");
-
-        const emojis = [
-          "1️⃣",
-          "2️⃣",
-          "3️⃣",
-          "4️⃣",
-          "5️⃣",
-          "6️⃣",
-          "7️⃣",
-          "8️⃣",
-          "9️⃣",
-          "🔟",
-          "🅰️",
-          "🅱️",
-        ];
-
-        let pollMessage = `📊 *${getLang("plugins.poll.title")}*\n\n`;
-        pollMessage += `❓ *${question}*\n\n`;
-
-        options.forEach((option, index) => {
-          pollMessage += `${emojis[index]} ${option}\n`;
-        });
-
-        pollMessage += `\n_${getLang("plugins.poll.instruction")}_`;
-
-        const sentMsg = await message.reply(pollMessage);
-
-        // Store poll data
-        if (sentMsg && sentMsg.key) {
-          polls.set(sentMsg.key.id, {
-            question,
-            options,
-            votes: new Map(), // emoji -> [userJids]
-            created: Date.now(),
-            chatId,
-          });
-        }
-
-        await message.react("✅");
-      }
+      await message.sendPoll(poll.question, poll.options, {
+        selectableCount: multiple ? poll.options.length : 1,
+      });
     } catch (error) {
-      await message.react("❌");
-      console.error("Poll error:", error);
-      await message.reply(
-        `❌ ${getLang("plugins.poll.error")}: ${error.message}`
-      );
+      console.error("poll: could not send the poll", safeLog(error));
+      return await message.reply(getLang("common.error"));
     }
   },
 };

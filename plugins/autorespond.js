@@ -1,10 +1,95 @@
 const { getLang } = require("../lib/utils/language");
 const { AutoResponder } = require("../lib/database");
+const settingsCache = require("../lib/utils/settingsCache");
 const config = require("../config");
 
 /**
- * Auto Responder Management Plugin
+ * Auto Responder Management Plugin (owner only)
+ *   .ar status | on | off
+ *   .ar ignore add|remove <number> | list | clear
+ *   .ar personality [text]
  */
+
+const SETTINGS_KEY = "auto_responder";
+const PERSONALITY_PREVIEW = 100;
+const MAX_PERSONALITY_LENGTH = 1500;
+
+const parseList = (value) =>
+  value
+    ? value
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean)
+    : [];
+
+const onlyDigits = (value) => String(value || "").replace(/[^0-9]/g, "");
+
+/** Single settings row (id 1), created from the config defaults when missing */
+async function loadSettings() {
+  let settings = await AutoResponder.findOne({ where: { id: 1 } });
+  if (!settings) {
+    settings = await AutoResponder.create({
+      id: 1,
+      ignoreNumbers: config.AUTO_RESPONDER_IGNORE_NUMBERS,
+      personality: config.AUTO_RESPONDER_PERSONALITY,
+      enabled: config.AUTO_RESPONDER_ENABLED,
+    });
+    settingsCache.invalidate(SETTINGS_KEY);
+  }
+  return settings;
+}
+
+/** Write settings, then drop the cached copy the auto-responder reads on every message */
+async function updateSettings(settings, values) {
+  await settings.update(values);
+  settingsCache.invalidate(SETTINGS_KEY);
+}
+
+async function handleIgnore(message, settings, args) {
+  const subAction = args[1]?.toLowerCase();
+  const current = parseList(settings.ignoreNumbers);
+
+  if (subAction === "add" || subAction === "remove") {
+    // numbers are often typed with spaces: +33 6 12 34 56 78
+    const number = onlyDigits(args.slice(2).join(""));
+    if (!number) return await message.reply(getLang("plugins.autorespond.ignore_usage", config.PREFIX));
+
+    if (subAction === "add") {
+      if (current.includes(number)) {
+        return await message.reply(getLang("plugins.autorespond.already_ignored"));
+      }
+      await updateSettings(settings, { ignoreNumbers: [...current, number].join(",") });
+      await message.react("✅");
+      return await message.reply(getLang("plugins.autorespond.number_ignored", number));
+    }
+
+    const remaining = current.filter((n) => n !== number);
+    if (remaining.length === current.length) {
+      return await message.reply(getLang("plugins.autorespond.not_ignored"));
+    }
+    await updateSettings(settings, { ignoreNumbers: remaining.join(",") });
+    await message.react("✅");
+    return await message.reply(getLang("plugins.autorespond.number_unignored", number));
+  }
+
+  if (subAction === "list") {
+    if (current.length === 0) {
+      return await message.reply(getLang("plugins.autorespond.no_ignored"));
+    }
+    return await message.reply(
+      `${getLang("plugins.autorespond.ignored_list")}\n${current.map((n, i) => `${i + 1}. ${n}`).join("\n")}`,
+    );
+  }
+
+  if (subAction === "clear") {
+    await updateSettings(settings, { ignoreNumbers: "" });
+    await message.react("✅");
+    return await message.reply(getLang("plugins.autorespond.ignore_cleared"));
+  }
+
+  return await message.reply(getLang("plugins.autorespond.ignore_usage", config.PREFIX));
+}
+
 module.exports = {
   command: {
     pattern: "ar",
@@ -13,167 +98,63 @@ module.exports = {
     fromMe: true,
   },
 
-  async execute(message, query) {
-    try {
-      const args = query.trim().split(/\s+/);
-      const action = args[0]?.toLowerCase();
+  async execute(message, query, ctx) {
+    const args = (query || "").trim().split(/\s+/);
+    const action = args[0]?.toLowerCase();
+    const settings = await loadSettings();
 
-      // Get or create settings
-      let settings = await AutoResponder.findOne({ where: { id: 1 } });
-      if (!settings) {
-        settings = await AutoResponder.create({
-          id: 1,
-          ignoreNumbers: config.AUTO_RESPONDER_IGNORE_NUMBERS,
-          personality: config.AUTO_RESPONDER_PERSONALITY,
-          enabled: config.AUTO_RESPONDER_ENABLED,
-        });
+    if (!action || action === "status") {
+      const ignoreList = parseList(settings.ignoreNumbers);
+      const personality = String(settings.personality || "");
+      return await message.reply(
+        getLang(
+          "plugins.autorespond.status",
+          getLang(settings.enabled ? "common.status_enabled" : "common.status_disabled"),
+          ignoreList.length > 0 ? ignoreList.join(", ") : getLang("plugins.autorespond.none"),
+          personality.length > PERSONALITY_PREVIEW
+            ? `${personality.slice(0, PERSONALITY_PREVIEW)}...`
+            : personality,
+        ),
+      );
+    }
+
+    if (action === "on") {
+      if (!config.GEMINI_API_KEY) {
+        return await message.reply(getLang("plugins.autorespond.no_api_key"));
       }
+      await updateSettings(settings, { enabled: true });
+      await message.react("✅");
+      return await message.reply(getLang("plugins.autorespond.enabled"));
+    }
 
-      // Handle commands
-      if (!action || action === "status") {
-        const ignoreList = settings.ignoreNumbers
-          ? settings.ignoreNumbers
-              .split(",")
-              .map((n) => n.trim())
-              .filter(Boolean)
-          : [];
+    if (action === "off") {
+      await updateSettings(settings, { enabled: false });
+      await message.react("✅");
+      return await message.reply(getLang("plugins.autorespond.disabled"));
+    }
 
-        const statusMsg = getLang("plugins.autorespond.status")
-          .replace("{0}", settings.enabled ? "✅ Enabled" : "❌ Disabled")
-          .replace(
-            "{1}",
-            ignoreList.length > 0 ? ignoreList.join(", ") : "None"
-          )
-          .replace("{2}", settings.personality.substring(0, 100) + "...");
+    if (action === "ignore") return await handleIgnore(message, settings, args);
 
-        return await message.reply(statusMsg);
-      }
+    if (action === "personality") {
+      // rawArgs keeps the line breaks of a multi-line personality
+      const raw = (ctx?.rawArgs ?? query ?? "").trim();
+      const personality = raw.replace(/^personality\s*/i, "").trim();
 
-      if (action === "on") {
-        if (!config.GEMINI_API_KEY) {
-          return await message.reply(getLang("plugins.autorespond.no_api_key"));
-        }
-
-        await settings.update({ enabled: true });
-        await message.react("✅");
-        return await message.reply(getLang("plugins.autorespond.enabled"));
-      }
-
-      if (action === "off") {
-        await settings.update({ enabled: false });
-        await message.react("✅");
-        return await message.reply(getLang("plugins.autorespond.disabled"));
-      }
-
-      if (action === "ignore") {
-        const subAction = args[1]?.toLowerCase();
-
-        if (subAction === "add" && args[2]) {
-          const number = args[2].replace(/[^0-9]/g, "");
-          const currentIgnore = settings.ignoreNumbers
-            ? settings.ignoreNumbers
-                .split(",")
-                .map((n) => n.trim())
-                .filter(Boolean)
-            : [];
-
-          if (currentIgnore.includes(number)) {
-            return await message.reply(
-              getLang("plugins.autorespond.already_ignored")
-            );
-          }
-
-          currentIgnore.push(number);
-          await settings.update({ ignoreNumbers: currentIgnore.join(",") });
-          await message.react("✅");
-          return await message.reply(
-            getLang("plugins.autorespond.number_ignored").replace("{0}", number)
-          );
-        }
-
-        if (subAction === "remove" && args[2]) {
-          const number = args[2].replace(/[^0-9]/g, "");
-          const currentIgnore = settings.ignoreNumbers
-            ? settings.ignoreNumbers
-                .split(",")
-                .map((n) => n.trim())
-                .filter(Boolean)
-            : [];
-
-          const filtered = currentIgnore.filter((n) => n !== number);
-
-          if (filtered.length === currentIgnore.length) {
-            return await message.reply(
-              getLang("plugins.autorespond.not_ignored")
-            );
-          }
-
-          await settings.update({ ignoreNumbers: filtered.join(",") });
-          await message.react("✅");
-          return await message.reply(
-            getLang("plugins.autorespond.number_unignored").replace(
-              "{0}",
-              number
-            )
-          );
-        }
-
-        if (subAction === "list") {
-          const ignoreList = settings.ignoreNumbers
-            ? settings.ignoreNumbers
-                .split(",")
-                .map((n) => n.trim())
-                .filter(Boolean)
-            : [];
-
-          if (ignoreList.length === 0) {
-            return await message.reply(
-              getLang("plugins.autorespond.no_ignored")
-            );
-          }
-
-          return await message.reply(
-            getLang("plugins.autorespond.ignored_list") +
-              "\n" +
-              ignoreList.map((n, i) => `${i + 1}. ${n}`).join("\n")
-          );
-        }
-
-        if (subAction === "clear") {
-          await settings.update({ ignoreNumbers: "" });
-          await message.react("✅");
-          return await message.reply(
-            getLang("plugins.autorespond.ignore_cleared")
-          );
-        }
-
-        return await message.reply(getLang("plugins.autorespond.ignore_usage"));
-      }
-
-      if (action === "personality") {
-        const personality = args.slice(1).join(" ");
-
-        if (!personality) {
-          return await message.reply(
-            getLang("plugins.autorespond.current_personality") +
-              "\n\n" +
-              settings.personality
-          );
-        }
-
-        await settings.update({ personality });
-        await message.react("✅");
+      if (!personality) {
         return await message.reply(
-          getLang("plugins.autorespond.personality_updated")
+          `${getLang("plugins.autorespond.current_personality")}\n\n${settings.personality}`,
         );
       }
-
-      // Show usage
-      return await message.reply(getLang("plugins.autorespond.usage"));
-    } catch (error) {
-      await message.react("❌");
-      console.error("Auto responder error:", error);
-      await message.reply(`❌ Error: ${error.message}`);
+      if (personality.length > MAX_PERSONALITY_LENGTH) {
+        return await message.reply(
+          getLang("plugins.autorespond.personality_too_long", MAX_PERSONALITY_LENGTH),
+        );
+      }
+      await updateSettings(settings, { personality });
+      await message.react("✅");
+      return await message.reply(getLang("plugins.autorespond.personality_updated"));
     }
+
+    return await message.reply(getLang("plugins.autorespond.usage", config.PREFIX));
   },
 };

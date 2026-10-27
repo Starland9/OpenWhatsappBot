@@ -2,6 +2,9 @@ const { getLang } = require("../lib/utils/language");
 const config = require("../config");
 const os = require("os");
 
+const MB = 1024 * 1024;
+const GB = 1024 * MB;
+
 /**
  * Alive command - Show bot status
  */
@@ -20,30 +23,30 @@ module.exports = {
 
     const memoryUsage = process.memoryUsage();
     const totalMem = os.totalmem();
-    const freeMem = os.freemem();
-    const usedMem = totalMem - freeMem;
+    const usedMem = totalMem - os.freemem();
 
-    const status = `╭━━━『 *BOT STATUS* 』━━━
-│
-│ *Version:* ${config.VERSION}
-│ *Uptime:* ${hours}h ${minutes}m ${seconds}s
-│ *Memory:* ${(memoryUsage.heapUsed / 1024 / 1024).toFixed(2)}MB / ${(
-      memoryUsage.heapTotal /
-      1024 /
-      1024
-    ).toFixed(2)}MB
-│ *System:* ${(usedMem / 1024 / 1024 / 1024).toFixed(2)}GB / ${(
-      totalMem /
-      1024 /
-      1024 /
-      1024
-    ).toFixed(2)}GB
-│ *Platform:* ${os.platform()}
-│ *Node:* ${process.version}
-│
-╰━━━━━━━━━━━━━━━━━━━
-
-✅ *Bot is alive and running!*`;
+    const status = [
+      `╭━━━『 *${getLang("plugins.alive.title")}* 』━━━`,
+      "│",
+      `│ *${getLang("plugins.alive.version")}:* ${config.VERSION}`,
+      `│ *${getLang("plugins.alive.uptime")}:* ${getLang("plugins.alive.uptime_value", hours, minutes, seconds)}`,
+      `│ *${getLang("plugins.alive.memory")}:* ${getLang(
+        "plugins.alive.memory_value",
+        (memoryUsage.heapUsed / MB).toFixed(2),
+        (memoryUsage.heapTotal / MB).toFixed(2),
+      )}`,
+      `│ *${getLang("plugins.alive.system")}:* ${getLang(
+        "plugins.alive.system_value",
+        (usedMem / GB).toFixed(2),
+        (totalMem / GB).toFixed(2),
+      )}`,
+      `│ *${getLang("plugins.alive.platform")}:* ${os.platform()}`,
+      `│ *${getLang("plugins.alive.node")}:* ${process.version}`,
+      "│",
+      "╰━━━━━━━━━━━━━━━━━━━",
+      "",
+      getLang("plugins.alive.running"),
+    ].join("\n");
 
     await message.reply(status);
   },

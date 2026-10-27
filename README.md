@@ -1,6 +1,6 @@
 # Open Whatsapp Bot
 
-A powerful and modern open-source community WhatsApp bot built with **baileys v6.7.9+** featuring clean architecture, modular plugins, and production-ready deployment options.
+A powerful and modern open-source community WhatsApp bot built with **Baileys v7** featuring clean architecture, modular plugins, and production-ready deployment options.
 
 ## ✨ Features
 
@@ -13,14 +13,15 @@ A powerful and modern open-source community WhatsApp bot built with **baileys v6
 - 📥 **Media Downloads** - YouTube, Instagram, TikTok, and more
 - 👥 **Group Management** - Complete admin tools for groups
 - 🎨 **Media Processing** - Stickers, image editing, and more
-- 🔐 **Permission System** - Sudo users, admin-only commands
+- 🔐 **Permission System** - Sudo users, admin-only commands, enforced before a command runs
 - 📊 **Production Ready** - PM2, Docker, Heroku support
 - ⚡ **CPU Optimized** - ~70-80% CPU reduction with caching and parallel processing
 
 ## 📦 Requirements
 
-- **Node.js**: v20.0.0 or higher
+- **Node.js**: v24.0.0 or higher
 - **FFmpeg**: For media processing
+- **yt-dlp**: For `.ytdl`, `.insta` and `.dl` (keep it up to date; the Docker image installs the latest release)
 - **PostgreSQL**: For production (optional, SQLite by default)
 
 ## 🚀 Quick Start
@@ -64,12 +65,21 @@ yarn start
 
 Scan the QR code with WhatsApp to authenticate.
 
+### 5. Run the Tests (optional)
+
+```bash
+yarn test
+```
+
+The automated checks load every command and simulate their calls without WhatsApp or network access (about 10 seconds, Node 24).
+
 ## 📱 Available Commands
 
 ### General
 
 - `.ping` - Check bot latency
-- `.help` - Display all commands
+- `.menu` - Display all commands
+- `.help <command>` - Show the aliases, access and usage of one command
 - `.alive` - Show bot status
 
 ### AI
@@ -79,20 +89,29 @@ Scan the QR code with WhatsApp to authenticate.
 
 ### Group Management
 
-- `.tag <text>` - Tag all members
-- `.kick @user` - Remove member (admin only)
+- `.tagall <text>` - Tag all members (admin only)
+- `.kick @user` - Remove member(s) (admin only)
 - `.promote @user` - Promote to admin (admin only)
 - `.demote @user` - Demote from admin (admin only)
+- `.warn @user [reason]` - Warn a member (admin only)
 
 ### Media
 
 - `.sticker` - Create sticker from image/video (reply to media)
 - `.qr <text>` - Generate QR code
 
+### Utilities
+
+- `.trt <lang> <text>` - Translate a text (aliases `.translate`, `.tr`; also works on a replied message)
+- `.remind <when> <text>` - Persistent reminder, e.g. `.remind 2h Call` or `.remind 14:30 Meeting`
+
 ### Downloads
 
-- `.ytdl <url>` - Download YouTube video
-- `.yta <url>` - Download YouTube audio
+- `.ytdl <url>` - Download a YouTube video (15 min max; alias `.ytv`)
+- `.yta <url>` - Download YouTube audio (60 min max)
+- `.dl <url> [audio]` - Download from TikTok, Instagram, Facebook, X and more
+
+Every command, its aliases, who can use it, the external service it needs and its audit status are listed in [docs/AUDIT_COMMANDES.md](docs/AUDIT_COMMANDES.md) (in French). Send `.menu` to the bot for the live list.
 
 ## 🏗️ Architecture
 
@@ -106,21 +125,26 @@ open-whatsapp-bot/
 │   │   └── client.js        # WhatsApp client
 │   ├── classes/
 │   │   └── Message.js       # Message abstraction
+│   ├── core/
+│   │   └── pipeline.js      # Message pipeline, shared by index.js and panel.js
 │   ├── plugins/
 │   │   ├── loader.js        # Plugin loader
-│   │   └── registry.js      # Command registry
+│   │   └── registry.js      # Command registry (exact aliases, permissions, hooks)
+│   ├── utils/               # http, ffmpeg, yt-dlp downloader, caches, scheduler...
 │   └── database/
-│       ├── index.js         # Database initialization
+│       ├── index.js         # Database initialization and additive schema sync
 │       └── models/          # Sequelize models
 │           ├── User.js
 │           ├── Group.js
 │           ├── Filter.js
 │           └── Warn.js
-└── plugins/                 # Plugin files
-    ├── ping.js
-    ├── help.js
-    ├── chatgpt.js
-    └── ...
+├── plugins/                 # Plugin files
+│   ├── ping.js
+│   ├── help.js
+│   ├── chatgpt.js
+│   └── ...
+├── test/                    # node:test suite (yarn test)
+└── docs/AUDIT_COMMANDES.md  # Audit report of every command
 ```
 
 ## 🔌 Creating Plugins
@@ -128,22 +152,34 @@ open-whatsapp-bot/
 Create a new file in `/plugins` directory:
 
 ```javascript
+const { getLang } = require('../lib/utils/language')
+
 module.exports = {
   command: {
-    pattern: 'mycommand',           // Command pattern
-    desc: 'My command description', // Description
-    type: 'general',                // Category
-    fromMe: false,                  // Sudo only
-    onlyGroup: false,               // Group only
-    onlyPm: false                   // PM only
+    pattern: 'mycommand|mc',                // Exact names, separated by "|" (not a regex)
+    desc: getLang('plugins.mycommand.desc'), // Description (translated)
+    type: 'general',                        // Category in the menu
+    fromMe: false,                          // Sudo (owner) only (ownerOnly is a synonym)
+    onlyGroup: false,                       // Group only
+    onlyPm: false,                          // PM only
+    adminOnly: false                        // Group admins or owner only (implies group)
   },
-  
-  async execute(message, args) {
-    // Your command logic
-    await message.reply('Hello!')
+
+  // args: words after the command, single-spaced
+  // ctx.command: the alias that matched; ctx.rawArgs: text after it, newlines kept
+  async execute(message, args, ctx) {
+    if (!args) return message.reply(getLang('plugins.mycommand.usage', '.'))
+    await message.reply(getLang('plugins.mycommand.hello'))
   }
 }
 ```
+
+Rules to know:
+
+- A command only runs when the word after the prefix **equals** its name or one of its aliases (case-insensitive). Permissions (`fromMe`, `onlyGroup`, `onlyPm`, `adminOnly`) are checked before `execute`, so do not repeat them; only check `await message.isBotAdmin()` before an admin action.
+- Every text sent to users goes through `getLang('plugins.<name>.<key>', ...args)` with the same key in `lang/en.json` and `lang/fr.json`. Never put `error.message` in a reply; a thrown error already gives the user a generic message and the stack goes to the owner.
+- Optional hooks in the same file: `onMessage(message)`, `onGroupParticipants(update, client)`, `onReady(client)` and `handleButtonReply(message)` (button ids look like `mycommand:action:arg`).
+- Check your work with `yarn test`; see `CLAUDE.md` and `docs/PLUGIN_CREATION_DOC.md` for the full contract.
 
 ### Message Class Methods
 
@@ -156,6 +192,7 @@ await message.sendImage(buffer, 'caption')
 await message.sendVideo(buffer, 'caption')
 await message.sendSticker(buffer)
 await message.sendAudio(buffer)
+await message.sendVoice(buffer)   // voice note (converted to ogg/opus)
 
 // React to message
 await message.react('✅')
@@ -163,8 +200,12 @@ await message.react('✅')
 // Delete message
 await message.delete()
 
-// Download media
+// Download the media of the message
 const buffer = await message.downloadMedia()
+
+// Media and text of the message it replies to
+const quoted = await message.getQuotedMedia({ maxBytes: 20 * 1024 * 1024 }) // { buffer, type, mimetype } or null
+const quotedText = message.getQuotedText()
 
 // Group operations
 await message.kick(['jid1', 'jid2'])
@@ -212,9 +253,10 @@ AUTO_RESPONDER_ENABLED=true
 AUTO_RESPONDER_IGNORE_NUMBERS=1234567890,0987654321
 AUTO_RESPONDER_PERSONALITY=You are a helpful and friendly assistant.
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
-**Commands:**
+**Commands (owner only):**
 
 - `.ar status` - View current settings
 - `.ar on/off` - Enable/disable auto-responder
@@ -233,7 +275,7 @@ GEMINI_API_KEY=your_gemini_api_key
 - Private messages only
 - Typing indicator
 
-See [AUTO_RESPONDER_GUIDE.md](AUTO_RESPONDER_GUIDE.md) for detailed documentation.
+See [AUTO_RESPONDER_GUIDE.md](docs/AUTO_RESPONDER_GUIDE.md) for detailed documentation.
 
 ## ☁️ Deployment
 
@@ -260,6 +302,16 @@ The `panel.js` file provides:
 - 📊 Metrics endpoint (`/metrics`)
 - 🔄 Keep-alive ping mechanism
 - 🌐 Status page accessible via browser
+- 🔒 Remote restart (`POST /api/restart`), disabled unless `PANEL_TOKEN` is set
+
+`/health`, `/status`, `/ping`, `/metrics` and `/api/info` are read-only and public. `POST /api/restart` answers `403` while `PANEL_TOKEN` is empty, `401` without the right token and `405` for any other method:
+
+```bash
+# config.env: PANEL_TOKEN=a-long-random-secret
+curl -X POST -H "Authorization: Bearer a-long-random-secret" http://localhost:3000/api/restart
+```
+
+Stopping the panel (SIGTERM/SIGINT) closes the WhatsApp connection without logging the device out, so a restart does not need a new QR scan.
 
 See [Bot-Hosting Guide](docs/BOT_HOSTING_GUIDE.md) for detailed instructions.
 
@@ -278,6 +330,8 @@ docker build -t open-whatsapp-bot .
 docker run -d --env-file config.env open-whatsapp-bot
 ```
 
+The image includes ffmpeg and the latest yt-dlp.
+
 ### Heroku
 
 ```bash
@@ -293,9 +347,13 @@ Deploy using the web UI or CLI with the provided `app.json`.
 ### VPS/Ubuntu
 
 ```bash
-# Install Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+# Install Node.js 24
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install nodejs ffmpeg -y
+
+# Install yt-dlp (latest release)
+sudo wget -O /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
 
 # Install Yarn and PM2
 npm install -g yarn pm2
@@ -329,7 +387,11 @@ pm2 startup
 | `AUTO_STATUS_VIEW` | Auto-view statuses | `true` |
 | `AUTO_STATUS_REACT` | Auto-react to statuses | `false` |
 | `OPENAI_API_KEY` | OpenAI API key for ChatGPT | - |
+| `OPENAI_MODEL` | Model used by `.gpt` | `gpt-4o-mini` |
 | `GEMINI_API_KEY` | Google Gemini API key | - |
+| `GEMINI_MODEL` | Model used by `.gemini` and the auto-responder | `gemini-2.5-flash` |
+| `BOT_LANG` | Bot language (`fr` or `en` are complete) | `fr` |
+| `TIMEZONE` | Time zone of reminders | `UTC` |
 | `DATABASE_URL` | PostgreSQL URL (optional) | SQLite |
 | `LOG_LEVEL` | Logging level | `info` |
 
@@ -355,7 +417,7 @@ The bot has been extensively optimized for low CPU and memory usage:
 | Message Latency | 70% faster |
 | DB Queries | 90% reduction |
 
-For detailed optimization information, see [CPU_OPTIMIZATION_GUIDE.md](CPU_OPTIMIZATION_GUIDE.md).
+For detailed optimization information, see [CPU_OPTIMIZATION_GUIDE.md](docs/CPU_OPTIMIZATION_GUIDE.md).
 
 ### Monitoring
 
@@ -382,9 +444,14 @@ The bot uses Sequelize ORM with support for:
 Models:
 
 - `User` - User data and AFK status
-- `Group` - Group settings (antilink, mute, welcome)
+- `Group` - Group settings (welcome, goodbye)
 - `Filter` - Auto-reply filters
 - `Warn` - Warning system
+- `BannedChat` - Chats where the bot is disabled (`.ban` / `.unban`)
+- `Reminder`, `Task`, `NotifyKeyword` - Reminders, to-do lists and keyword alerts
+- `UserStats`, `GroupEconomy`, `GroupRole` - Levels and rankings, coins, member roles
+
+The schema is synchronized at every start without altering existing columns (new tables, columns and indexes only).
 
 ## 🛡️ Security
 
@@ -401,7 +468,7 @@ Contributions are welcome! Please:
 1. Fork the repository
 2. Create a feature branch
 3. Write clean, documented code
-4. Test thoroughly
+4. Test thoroughly (`yarn test`)
 5. Submit a pull request
 
 ## 📄 License

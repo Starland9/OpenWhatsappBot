@@ -1,10 +1,119 @@
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
 const config = require("../config");
+const {
+  fetchJson,
+  fetchBuffer,
+  classifyError,
+  replyKeyFor,
+  safeLog,
+} = require("../lib/utils/http");
 
 /**
- * Image & GIF Search Plugin - Search and send images/GIFs
+ * Image & GIF search.
+ *   .image / .img <query>   photo from Unsplash (UNSPLASH_API_KEY)
+ *   .gif / .giphy <query>   GIF from Giphy (GIPHY_API_KEY), sent as a looping mp4
  */
+
+const GIPHY_SEARCH_URL = "https://api.giphy.com/v1/gifs/search";
+const UNSPLASH_SEARCH_URL = "https://api.unsplash.com/search/photos";
+
+const GIF_COMMANDS = new Set(["gif", "giphy"]);
+const MAX_QUERY_LENGTH = 100;
+const MAX_GIF_QUERY_LENGTH = 50; // Giphy refuses longer queries
+// Media of the search results: never larger than this, whatever MAX_UPLOAD is
+const MEDIA_MAX_BYTES = Math.min(16, Number(config.MAX_UPLOAD) || 16) * 1024 * 1024;
+
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/** https link on the given domain (or one of its subdomains), or null */
+function trustedUrl(value, domain) {
+  try {
+    const url = new URL(String(value));
+    const host = url.hostname.toLowerCase();
+    if (url.protocol !== "https:") return null;
+    return host === domain || host.endsWith(`.${domain}`) ? url.href : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function sendGif(message, query) {
+  const data = await fetchJson(GIPHY_SEARCH_URL, {
+    params: { api_key: config.GIPHY_API_KEY, q: query, limit: 10, rating: "g" },
+    timeoutMs: 10000,
+  });
+
+  // Only results with an mp4 rendition: WhatsApp plays an mp4 with gifPlayback, a raw .gif it does not
+  const results = (Array.isArray(data?.data) ? data.data : []).filter(
+    (gif) => gif?.images?.original?.mp4 || gif?.images?.fixed_height?.mp4
+  );
+
+  if (results.length === 0) {
+    await message.react("❌");
+    return await message.reply(getLang("plugins.imagesearch.no_gifs"));
+  }
+
+  const images = pickRandom(results).images;
+  // original first; a smaller rendition when the original is over the size cap
+  const candidates = [images.original?.mp4, images.fixed_height?.mp4]
+    .map((u) => trustedUrl(u, "giphy.com"))
+    .filter((u, i, all) => u && all.indexOf(u) === i);
+
+  let buffer = null;
+  let lastError = null;
+  for (const url of candidates) {
+    try {
+      ({ buffer } = await fetchBuffer(url, { maxBytes: MEDIA_MAX_BYTES, timeoutMs: 30000 }));
+      break;
+    } catch (err) {
+      lastError = err;
+      if (err?.code !== "MEDIA_TOO_LARGE") throw err;
+    }
+  }
+  if (!buffer) {
+    if (lastError) throw lastError;
+    await message.react("❌");
+    return await message.reply(getLang("plugins.imagesearch.no_gifs"));
+  }
+
+  await message.sendVideo(buffer, getLang("plugins.imagesearch.gif_caption", query), {
+    gifPlayback: true,
+    mimetype: "video/mp4",
+  });
+  await message.react("✅");
+}
+
+async function sendPhoto(message, query) {
+  const data = await fetchJson(UNSPLASH_SEARCH_URL, {
+    params: { query, per_page: 10, orientation: "landscape" },
+    headers: { Authorization: `Client-ID ${config.UNSPLASH_API_KEY}` },
+    timeoutMs: 10000,
+  });
+
+  const results = (Array.isArray(data?.results) ? data.results : []).filter((photo) =>
+    trustedUrl(photo?.urls?.regular, "unsplash.com")
+  );
+
+  if (results.length === 0) {
+    await message.react("❌");
+    return await message.reply(getLang("plugins.imagesearch.no_images"));
+  }
+
+  const photo = pickRandom(results);
+  const { buffer } = await fetchBuffer(trustedUrl(photo.urls.regular, "unsplash.com"), {
+    maxBytes: MEDIA_MAX_BYTES,
+    timeoutMs: 30000,
+  });
+
+  let caption = getLang("plugins.imagesearch.image_caption", query, photo.user?.name || "?");
+  if (photo.alt_description) caption += `\n${photo.alt_description}`;
+
+  await message.sendImage(buffer, caption);
+  await message.react("✅");
+}
+
 module.exports = {
   command: {
     pattern: "image|img|gif|giphy",
@@ -12,136 +121,39 @@ module.exports = {
     type: "media",
   },
 
-  async execute(message, query) {
-    const command = message.body
-      .split(" ")[0]
-      .replace(config.PREFIX, "")
+  async execute(message, argsString, ctx) {
+    const isGif = GIF_COMMANDS.has(ctx?.command);
+    const query = String(argsString || "")
       .trim()
-      .toLowerCase();
-    const isGif = command === "gif" || command === "giphy";
+      .slice(0, isGif ? MAX_GIF_QUERY_LENGTH : MAX_QUERY_LENGTH);
 
     if (!query) {
       return await message.reply(
-        isGif
-          ? getLang("plugins.imagesearch.gif_usage")
-          : getLang("plugins.imagesearch.usage")
+        getLang(isGif ? "plugins.imagesearch.gif_usage" : "plugins.imagesearch.usage", config.PREFIX)
       );
+    }
+
+    const hasKey = !!(isGif ? config.GIPHY_API_KEY : config.UNSPLASH_API_KEY);
+    if (!hasKey) {
+      return await message.reply(getLang("common.not_configured"));
     }
 
     try {
       await message.react("⏳");
-
-      if (isGif) {
-        // Search GIF using Giphy
-        const GIPHY_API_KEY =
-          config.GIPHY_API_KEY || process.env.GIPHY_API_KEY || "dc6zaTOxFJmzC"; // Public beta key
-
-        const response = await axios.get(
-          "https://api.giphy.com/v1/gifs/search",
-          {
-            params: {
-              api_key: GIPHY_API_KEY,
-              q: query,
-              limit: 5,
-              rating: "g",
-            },
-            timeout: 10000,
-          }
-        );
-
-        if (!response.data.data || response.data.data.length === 0) {
-          await message.react("❌");
-          return await message.reply(
-            `❌ ${getLang("plugins.imagesearch.no_gifs")}`
-          );
-        }
-
-        // Get random GIF from results
-        const randomGif =
-          response.data.data[
-            Math.floor(Math.random() * response.data.data.length)
-          ];
-        const gifUrl = randomGif.images.original.url;
-
-        // Download GIF
-        const gifResponse = await axios.get(gifUrl, {
-          responseType: "arraybuffer",
-          timeout: 30000,
-        });
-        const gifBuffer = Buffer.from(gifResponse.data);
-
-        await message.react("✅");
-        await message.sendVideo(gifBuffer, `🎬 *${query}*\n\n_via Giphy_`, {
-          gifPlayback: true,
-        });
-      } else {
-        // Search Image using Unsplash
-        const UNSPLASH_ACCESS_KEY =
-          config.UNSPLASH_API_KEY || process.env.UNSPLASH_API_KEY;
-
-        if (!UNSPLASH_ACCESS_KEY) {
-          return await message.reply(
-            `❌ ${getLang("plugins.imagesearch.no_api_key")}`
-          );
-        }
-
-        const response = await axios.get(
-          "https://api.unsplash.com/search/photos",
-          {
-            params: {
-              query: query,
-              per_page: 10,
-              orientation: "landscape",
-            },
-            headers: {
-              Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
-            },
-            timeout: 10000,
-          }
-        );
-
-        if (!response.data.results || response.data.results.length === 0) {
-          await message.react("❌");
-          return await message.reply(
-            `❌ ${getLang("plugins.imagesearch.no_images")}`
-          );
-        }
-
-        // Get random image from results
-        const randomImage =
-          response.data.results[
-            Math.floor(Math.random() * response.data.results.length)
-          ];
-        const imageUrl = randomImage.urls.regular;
-
-        // Download image
-        const imageResponse = await axios.get(imageUrl, {
-          responseType: "arraybuffer",
-          timeout: 30000,
-        });
-        const imageBuffer = Buffer.from(imageResponse.data);
-
-        const caption =
-          `📸 *${query}*\n\n` +
-          `📷 _Photo by ${randomImage.user.name} on Unsplash_\n` +
-          `${randomImage.alt_description || ""}`;
-
-        await message.react("✅");
-        await message.sendImage(imageBuffer, caption);
-      }
-    } catch (error) {
+      if (isGif) await sendGif(message, query);
+      else await sendPhoto(message, query);
+    } catch (err) {
       await message.react("❌");
-      console.error("Image/GIF search error:", error);
 
-      if (error.response && error.response.status === 401) {
-        await message.reply(
-          `❌ ${getLang("plugins.imagesearch.invalid_api_key")}`
-        );
-      } else {
-        await message.reply(
-          `❌ ${getLang("plugins.imagesearch.error")}: ${error.message}`
-        );
+      let kind = classifyError(err, { hasKey });
+      // Unsplash answers 403 "Rate Limit Exceeded" once the hourly quota is used
+      if (kind === "service_unavailable" && /rate limit/i.test(String(err?.response?.data))) {
+        kind = "rate_limited";
       }
+      if (kind === "error") throw err;
+
+      console.error("Image/GIF search error:", safeLog(err));
+      await message.reply(getLang(replyKeyFor(kind), config.MAX_UPLOAD));
     }
   },
 };

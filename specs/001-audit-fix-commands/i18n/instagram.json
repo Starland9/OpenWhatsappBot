@@ -1,0 +1,16 @@
+{
+  "en": {
+    "plugins.instagram.desc": "Download Instagram posts, reels and stories",
+    "plugins.instagram.usage": "*Provide an Instagram link!*\n\nExample: `{0}insta https://instagram.com/p/xxx`\n\nYou can also reply to a message that contains the link.",
+    "plugins.instagram.invalid_url": "❌ Invalid Instagram link.\n\nSupported: posts, reels, IGTV and stories.",
+    "plugins.instagram.failed": "❌ Download failed.\n\nPossible reasons:\n• Private account\n• Content removed or unavailable\n• Instagram requires a login for this content",
+    "plugins.instagram.caption": "📥 Downloaded from *Instagram*"
+  },
+  "fr": {
+    "plugins.instagram.desc": "Télécharger des publications, reels et stories Instagram",
+    "plugins.instagram.usage": "*Indiquez un lien Instagram !*\n\nExemple : `{0}insta https://instagram.com/p/xxx`\n\nVous pouvez aussi répondre à un message qui contient le lien.",
+    "plugins.instagram.invalid_url": "❌ Lien Instagram invalide.\n\nPris en charge : publications, reels, IGTV et stories.",
+    "plugins.instagram.failed": "❌ Échec du téléchargement.\n\nCauses possibles :\n• Compte privé\n• Contenu supprimé ou indisponible\n• Instagram exige une connexion pour ce contenu",
+    "plugins.instagram.caption": "📥 Téléchargé depuis *Instagram*"
+  }
+}

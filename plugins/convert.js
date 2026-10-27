@@ -1,17 +1,180 @@
-const { getLang } = require("../lib/utils/language");
-const { convertImage, resizeImage } = require("../lib/utils/media");
-const { downloadMedia } = require("../lib/baileys/mediaAdapter");
-const sharp = require("sharp");
-const { exec } = require("child_process");
-const { promisify } = require("util");
 const fs = require("fs").promises;
 const path = require("path");
+const { extractMessageContent, getContentType } = require("baileys");
 const PDFDocument = require("pdfkit");
+const config = require("../config");
+const { getLang } = require("../lib/utils/language");
+const { convertImage, withTempDir } = require("../lib/utils/media");
+const { runFfmpeg } = require("../lib/utils/ffmpeg");
+const { classifyError, replyKeyFor, safeLog } = require("../lib/utils/http");
 
-const execAsync = promisify(exec);
+const MEDIA_TYPES = {
+  imageMessage: "image",
+  videoMessage: "video",
+  audioMessage: "audio",
+  documentMessage: "document",
+  stickerMessage: "sticker",
+};
+
+// Shortcut aliases and the target format they stand for
+const ALIAS_TARGETS = {
+  topng: "png",
+  tojpg: "jpg",
+  topdf: "pdf",
+  tomp3: "mp3",
+};
+
+const IMAGE_TARGETS = ["png", "jpg", "webp", "pdf"];
+const AUDIO_TARGETS = ["mp3", "ogg", "m4a"];
+
+const IMAGE_MIMES = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  webp: "image/webp",
+};
+
+// ogg is Opus in an Ogg container (what WhatsApp plays), not Vorbis
+const AUDIO_CODEC_ARGS = {
+  mp3: ["-c:a", "libmp3lame", "-q:a", "2"],
+  ogg: ["-c:a", "libopus", "-b:a", "96k"],
+  m4a: ["-c:a", "aac", "-b:a", "128k"],
+};
+
+// Biggest file converted, in MB (also bounded by MAX_UPLOAD)
+const MAX_INPUT_MB = 50;
+// Longest side of a PDF page, in points (A4 long edge)
+const PDF_MAX_SIDE = 842;
+// Longest side of the picture embedded in a PDF, in pixels
+const PDF_MAX_PIXELS = 2480;
+
+function toNumber(value) {
+  if (value && typeof value.toNumber === "function") return value.toNumber();
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function maxInputBytes() {
+  const limitMB = Math.min(MAX_INPUT_MB, Number(config.MAX_UPLOAD) || MAX_INPUT_MB);
+  return limitMB * 1024 * 1024;
+}
+
+// Same shape as Message#getQuotedMedia errors: the registry replies common.media_too_large
+function mediaTooLarge(maxBytes) {
+  const error = new Error("MEDIA_TOO_LARGE");
+  error.code = "MEDIA_TOO_LARGE";
+  error.maxMB = Math.max(1, Math.round(maxBytes / (1024 * 1024)));
+  return error;
+}
 
 /**
- * File Converter Plugin - Convert files between formats
+ * What the user pointed at, without downloading anything: the quoted media,
+ * else the media sent with the command (caption). `null` when neither.
+ * @returns {{ quoted: boolean, type: string|null, size: number }|null}
+ */
+function pickSource(message) {
+  let quoted = null;
+  if (message.quoted?.message) {
+    const content = extractMessageContent(message.quoted.message);
+    const key = getContentType(content);
+    quoted = {
+      quoted: true,
+      type: MEDIA_TYPES[key] || null,
+      size: toNumber(content?.[key]?.fileLength),
+    };
+    if (quoted.type) return quoted;
+  }
+  if (message.hasMedia) {
+    return {
+      quoted: false,
+      type: MEDIA_TYPES[message.type] || null,
+      size: toNumber(message.content?.[message.type]?.fileLength),
+    };
+  }
+  return quoted;
+}
+
+async function downloadSource(message, source, maxBytes) {
+  if (source.quoted) {
+    const media = await message.getQuotedMedia({ maxBytes });
+    return media?.buffer || null;
+  }
+  return await message.downloadMedia();
+}
+
+function normalizeTarget(word) {
+  const target = String(word || "").toLowerCase();
+  return target === "jpeg" ? "jpg" : target;
+}
+
+// image -> png/jpg/webp/pdf, audio and video (audio track) -> mp3/ogg/m4a
+function canConvert(kind, target) {
+  if (kind === "image") return IMAGE_TARGETS.includes(target);
+  return AUDIO_TARGETS.includes(target);
+}
+
+/**
+ * Picture to a one-page PDF (page size = picture size, scaled to A4 at most).
+ * The picture goes through sharp first: pdfkit only reads jpeg and png, and
+ * not every png (webp, gif, avif, interlaced png and 16-bit png would fail).
+ * The PDF is built in memory.
+ */
+async function imageToPdf(buffer) {
+  const sharp = require("sharp");
+  const { data, info } = await sharp(buffer)
+    .rotate()
+    .resize({
+      width: PDF_MAX_PIXELS,
+      height: PDF_MAX_PIXELS,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .png()
+    .toBuffer({ resolveWithObject: true });
+
+  const scale = Math.min(1, PDF_MAX_SIDE / Math.max(info.width, info.height));
+  const width = Math.max(1, Math.round(info.width * scale));
+  const height = Math.max(1, Math.round(info.height * scale));
+
+  const doc = new PDFDocument({ autoFirstPage: false });
+  const chunks = [];
+  const done = new Promise((resolve, reject) => {
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+  });
+  doc.addPage({ size: [width, height], margin: 0 });
+  doc.image(data, 0, 0, { width, height });
+  doc.end();
+  return done;
+}
+
+/**
+ * Audio (or the audio track of a video) to mp3 / ogg (opus) / m4a.
+ */
+function convertToAudio(buffer, target) {
+  return withTempDir(async (dir) => {
+    const input = path.join(dir, "input");
+    const output = path.join(dir, `output.${target}`);
+    await fs.writeFile(input, buffer);
+    await runFfmpeg(
+      ["-i", input, "-vn", ...AUDIO_CODEC_ARGS[target], output],
+      { timeout: 120000 },
+    );
+    return fs.readFile(output);
+  });
+}
+
+// Lang key of the reply for a conversion that failed
+function failureKey(error) {
+  if (/does not contain any stream|matches no streams/i.test(error?.stderr || "")) {
+    return "plugins.convert.no_audio";
+  }
+  const kind = classifyError(error);
+  return kind === "error" ? "plugins.convert.error" : replyKeyFor(kind);
+}
+
+/**
+ * File Converter Plugin - Convert images, audio and videos between formats
  */
 module.exports = {
   command: {
@@ -20,205 +183,66 @@ module.exports = {
     type: "media",
   },
 
-  async execute(message, query) {
-    const command = message.body
-      .split(" ")[0]
-      .replace(require("../config").PREFIX, "")
-      .toLowerCase();
+  async execute(message, args, ctx) {
+    const target =
+      ALIAS_TARGETS[ctx?.command] || normalizeTarget(String(args || "").split(" ")[0]);
+
+    if (!target) {
+      return await message.reply(
+        `${getLang("common.usage_prefix")}\n${getLang("plugins.convert.usage", config.PREFIX)}`,
+      );
+    }
+    if (!IMAGE_TARGETS.includes(target) && !AUDIO_TARGETS.includes(target)) {
+      return await message.reply(getLang("plugins.convert.unknown_format", target));
+    }
+
+    // Validate the input before reacting or downloading anything
+    const source = pickSource(message);
+    if (!source?.type) {
+      return await message.reply(getLang("plugins.convert.reply_media"));
+    }
+    if (source.type === "document") {
+      return await message.reply(getLang("plugins.convert.document_unsupported"));
+    }
+    const kind = source.type === "sticker" ? "image" : source.type;
+    if (!canConvert(kind, target)) {
+      return await message.reply(getLang("plugins.convert.unsupported"));
+    }
+
+    const maxBytes = maxInputBytes();
+    if (source.size > maxBytes) throw mediaTooLarge(maxBytes);
+
+    const buffer = await downloadSource(message, source, maxBytes);
+    if (!buffer) {
+      return await message.reply(getLang("plugins.convert.download_failed"));
+    }
+
+    await message.react("⏳");
 
     try {
-      // Determine target format from command
-      let targetFormat = query?.toLowerCase().trim() || "";
+      if (kind === "image") {
+        const converted =
+          target === "pdf"
+            ? await imageToPdf(buffer)
+            : await convertImage(buffer, target);
 
-      if (command === "topng") targetFormat = "png";
-      else if (command === "tojpg") targetFormat = "jpg";
-      else if (command === "topdf") targetFormat = "pdf";
-      else if (command === "tomp3") targetFormat = "mp3";
-
-      if (!targetFormat) {
-        return await message.reply(getLang("plugins.convert.usage"));
-      }
-
-      // Check for media
-      let buffer;
-      let mediaType;
-
-      if (message.quoted && message.quoted.message) {
-        const quotedMsg = message.quoted.message;
-        const quotedType = Object.keys(quotedMsg)[0];
-
-        if (
-          ![
-            "imageMessage",
-            "videoMessage",
-            "audioMessage",
-            "documentMessage",
-          ].includes(quotedType)
-        ) {
-          return await message.reply(getLang("plugins.convert.reply_media"));
-        }
-
-        // Build a quoted message shape expected by the adapter
-        const quotedMessage = {
-          key: {
-            remoteJid: message.jid,
-            id: message.quoted.id,
-          },
-          message: quotedMsg,
-        };
-
-        buffer = await downloadMedia(
-          message.client.getSocket(),
-          quotedMessage,
-          "buffer",
-        );
-
-        mediaType = quotedType.replace("Message", "");
-      } else if (message.hasMedia) {
-        buffer = await message.downloadMedia();
-        mediaType = message.getMediaType();
+        // As a document: sendImage would recompress the file and lose png / webp
+        await message.sendDocument(converted, {
+          fileName: `converted.${target}`,
+          mimetype: target === "pdf" ? "application/pdf" : IMAGE_MIMES[target],
+          caption: getLang("plugins.convert.success", target.toUpperCase()),
+        });
       } else {
-        return await message.reply(getLang("plugins.convert.reply_media"));
+        const converted = await convertToAudio(buffer, target);
+        // The mimetype is sniffed from the content (mp3, ogg/opus, m4a)
+        await message.sendAudioFile(converted);
       }
-
-      if (!buffer) {
-        return await message.reply(
-          `❌ ${getLang("plugins.convert.download_failed")}`,
-        );
-      }
-
-      await message.react("⏳");
-
-      let convertedBuffer;
-      let fileName;
-      let caption;
-
-      // Image conversions
-      if (
-        mediaType === "image" &&
-        ["png", "jpg", "jpeg", "webp"].includes(targetFormat)
-      ) {
-        convertedBuffer = await convertImage(buffer, targetFormat);
-        fileName = `converted.${targetFormat}`;
-        caption = `✅ ${getLang(
-          "plugins.convert.success",
-        )} → ${targetFormat.toUpperCase()}`;
-
-        await message.react("✅");
-        await message.sendImage(convertedBuffer, caption);
-        return;
-      }
-
-      // Image to PDF
-      if (mediaType === "image" && targetFormat === "pdf") {
-        const tempPdf = path.join("/tmp", `converted_${Date.now()}.pdf`);
-
-        try {
-          const metadata = await sharp(buffer).metadata();
-          const doc = new PDFDocument({
-            size: [metadata.width, metadata.height],
-          });
-          const stream = require("fs").createWriteStream(tempPdf);
-
-          doc.pipe(stream);
-          doc.image(buffer, 0, 0, {
-            width: metadata.width,
-            height: metadata.height,
-          });
-          doc.end();
-
-          await new Promise((resolve, reject) => {
-            stream.on("finish", resolve);
-            stream.on("error", reject);
-          });
-
-          convertedBuffer = await fs.readFile(tempPdf);
-
-          await message.react("✅");
-          await message.sendDocument(convertedBuffer, {
-            fileName: "converted.pdf",
-            mimetype: "application/pdf",
-            caption: `✅ ${getLang("plugins.convert.success")} → PDF`,
-          });
-        } finally {
-          await fs.unlink(tempPdf).catch(() => {});
-        }
-        return;
-      }
-
-      // Video to MP3
-      if (mediaType === "video" && targetFormat === "mp3") {
-        const tempInput = path.join("/tmp", `video_${Date.now()}.mp4`);
-        const tempOutput = path.join("/tmp", `audio_${Date.now()}.mp3`);
-
-        try {
-          await fs.writeFile(tempInput, buffer);
-
-          await execAsync(
-            `ffmpeg -i ${tempInput} -vn -acodec libmp3lame -q:a 2 ${tempOutput}`,
-          );
-
-          convertedBuffer = await fs.readFile(tempOutput);
-
-          await message.react("✅");
-          await message.sendAudio(convertedBuffer, {
-            caption: `✅ ${getLang("plugins.convert.success")} → MP3`,
-          });
-        } finally {
-          await fs.unlink(tempInput).catch(() => {});
-          await fs.unlink(tempOutput).catch(() => {});
-        }
-        return;
-      }
-
-      // Audio format conversion
-      if (
-        mediaType === "audio" &&
-        ["mp3", "ogg", "m4a"].includes(targetFormat)
-      ) {
-        const tempInput = path.join("/tmp", `audio_in_${Date.now()}.tmp`);
-        const tempOutput = path.join(
-          "/tmp",
-          `audio_out_${Date.now()}.${targetFormat}`,
-        );
-
-        try {
-          await fs.writeFile(tempInput, buffer);
-
-          const codecMap = {
-            mp3: "libmp3lame",
-            ogg: "libvorbis",
-            m4a: "aac",
-          };
-
-          await execAsync(
-            `ffmpeg -i ${tempInput} -acodec ${codecMap[targetFormat]} ${tempOutput}`,
-          );
-
-          convertedBuffer = await fs.readFile(tempOutput);
-
-          await message.react("✅");
-          await message.sendAudio(convertedBuffer, {
-            caption: `✅ ${getLang(
-              "plugins.convert.success",
-            )} → ${targetFormat.toUpperCase()}`,
-          });
-        } finally {
-          await fs.unlink(tempInput).catch(() => {});
-          await fs.unlink(tempOutput).catch(() => {});
-        }
-        return;
-      }
-
-      // Unsupported conversion
-      await message.react("❌");
-      await message.reply(getLang("plugins.convert.unsupported"));
+      await message.react("✅");
     } catch (error) {
+      if (error?.code === "MEDIA_TOO_LARGE") throw error;
+      console.error("Convert error:", safeLog(error));
       await message.react("❌");
-      console.error("Convert error:", error);
-      await message.reply(
-        `❌ ${getLang("plugins.convert.error")}: ${error.message}`,
-      );
+      await message.reply(getLang(failureKey(error)));
     }
   },
 };

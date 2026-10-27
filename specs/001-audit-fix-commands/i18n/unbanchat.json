@@ -1,0 +1,12 @@
+{
+  "en": {
+    "plugins.unbanchat.desc": "Re-enable the bot in the current chat (owner only)",
+    "plugins.unbanchat.not_banned": "ℹ️ The bot is not disabled in this chat.",
+    "plugins.unbanchat.done": "✅ *Bot re-enabled in this chat!*\n\nIt will respond to commands again."
+  },
+  "fr": {
+    "plugins.unbanchat.desc": "Réactiver le bot dans le chat actuel (propriétaire uniquement)",
+    "plugins.unbanchat.not_banned": "ℹ️ Le bot n'est pas désactivé dans ce chat.",
+    "plugins.unbanchat.done": "✅ *Bot réactivé dans ce chat !*\n\nIl répondra de nouveau aux commandes."
+  }
+}

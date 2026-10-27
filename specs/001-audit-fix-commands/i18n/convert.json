@@ -1,0 +1,26 @@
+{
+  "en": {
+    "plugins.convert.desc": "Convert an image, sticker, audio or video to another format",
+    "plugins.convert.usage": "Reply to a file with:\n• {0}convert <format>\n• {0}topng, {0}tojpg, {0}topdf, {0}tomp3\n\n*Images and stickers:* png, jpg, webp, pdf\n*Audio and videos (audio track):* mp3, ogg, m4a\n\nExample: {0}convert png\nDocuments can't be converted: send the image or the audio directly.",
+    "plugins.convert.unknown_format": "❌ Unknown format: {0}\n\nSupported formats: png, jpg, webp, pdf (images and stickers), mp3, ogg, m4a (audio and videos).",
+    "plugins.convert.reply_media": "❌ Reply to an image, a sticker, an audio or a video (or send one with the command as caption).",
+    "plugins.convert.document_unsupported": "❌ Documents can't be converted. Send the image or the audio directly instead of as a file.",
+    "plugins.convert.unsupported": "❌ This conversion isn't possible. Images and stickers become png, jpg, webp or pdf; audio and videos become mp3, ogg or m4a.",
+    "plugins.convert.download_failed": "❌ Couldn't download the media.",
+    "plugins.convert.no_audio": "❌ This video has no audio track.",
+    "plugins.convert.success": "✅ Converted to {0}.",
+    "plugins.convert.error": "❌ The conversion failed. The file may be corrupted or in an unsupported format."
+  },
+  "fr": {
+    "plugins.convert.desc": "Convertir une image, un sticker, un audio ou une vidéo dans un autre format",
+    "plugins.convert.usage": "Répondez à un fichier avec :\n• {0}convert <format>\n• {0}topng, {0}tojpg, {0}topdf, {0}tomp3\n\n*Images et stickers :* png, jpg, webp, pdf\n*Audios et vidéos (piste audio) :* mp3, ogg, m4a\n\nExemple : {0}convert png\nLes documents ne sont pas convertibles : envoyez directement l'image ou l'audio.",
+    "plugins.convert.unknown_format": "❌ Format inconnu : {0}\n\nFormats pris en charge : png, jpg, webp, pdf (images et stickers), mp3, ogg, m4a (audios et vidéos).",
+    "plugins.convert.reply_media": "❌ Répondez à une image, un sticker, un audio ou une vidéo (ou envoyez-en un avec la commande en légende).",
+    "plugins.convert.document_unsupported": "❌ Les documents ne peuvent pas être convertis. Envoyez directement l'image ou l'audio au lieu d'un fichier.",
+    "plugins.convert.unsupported": "❌ Cette conversion n'est pas possible. Les images et stickers deviennent png, jpg, webp ou pdf ; les audios et vidéos deviennent mp3, ogg ou m4a.",
+    "plugins.convert.download_failed": "❌ Impossible de télécharger le média.",
+    "plugins.convert.no_audio": "❌ Cette vidéo n'a pas de piste audio.",
+    "plugins.convert.success": "✅ Converti en {0}.",
+    "plugins.convert.error": "❌ La conversion a échoué. Le fichier est peut-être corrompu ou dans un format non pris en charge."
+  }
+}

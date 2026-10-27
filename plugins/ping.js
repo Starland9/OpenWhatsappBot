@@ -14,10 +14,16 @@ module.exports = {
     const start = Date.now();
     const sent = await message.reply(getLang("plugins.ping.ping_sent"));
     const latency = Date.now() - start;
+    const pong = getLang("plugins.ping.pong", latency);
 
-    await message.client.getSocket().sendMessage(message.jid, {
-      text: getLang("plugins.ping.pong", latency),
-      edit: sent.key,
-    });
+    // Edit the "Pinging..." message; if WhatsApp refuses the edit, send the result instead
+    try {
+      await message.client.getSocket().sendMessage(message.jid, {
+        text: pong,
+        edit: sent.key,
+      });
+    } catch (err) {
+      await message.reply(pong);
+    }
   },
 };

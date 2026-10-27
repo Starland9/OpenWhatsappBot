@@ -1,19 +1,12 @@
-const { getLang } = require("../lib/utils/language");
 const { extractMessageContent, getContentType } = require("baileys");
-const { downloadMedia } = require("../lib/baileys/mediaAdapter");
-const config = require("../config");
+const { getLang } = require("../lib/utils/language");
+const { getOwnerJids, jidUser } = require("../lib/utils/permissions");
 
-/**
- * Get the SUDO user's JID for inbox
- * @returns {string|null} The target JID or null if not configured
- */
-function getSudoJid() {
-  const sudoNumber = config.SUDO.split(",")[0].trim();
-  if (!sudoNumber) {
-    return null;
-  }
-  return sudoNumber.includes("@") ? sudoNumber : `${sudoNumber}@s.whatsapp.net`;
-}
+const MEDIA_KINDS = {
+  imageMessage: "image",
+  videoMessage: "video",
+  audioMessage: "audio",
+};
 
 /**
  * Save Status - Download and save status media to inbox
@@ -28,7 +21,7 @@ module.exports = {
     fromMe: true,
   },
 
-  async execute(message, query) {
+  async execute(message) {
     try {
       // Check if this is a reply to a message
       if (!message.quoted) {
@@ -38,190 +31,67 @@ module.exports = {
       await message.react("⏳");
 
       // Get the quoted message
-      const quotedMsg = message.quoted.message;
-
-      if (!quotedMsg) {
+      if (!message.quoted.message) {
         await message.react("❌");
         return await message.reply(getLang("plugins.save.no_message"));
       }
 
-      // Extract message content (handles various message structures)
-      const content = extractMessageContent(quotedMsg);
-      const msgType = getContentType(content);
-
-      if (!content || !msgType) {
-        await message.react("❌");
-        return await message.reply(getLang("plugins.save.no_media"));
-      }
-
-      // Determine media type and get the message content
-      let mediaMessage = null;
-      let messageType = null;
-      let caption = "";
-
-      // Check for direct media messages
-      if (msgType === "imageMessage" && content.imageMessage) {
-        mediaMessage = content.imageMessage;
-        messageType = "image";
-        caption = content.imageMessage.caption || "";
-      } else if (msgType === "videoMessage" && content.videoMessage) {
-        mediaMessage = content.videoMessage;
-        messageType = "video";
-        caption = content.videoMessage.caption || "";
-      } else if (msgType === "audioMessage" && content.audioMessage) {
-        mediaMessage = content.audioMessage;
-        messageType = "audio";
-      } else if (
-        msgType === "extendedTextMessage" &&
-        content.extendedTextMessage
-      ) {
-        // Handle text-only status
-        const text = content.extendedTextMessage.text || "";
-        if (text) {
-          // Get sudo's JID for inbox
-          const targetJid = getSudoJid();
-          if (!targetJid) {
-            await message.react("❌");
-            return await message.reply(getLang("plugins.save.no_sudo"));
-          }
-
-          // Send text status to inbox
-          const sender = message.quoted.sender || "Unknown";
-          const senderNumber = sender.split("@")[0];
-          const statusText =
-            `📱 *${getLang("plugins.save.status_from")}:* @${senderNumber}\n\n` +
-            `${text}`;
-
-          await message.client.getSocket().sendMessage(targetJid, {
-            text: statusText,
-            mentions: [sender],
-          });
-
-          await message.react("✅");
-          return await message.reply(getLang("plugins.save.saved"));
-        }
-        await message.react("❌");
-        return await message.reply(getLang("plugins.save.no_media"));
-      } else {
-        // Check for view-once in status (viewOnce property)
-        if (content.imageMessage?.viewOnce) {
-          mediaMessage = content.imageMessage;
-          messageType = "image";
-          caption = content.imageMessage.caption || "";
-        } else if (content.videoMessage?.viewOnce) {
-          mediaMessage = content.videoMessage;
-          messageType = "video";
-          caption = content.videoMessage.caption || "";
-        } else if (content.audioMessage?.viewOnce) {
-          mediaMessage = content.audioMessage;
-          messageType = "audio";
-        }
-        // Check legacy viewOnceMessage structure
-        else if (content.viewOnceMessage) {
-          const viewOnceMsg = content.viewOnceMessage.message;
-          if (viewOnceMsg?.imageMessage) {
-            mediaMessage = viewOnceMsg.imageMessage;
-            messageType = "image";
-            caption = viewOnceMsg.imageMessage.caption || "";
-          } else if (viewOnceMsg?.videoMessage) {
-            mediaMessage = viewOnceMsg.videoMessage;
-            messageType = "video";
-            caption = viewOnceMsg.videoMessage.caption || "";
-          } else if (viewOnceMsg?.audioMessage) {
-            mediaMessage = viewOnceMsg.audioMessage;
-            messageType = "audio";
-          }
-        }
-        // Check viewOnceMessageV2 structure
-        else if (content.viewOnceMessageV2) {
-          const viewOnceMsg = content.viewOnceMessageV2.message;
-          if (viewOnceMsg?.imageMessage) {
-            mediaMessage = viewOnceMsg.imageMessage;
-            messageType = "image";
-            caption = viewOnceMsg.imageMessage.caption || "";
-          } else if (viewOnceMsg?.videoMessage) {
-            mediaMessage = viewOnceMsg.videoMessage;
-            messageType = "video";
-            caption = viewOnceMsg.videoMessage.caption || "";
-          } else if (viewOnceMsg?.audioMessage) {
-            mediaMessage = viewOnceMsg.audioMessage;
-            messageType = "audio";
-          }
-        }
-      }
-
-      if (!mediaMessage || !messageType) {
-        await message.react("❌");
-        return await message.reply(getLang("plugins.save.no_media"));
-      }
-
-      // Download the media using the correct message structure
-      const quotedShape = {
-        key: message.quoted.key,
-        message: { [messageType + "Message"]: mediaMessage },
-      };
-
-      const buffer = await downloadMedia(
-        message.client.getSocket(),
-        quotedShape,
-        "buffer",
-      );
-
-      if (!buffer) {
-        await message.react("❌");
-        return await message.reply(getLang("plugins.save.download_failed"));
-      }
-
-      // Get sudo's JID for inbox
-      const targetJid = getSudoJid();
-      if (!targetJid) {
+      // The inbox is the chat of the owner who ran the command
+      const inbox = message.sender || message.senderLid || getOwnerJids()[0];
+      if (!inbox) {
         await message.react("❌");
         return await message.reply(getLang("plugins.save.no_sudo"));
       }
 
-      // Prepare caption with sender info
-      const sender = message.quoted.sender || "Unknown";
-      const senderNumber = sender.split("@")[0];
-      const finalCaption =
-        `📱 *${getLang("plugins.save.status_from")}:* @${senderNumber}\n` +
-        (caption ? `\n${caption}` : "");
+      // Extract message content (handles view-once and ephemeral wrappers)
+      const content = extractMessageContent(message.quoted.message);
+      const type = getContentType(content);
+      const sock = message.client.getSocket();
 
-      const socket = message.client.getSocket();
+      const author = message.quoted.sender || "";
+      const header = getLang("plugins.save.header", jidUser(author) || "?");
+      const mentions = author ? [author] : [];
 
-      // Send media to inbox based on type
-      if (messageType === "image") {
-        await socket.sendMessage(targetJid, {
-          image: buffer,
-          caption: finalCaption,
-          mentions: [sender],
-        });
-      } else if (messageType === "video") {
-        await socket.sendMessage(targetJid, {
-          video: buffer,
-          caption: finalCaption,
-          mentions: [sender],
-        });
-      } else if (messageType === "audio") {
-        // Send audio with info message
-        await socket.sendMessage(targetJid, {
-          text: `📱 *${getLang("plugins.save.status_from")}:* @${senderNumber}`,
-          mentions: [sender],
-        });
-        await socket.sendMessage(targetJid, {
-          audio: buffer,
-          mimetype: mediaMessage.mimetype || "audio/mp4",
-          ptt: mediaMessage.ptt || false,
-        });
+      if (MEDIA_KINDS[type]) {
+        const kind = MEDIA_KINDS[type];
+        const info = content[type] || {};
+
+        // Size guard and download of the quoted media (throws MEDIA_TOO_LARGE)
+        const media = await message.getQuotedMedia();
+        if (!media) {
+          await message.react("❌");
+          return await message.reply(getLang("plugins.save.download_failed"));
+        }
+
+        if (kind === "audio") {
+          // Audio has no caption: send the header first
+          await sock.sendMessage(inbox, { text: header, mentions });
+          await sock.sendMessage(inbox, {
+            audio: media.buffer,
+            mimetype: media.mimetype || "audio/mp4",
+            ptt: !!info.ptt,
+          });
+        } else {
+          const caption = info.caption ? `${header}\n\n${info.caption}` : header;
+          await sock.sendMessage(inbox, { [kind]: media.buffer, caption, mentions });
+        }
+      } else if (type === "extendedTextMessage" || type === "conversation") {
+        // Text-only status
+        const text = message.getQuotedText();
+        if (!text) {
+          await message.react("❌");
+          return await message.reply(getLang("plugins.save.no_media"));
+        }
+        await sock.sendMessage(inbox, { text: `${header}\n\n${text}`, mentions });
+      } else {
+        await message.react("❌");
+        return await message.reply(getLang("plugins.save.no_media"));
       }
 
       await message.react("✅");
-      // await message.reply(getLang("plugins.save.saved"));
     } catch (error) {
       await message.react("❌");
-      console.error("Save status error:", error);
-      // await message.reply(
-      // getLang("plugins.save.error").replace("{0}", error.message)
-      // );
+      throw error;
     }
   },
 };

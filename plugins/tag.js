@@ -1,82 +1,76 @@
 const { getLang } = require("../lib/utils/language");
+const { safeLog } = require("../lib/utils/http");
+const {
+  normalizeJid,
+  jidUser,
+  getBotJids,
+} = require("../lib/utils/permissions");
+
+// A group below this size gets a single message. Larger groups are split so
+// that one message never carries an unreasonable number of mentions.
+const CHUNK_SIZE = 800;
+const CHUNK_DELAY_MS = 1500;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Tag command - Tag all group members
+ * Tag command - Mention every member of the group in one message
  */
 module.exports = {
   command: {
     pattern: "tagall",
     desc: getLang("plugins.tag.desc"),
     type: "group",
-    onlyGroup: true,
+    adminOnly: true,
   },
 
-  async execute(message, text) {
-    if (!message.isGroup) {
-      return await message.reply(getLang("extra.group_cmd"));
+  // rawArgs keeps the line breaks of a multi-line announcement
+  async execute(message, argsString, ctx) {
+    const metadata = await message.getGroupMetadata();
+    if (!metadata) {
+      return await message.reply(getLang("plugins.tag.no_metadata"));
     }
 
-    // Check if sender is admin
-    const isSenderAdmin = await message.isSenderAdmin();
-    if (!isSenderAdmin && !message.isSudo()) {
-      return await message.reply(getLang("plugins.common.not_admin"));
+    // The same normalized id feeds the "@text" and the mentions array
+    const sock = message.client.getSocket();
+    const bot = getBotJids(sock);
+    const members = [
+      ...new Set(
+        (metadata.participants || [])
+          .map((p) => normalizeJid(p?.id))
+          .filter((id) => id && id !== bot.pn && id !== bot.lid),
+      ),
+    ];
+    if (!members.length) {
+      return await message.reply(getLang("plugins.tag.no_members"));
     }
 
-    try {
-      const metadata = await message.getGroupMetadata();
+    const header =
+      String(ctx?.rawArgs ?? argsString ?? "").trim() ||
+      getLang("plugins.tag.default_header");
 
-      if (!metadata) {
-        return await message.reply("❌ Failed to get group information");
+    const total = Math.ceil(members.length / CHUNK_SIZE);
+    let sent = 0;
+    for (let n = 0; n < total; n++) {
+      const chunk = members.slice(n * CHUNK_SIZE, (n + 1) * CHUNK_SIZE);
+      const mentionLine = chunk.map((id) => `@${jidUser(id)}`).join(" ");
+      // Header only on the first message
+      const text = n === 0 ? `${header}\n\n${mentionLine}` : mentionLine;
+
+      if (n > 0) await sleep(CHUNK_DELAY_MS);
+      try {
+        await sock.sendMessage(message.jid, { text, mentions: chunk });
+        sent++;
+      } catch (err) {
+        console.error("tagall: failed to send a message", safeLog(err));
       }
+    }
 
-      const participants = (metadata.participants || []).map((p) => p.id);
-      const messageText = text || "📢 *Group Tagall*";
-
-      console.log(`Tag: group=${message.jid} members=${participants.length}`);
-
-      if (participants.length === 0) {
-        await message.reply("❌ Aucun participant trouvé dans le groupe");
-        return;
-      }
-
-      // WhatsApp may limit mentions per message or UI may truncate very long messages.
-      // Split into chunks to ensure all members are included.
-      const CHUNK_SIZE = 50;
-      const socket = message.client.getSocket();
-
-      let sentChunks = 0;
-      for (let i = 0; i < participants.length; i += CHUNK_SIZE) {
-        const chunk = participants.slice(i, i + CHUNK_SIZE);
-
-        // Build a mention string using bare numbers so WhatsApp resolves them.
-        const mentionText = chunk
-          .map((jid) => `@${jid.split("@")[0]}`)
-          .join(" ");
-
-        try {
-          if (!socket || typeof socket.sendMessage !== "function") {
-            console.error("Tag: socket unavailable");
-            await message.reply(
-              "❌ Socket indisponible pour envoyer les mentions",
-            );
-            return;
-          }
-          await socket.sendMessage(message.jid, {
-            text: `${messageText}\n\n${mentionText}`,
-            mentions: chunk,
-          });
-          sentChunks++;
-        } catch (err) {
-          console.error("Failed to send tag chunk:", err);
-        }
-      }
-      // // Provide feedback
-      // await message.reply(
-      //   `✅ Mentionné ${participants.length} membres en ${sentChunks} messages`,
-      // );
-    } catch (error) {
-      console.error("Tag error:", error);
-      await message.reply(`❌ Error: ${error.message}`);
+    if (sent === 0) {
+      return await message.reply(getLang("plugins.tag.failed"));
+    }
+    if (sent < total) {
+      await message.reply(getLang("plugins.tag.partial", sent, total));
     }
   },
 };

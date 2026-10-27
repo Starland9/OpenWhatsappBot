@@ -1,0 +1,36 @@
+{
+  "en": {
+    "plugins.help.desc": "Show the details of a command (aliases, access, usage)",
+    "plugins.help.guide": "ℹ️ *Help*\n\nType {0}menu to see all the commands, or {0}help <command> to see the details of one command.\n\n*Example:* {0}help ping",
+    "plugins.help.not_found": "❌ Command *{0}* not found.\n\n_Type {1}menu to see all the commands._",
+    "plugins.help.title": "COMMAND HELP",
+    "plugins.help.label_command": "Command",
+    "plugins.help.label_aliases": "Aliases",
+    "plugins.help.label_description": "Description",
+    "plugins.help.label_category": "Category",
+    "plugins.help.label_access": "Access",
+    "plugins.help.no_description": "No description available",
+    "plugins.help.access_owner": "owner only",
+    "plugins.help.access_admin": "group admins",
+    "plugins.help.access_group": "groups only",
+    "plugins.help.access_pm": "private chat only",
+    "plugins.help.access_everyone": "everyone"
+  },
+  "fr": {
+    "plugins.help.desc": "Afficher le détail d'une commande (alias, accès, utilisation)",
+    "plugins.help.guide": "ℹ️ *Aide*\n\nTape {0}menu pour voir toutes les commandes, ou {0}help <commande> pour le détail d'une commande.\n\n*Exemple :* {0}help ping",
+    "plugins.help.not_found": "❌ Commande *{0}* introuvable.\n\n_Tape {1}menu pour voir toutes les commandes._",
+    "plugins.help.title": "AIDE DE LA COMMANDE",
+    "plugins.help.label_command": "Commande",
+    "plugins.help.label_aliases": "Alias",
+    "plugins.help.label_description": "Description",
+    "plugins.help.label_category": "Catégorie",
+    "plugins.help.label_access": "Accès",
+    "plugins.help.no_description": "Aucune description disponible",
+    "plugins.help.access_owner": "propriétaire uniquement",
+    "plugins.help.access_admin": "admins du groupe",
+    "plugins.help.access_group": "groupes uniquement",
+    "plugins.help.access_pm": "conversation privée uniquement",
+    "plugins.help.access_everyone": "tout le monde"
+  }
+}

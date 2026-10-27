@@ -1,231 +1,186 @@
-const { getLang } = require("../lib/utils/language");
 const gtts = require("google-tts-api");
-const axios = require("axios");
-const { extractMessageContent, getContentType } = require("baileys");
-const translate = require("@vitalets/google-translate-api");
+const { translate } = require("@vitalets/google-translate-api");
 const config = require("../config");
-const ffmpeg = require("fluent-ffmpeg");
+const { getLang } = require("../lib/utils/language");
+const {
+  fetchBuffer,
+  withTimeout,
+  classifyError,
+  replyKeyFor,
+  safeLog,
+} = require("../lib/utils/http");
+const { runFfmpeg } = require("../lib/utils/ffmpeg");
+const { withTempDir } = require("../lib/utils/media");
 const fs = require("fs").promises;
 const path = require("path");
-const os = require("os");
+
+// "en", "fra" or "zh-CN"
+const LANG_RE = /^[a-z]{2,3}(?:-[a-z]{2,4})?$/i;
+// Language code written by the user between braces, e.g. {es}
+const LANG_TOKEN_RE = /\{([a-z]{2,3}(?:-[a-z]{2,4})?)\}/i;
+const TTS_HOST = "https://translate.google.com";
+// Break long texts on these too, so that text without spaces (CJK) can be cut
+const SPLIT_PUNCT = ",.?;!:。！？，、；：";
+const DETECT_TIMEOUT_MS = 10000;
+
+function maxTextLength() {
+  return Number(config.TTS_MAX_LENGTH) || 500;
+}
+
+function defaultLang() {
+  const lang = String(config.LANG || "en").toLowerCase();
+  return LANG_RE.test(lang) ? lang : "en";
+}
+
+// "zh-cn" -> "zh-CN": Google TTS wants the region in upper case
+function normalizeLang(code) {
+  const [language, region] = String(code).split("-");
+  return region
+    ? `${language.toLowerCase()}-${region.toUpperCase()}`
+    : language.toLowerCase();
+}
+
+/**
+ * Language of a text, detected by Google Translate (`raw.src`).
+ * Falls back to `fallback` when detection fails or takes too long.
+ */
+async function detectLanguage(text, fallback) {
+  try {
+    const result = await withTimeout(
+      () => translate(text.slice(0, 500), { to: fallback }),
+      DETECT_TIMEOUT_MS,
+      "language detection",
+    );
+    const detected = result?.raw?.src;
+    if (typeof detected === "string" && LANG_RE.test(detected) && detected !== "und") {
+      return normalizeLang(detected);
+    }
+  } catch (error) {
+    console.error("TTS language detection error:", safeLog(error));
+  }
+  return fallback;
+}
+
+/**
+ * Speech for a text, as an audio buffer `message.sendVoice` can send.
+ * Google TTS takes 200 characters at most: longer texts are cut into several
+ * pieces that are then joined (and encoded to ogg/opus) with ffmpeg.
+ * Also used by the `speak` command (plugins/voice.js).
+ * @param {string} text - single line
+ * @param {string} lang - e.g. "fr", "zh-CN"
+ * @returns {Promise<Buffer>} mp3 (one piece) or ogg/opus (several pieces)
+ */
+async function synthesizeSpeech(text, lang) {
+  const pieces = gtts.getAllAudioUrls(text, {
+    lang,
+    slow: false,
+    host: TTS_HOST,
+    splitPunct: SPLIT_PUNCT,
+  });
+  if (!pieces.length) throw new Error("No audio to generate");
+
+  const audio = await Promise.all(
+    pieces.map(async ({ url }) => {
+      const { buffer } = await fetchBuffer(url, {
+        maxBytes: 5 * 1024 * 1024,
+        timeoutMs: 20000,
+      });
+      return buffer;
+    }),
+  );
+  if (audio.length === 1) return audio[0];
+
+  return withTempDir(async (dir) => {
+    const files = [];
+    for (let i = 0; i < audio.length; i++) {
+      const file = path.join(dir, `piece${i}.mp3`);
+      await fs.writeFile(file, audio[i]);
+      files.push(file);
+    }
+    const inputs = files.flatMap((file) => ["-i", file]);
+    const labels = files.map((_, i) => `[${i}:a]`).join("");
+    const { stdout } = await runFfmpeg(
+      [
+        ...inputs,
+        "-filter_complex",
+        `${labels}concat=n=${files.length}:v=0:a=1[out]`,
+        "-map", "[out]",
+        "-c:a", "libopus",
+        "-b:a", "24k",
+        "-ar", "48000",
+        "-ac", "1",
+        "-f", "ogg",
+        "pipe:1",
+      ],
+      { timeout: 60000 },
+    );
+    return stdout;
+  });
+}
 
 /**
  * Text to Speech Plugin
- * Convert text to speech in multiple languages
+ * Convert text to a voice note in multiple languages
  */
-
 module.exports = {
   command: {
     pattern: "tts",
-    desc: "Convert text to speech",
+    desc: getLang("plugins.tts.desc"),
     type: "utility",
   },
 
-  async execute(message, args) {
-    // Helper: extract plain text from a quoted message
-    const getQuotedText = () => {
-      if (!message.quoted || !message.quoted.message) return "";
-      try {
-        const content = extractMessageContent(message.quoted.message);
-        const type = getContentType(content);
-        if (!type) return "";
-        const msg = content[type];
-        const quotedText =
-          msg?.text ||
-          msg?.caption ||
-          msg?.conversation ||
-          msg?.selectedButtonId ||
-          msg?.singleSelectReply?.selectedRowId ||
-          (typeof msg === "string" ? msg : "") ||
-          "";
-        return quotedText || "";
-      } catch (e) {
-        return "";
-      }
-    };
+  synthesizeSpeech,
 
-    // Prefer args; if absent, use quoted text
-    let text = (args && args.trim()) || getQuotedText();
+  async execute(message, args, ctx) {
+    const usage = () =>
+      message.reply(
+        `${getLang("common.usage_prefix")}\n${getLang("plugins.tts.usage", config.PREFIX, maxTextLength())}`,
+      );
+
+    // A language code can be given anywhere in the typed text
+    let typed = String(ctx?.rawArgs ?? args ?? "");
+    const langMatch = typed.match(LANG_TOKEN_RE);
+    if (langMatch) typed = typed.replace(langMatch[0], " ");
+    typed = typed.replace(/\s+/g, " ").trim();
+
+    const text =
+      typed || message.getQuotedText().replace(/\s+/g, " ").trim();
 
     if (!text) {
+      return langMatch
+        ? await message.reply(getLang("plugins.tts.empty_text"))
+        : await usage();
+    }
+    if (text.length > maxTextLength()) {
       return await message.reply(
-        `*Text to Speech (TTS)*
-
-*Usage:* .tts <text>
-*With language:* .tts {lang} <text>
-
-*Examples:*
-• .tts Hello World
-• .tts {es} Hola Mundo
-• .tts {fr} Bonjour
-
-*Popular Languages:*
-en - English
-es - Spanish
-fr - French
-de - German
-it - Italian
-pt - Portuguese
-hi - Hindi
-ja - Japanese
-ko - Korean
-ar - Arabic`,
+        getLang("plugins.tts.text_too_long", maxTextLength()),
       );
     }
 
+    await message.react("🎤");
+
     try {
-      await message.react("🎤");
+      const lang = langMatch
+        ? normalizeLang(langMatch[1])
+        : await detectLanguage(text, defaultLang());
 
-      // Check for language code in format {lang}
-      let lang = (config.LANG || "en").toLowerCase();
-      const langMatch = text.match(/\{([a-z]{2})\}/i);
-
-      if (langMatch) {
-        lang = langMatch[1].toLowerCase();
-        text = text.replace(langMatch[0], "").trim();
-      }
-
-      if (!text) {
-        return await message.reply("*Please provide text to convert!*");
-      }
-
-      // Check if text exceeds max length for TTS concatenation
-      const maxLength = config.TTS_MAX_LENGTH || 200;
-      const isLongText = text.length > 200;
-
-      // Auto-detect language if no explicit {lang}
-      if (!langMatch) {
-        try {
-          const detection = await translate(text.substring(0, 500), {
-            to: (config.LANG || "en").toLowerCase(),
-          });
-          const detected = detection?.from?.language?.iso;
-          if (detected && typeof detected === "string") {
-            lang = detected.toLowerCase();
-          }
-        } catch (_) {
-          // Ignore detection errors and fall back to config.LANG
-          lang = (config.LANG || "en").toLowerCase();
-        }
-      }
-
-      // Limit text if configured max is less than actual length
-      if (text.length > maxLength) {
-        text = text.substring(0, maxLength);
-        await message.reply(
-          `*Text too long! Truncated to ${maxLength} characters.*`,
-        );
-      }
-
-      let buffer;
-
-      if (isLongText && text.length > 200) {
-        // Use getAllAudioUrls for long text
-        const results = gtts.getAllAudioUrls(text, {
-          lang: lang,
-          slow: false,
-          host: "https://translate.google.com",
-          splitPunct: ",.?;",
-        });
-
-        if (!results || results.length === 0) {
-          throw new Error("Failed to generate audio URLs");
-        }
-
-        // Download all audio chunks
-        const audioBuffers = await Promise.all(
-          results.map(async (item) => {
-            const response = await axios.get(item.url, {
-              responseType: "arraybuffer",
-              timeout: 30000,
-            });
-            return Buffer.from(response.data);
-          }),
-        );
-
-        // If only one chunk, no need to concatenate
-        if (audioBuffers.length === 1) {
-          buffer = audioBuffers[0];
-        } else {
-          // Concatenate multiple audio files using ffmpeg
-          const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "tts-"));
-          const inputFiles = [];
-          const listFile = path.join(tempDir, "concat.txt");
-          const outputFile = path.join(tempDir, "output.mp3");
-
-          try {
-            // Write each chunk to a temp file
-            for (let i = 0; i < audioBuffers.length; i++) {
-              const chunkPath = path.join(tempDir, `chunk${i}.mp3`);
-              await fs.writeFile(chunkPath, audioBuffers[i]);
-              inputFiles.push(chunkPath);
-            }
-
-            // Create concat list file for ffmpeg
-            const concatList = inputFiles
-              .map((file) => `file '${file}'`)
-              .join("\n");
-            await fs.writeFile(listFile, concatList);
-
-            // Concatenate using ffmpeg
-            await new Promise((resolve, reject) => {
-              ffmpeg()
-                .input(listFile)
-                .inputOptions(["-f concat", "-safe 0"])
-                .outputOptions(["-c copy"])
-                .output(outputFile)
-                .on("end", resolve)
-                .on("error", reject)
-                .run();
-            });
-
-            // Read concatenated file
-            buffer = await fs.readFile(outputFile);
-          } finally {
-            // Cleanup temp files
-            await fs
-              .rm(tempDir, { recursive: true, force: true })
-              .catch(() => {});
-          }
-        }
-      } else {
-        // Use single getAudioUrl for short text (≤200 chars)
-        const ttsUrl = gtts.getAudioUrl(text, {
-          lang: lang,
-          slow: false,
-          host: "https://translate.google.com",
-        });
-
-        // Download audio
-        const response = await axios.get(ttsUrl, {
-          responseType: "arraybuffer",
-          timeout: 30000,
-        });
-
-        buffer = Buffer.from(response.data);
-      }
-
-      // Send as voice note (push-to-talk)
-      await message.sendAudio(buffer, {
-        mimetype: "audio/mp4",
-        ptt: true,
-      });
-
+      const audio = await synthesizeSpeech(text, lang);
+      await message.sendVoice(audio);
       await message.react("✅");
     } catch (error) {
-      console.error("TTS error:", error);
+      console.error("TTS error:", safeLog(error));
+      await message.react("❌");
 
-      if (error.message && error.message.includes("language")) {
-        await message.reply(
-          "*Invalid language code!*\n\nUse standard 2-letter ISO codes (en, es, fr, etc.)",
-        );
-      } else {
-        await message.reply(
-          "*TTS failed!*\n\nPlease try again with shorter text or different language.",
+      // Google answers 400 to a language it doesn't know
+      if (langMatch && error?.response?.status === 400) {
+        return await message.reply(
+          getLang("plugins.tts.invalid_lang", langMatch[1]),
         );
       }
-
-      await message.react("❌");
+      const kind = classifyError(error);
+      await message.reply(
+        getLang(kind === "error" ? "plugins.tts.error" : replyKeyFor(kind)),
+      );
     }
   },
 };

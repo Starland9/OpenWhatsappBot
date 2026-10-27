@@ -1,0 +1,14 @@
+{
+  "en": {
+    "plugins.autorespond.none": "None",
+    "plugins.autorespond.ignore_usage": "*Ignore usage:*\n\n*{0}ar ignore add <number>*: add a number to ignore\n*{0}ar ignore remove <number>*: remove a number\n*{0}ar ignore list*: show ignored numbers\n*{0}ar ignore clear*: clear all ignored numbers",
+    "plugins.autorespond.usage": "*Auto responder commands:*\n\n*{0}ar status*: show current settings\n*{0}ar on*: enable the auto responder\n*{0}ar off*: disable the auto responder\n*{0}ar ignore*: manage ignored numbers\n*{0}ar personality <text>*: set the bot personality",
+    "plugins.autorespond.personality_too_long": "❌ The personality is too long (max {0} characters)."
+  },
+  "fr": {
+    "plugins.autorespond.none": "Aucun",
+    "plugins.autorespond.ignore_usage": "*Utilisation d'ignore :*\n\n*{0}ar ignore add <numéro>* : ajouter un numéro à ignorer\n*{0}ar ignore remove <numéro>* : retirer un numéro\n*{0}ar ignore list* : afficher les numéros ignorés\n*{0}ar ignore clear* : effacer tous les numéros ignorés",
+    "plugins.autorespond.usage": "*Commandes du répondeur automatique :*\n\n*{0}ar status* : afficher les paramètres actuels\n*{0}ar on* : activer le répondeur automatique\n*{0}ar off* : désactiver le répondeur automatique\n*{0}ar ignore* : gérer les numéros ignorés\n*{0}ar personality <texte>* : définir la personnalité du bot",
+    "plugins.autorespond.personality_too_long": "❌ La personnalité est trop longue ({0} caractères maximum)."
+  }
+}

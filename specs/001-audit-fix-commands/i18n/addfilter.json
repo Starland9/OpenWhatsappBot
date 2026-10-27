@@ -1,0 +1,30 @@
+{
+  "en": {
+    "plugins.addfilter.desc": "Add an automatic reply to a word or phrase (admins only)",
+    "plugins.addfilter.usage": "📌 *Filters*\n\n{0}filter <word or phrase>=<reply>\n{0}filter list\n{0}delfilter <word, phrase or number>\n\n*Example:*\n{0}filter hello=Hi there! 👋\n\nWhen a message contains \"hello\" (whole word, any case), the bot sends the reply. The same filter answers at most once every 10 seconds.",
+    "plugins.addfilter.invalid_format": "❌ Invalid format.\nUse: {0}filter <word or phrase>=<reply>\nExample: {0}filter hello=Hi there! 👋",
+    "plugins.addfilter.pattern_too_long": "❌ The word or phrase is too long (max {0} characters).",
+    "plugins.addfilter.response_too_long": "❌ The reply is too long (max {0} characters).",
+    "plugins.addfilter.limit": "❌ This group already has the maximum of {0} filters. Delete one first.",
+    "plugins.addfilter.added": "✅ Filter added.\n*Word:* {0}\n*Reply:* {1}",
+    "plugins.addfilter.updated": "✅ Filter updated.\n*Word:* {0}\n*Reply:* {1}",
+    "plugins.addfilter.empty": "📝 No filters in this group yet.\nAdd one with: {0}filter hello=Hi there!",
+    "plugins.addfilter.list_title": "📝 *Active filters* ({0})",
+    "plugins.addfilter.list_item": "*{0}.* {1}\n      ↳ {2}",
+    "plugins.addfilter.list_hint": "_Delete one with {0}delfilter <number>._"
+  },
+  "fr": {
+    "plugins.addfilter.desc": "Ajouter une réponse automatique à un mot ou une phrase (admins uniquement)",
+    "plugins.addfilter.usage": "📌 *Filtres*\n\n{0}filter <mot ou phrase>=<réponse>\n{0}filter list\n{0}delfilter <mot, phrase ou numéro>\n\n*Exemple :*\n{0}filter bonjour=Salut à toi ! 👋\n\nQuand un message contient « bonjour » (mot entier, majuscules ou non), le bot envoie la réponse. Un même filtre répond au plus une fois toutes les 10 secondes.",
+    "plugins.addfilter.invalid_format": "❌ Format invalide.\nUtilisation : {0}filter <mot ou phrase>=<réponse>\nExemple : {0}filter bonjour=Salut à toi ! 👋",
+    "plugins.addfilter.pattern_too_long": "❌ Le mot ou la phrase est trop long (max {0} caractères).",
+    "plugins.addfilter.response_too_long": "❌ La réponse est trop longue (max {0} caractères).",
+    "plugins.addfilter.limit": "❌ Ce groupe a déjà le maximum de {0} filtres. Supprimez-en un d'abord.",
+    "plugins.addfilter.added": "✅ Filtre ajouté.\n*Mot :* {0}\n*Réponse :* {1}",
+    "plugins.addfilter.updated": "✅ Filtre mis à jour.\n*Mot :* {0}\n*Réponse :* {1}",
+    "plugins.addfilter.empty": "📝 Aucun filtre dans ce groupe pour le moment.\nAjoutez-en un avec : {0}filter bonjour=Salut !",
+    "plugins.addfilter.list_title": "📝 *Filtres actifs* ({0})",
+    "plugins.addfilter.list_item": "*{0}.* {1}\n      ↳ {2}",
+    "plugins.addfilter.list_hint": "_Supprimez-en un avec {0}delfilter <numéro>._"
+  }
+}

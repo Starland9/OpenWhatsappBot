@@ -146,6 +146,7 @@ Le fichier `panel.js` est spécialement conçu pour les plateformes d'hébergeme
 | `PANEL_PORT` | Port du serveur HTTP | `3000` |
 | `PANEL_HOST` | Adresse d'écoute | `0.0.0.0` |
 | `KEEP_ALIVE_INTERVAL` | Intervalle ping (ms) | `60000` |
+| `PANEL_TOKEN` | Jeton exigé par `POST /api/restart` (vide = endpoint désactivé) | _(vide)_ |
 | `PORT` | Port alternatif (si PANEL_PORT non défini) | `3000` |
 
 ### Variables Optionnelles (API)
@@ -265,7 +266,10 @@ Informations sur le bot.
 ```
 
 ### POST /api/restart
-Déclenche un redémarrage du bot.
+Déclenche un redémarrage du bot. Protégé : définissez `PANEL_TOKEN` et envoyez `Authorization: Bearer <PANEL_TOKEN>`. Sans jeton configuré l'endpoint répond 403, avec un mauvais jeton 401, avec une autre méthode que POST 405. Le redémarrage ne déconnecte pas la session WhatsApp.
+```bash
+curl -X POST -H "Authorization: Bearer $PANEL_TOKEN" http://localhost:3000/api/restart
+```
 ```json
 {
   "message": "Bot restart initiated",

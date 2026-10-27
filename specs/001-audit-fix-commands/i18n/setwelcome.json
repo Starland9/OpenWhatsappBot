@@ -1,0 +1,28 @@
+{
+  "en": {
+    "plugins.setwelcome.desc": "Set the welcome message for new members (admins only)",
+    "plugins.setwelcome.status": "👋 *Welcome message*\n*Status:* {0}",
+    "plugins.setwelcome.current": "*Current message:*\n{0}",
+    "plugins.setwelcome.preview": "*Preview:*\n{0}",
+    "plugins.setwelcome.help": "*Commands:*\n• {0}welcome on / off: enable or disable\n• {0}welcome reset: back to the default message\n• {0}welcome <text>: set your own message\n\n*Variables:*\n• @user: the new member(s)\n• @group: the group name\n• @desc: the group description\n\n*Example:*\n{0}welcome Welcome @user to @group! 👋",
+    "plugins.setwelcome.enabled": "✅ Welcome messages enabled.",
+    "plugins.setwelcome.disabled": "❌ Welcome messages disabled.",
+    "plugins.setwelcome.reset": "🔄 The welcome message is back to the default.",
+    "plugins.setwelcome.updated": "✅ Welcome message updated and enabled.\n\n*Preview:*\n{0}",
+    "plugins.setwelcome.too_long": "❌ The message is too long (max {0} characters).",
+    "plugins.setwelcome.default_message": "👋 Welcome @user to *@group*!"
+  },
+  "fr": {
+    "plugins.setwelcome.desc": "Définir le message d'accueil des nouveaux membres (admins uniquement)",
+    "plugins.setwelcome.status": "👋 *Message d'accueil*\n*Statut :* {0}",
+    "plugins.setwelcome.current": "*Message actuel :*\n{0}",
+    "plugins.setwelcome.preview": "*Aperçu :*\n{0}",
+    "plugins.setwelcome.help": "*Commandes :*\n• {0}welcome on / off : activer ou désactiver\n• {0}welcome reset : revenir au message par défaut\n• {0}welcome <texte> : définir votre propre message\n\n*Variables :*\n• @user : le ou les nouveaux membres\n• @group : le nom du groupe\n• @desc : la description du groupe\n\n*Exemple :*\n{0}welcome Bienvenue @user dans @group ! 👋",
+    "plugins.setwelcome.enabled": "✅ Messages d'accueil activés.",
+    "plugins.setwelcome.disabled": "❌ Messages d'accueil désactivés.",
+    "plugins.setwelcome.reset": "🔄 Le message d'accueil est revenu à sa valeur par défaut.",
+    "plugins.setwelcome.updated": "✅ Message d'accueil mis à jour et activé.\n\n*Aperçu :*\n{0}",
+    "plugins.setwelcome.too_long": "❌ Le message est trop long (max {0} caractères).",
+    "plugins.setwelcome.default_message": "👋 Bienvenue @user dans *@group* !"
+  }
+}

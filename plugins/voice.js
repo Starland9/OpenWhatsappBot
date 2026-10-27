@@ -1,11 +1,35 @@
-const { getLang } = require("../lib/utils/language");
 const fs = require("fs").promises;
 const path = require("path");
-const { exec } = require("child_process");
-const { promisify } = require("util");
+const { extractMessageContent, getContentType } = require("baileys");
 const config = require("../config");
+const { getLang } = require("../lib/utils/language");
+const { runFfmpeg } = require("../lib/utils/ffmpeg");
+const { withTempDir } = require("../lib/utils/media");
+const { classifyError, replyKeyFor, safeLog } = require("../lib/utils/http");
+const cooldown = require("../lib/utils/cooldown");
 
-const execAsync = promisify(exec);
+// Whisper refuses files over 25 MB
+const WHISPER_MAX_BYTES = 25 * 1024 * 1024;
+const WHISPER_MAX_MB = 25;
+const OPENAI_TIMEOUT_MS = 60000;
+const FFMPEG_TIMEOUT_MS = 90000;
+const TRANSCRIBE_COOLDOWN_MS = 10000;
+
+function maxTextLength() {
+  return Number(config.TTS_MAX_LENGTH) || 500;
+}
+
+// Lang key of the reply for an audio that could not be processed
+function failureKey(error, fallbackKey) {
+  const kind = classifyError(error, { hasKey: true });
+  return kind === "error" ? fallbackKey : replyKeyFor(kind);
+}
+
+function isQuotedAudio(message) {
+  if (!message.quoted?.message) return false;
+  const content = extractMessageContent(message.quoted.message);
+  return getContentType(content) === "audioMessage";
+}
 
 /**
  * Voice Processing Plugin - Speech-to-text and text-to-speech
@@ -18,144 +42,132 @@ module.exports = {
     type: "media",
   },
 
-  async execute(message, query) {
-    const command = message.body
-      .split(" ")[0]
-      .replace(config.PREFIX, "")
-      .toLowerCase();
-
-    try {
-      if (command === "transcribe") {
-        await handleTranscription(message);
-      } else if (command === "speak") {
-        await handleTextToSpeech(message, query);
-      }
-    } catch (error) {
-      await message.react("❌");
-      console.error("Voice processing error:", error);
-      await message.reply(
-        `❌ ${getLang("plugins.voice.error")}: ${error.message}`,
-      );
+  async execute(message, args, ctx) {
+    if (ctx?.command === "speak") {
+      await handleTextToSpeech(message, ctx?.rawArgs ?? args);
+    } else {
+      await handleTranscription(message);
     }
   },
 };
 
 async function handleTranscription(message) {
-  // Check for audio message
-  let audioBuffer;
-
-  if (message.quoted && message.quoted.message?.audioMessage) {
-    const quotedShape = {
-      key: message.quoted.key,
-      message: message.quoted.message,
-    };
-    const { downloadMedia } = require("../lib/baileys/mediaAdapter");
-    audioBuffer = await downloadMedia(
-      message.client.getSocket(),
-      quotedShape,
-      "buffer",
-    );
-  } else if (message.hasMedia && message.type === "audioMessage") {
-    audioBuffer = await message.downloadMedia();
-  } else {
-    return await message.reply(getLang("plugins.voice.reply_audio"));
+  // The key is checked first: nothing is downloaded for a bot that can't transcribe
+  if (!config.OPENAI_API_KEY) {
+    return await message.reply(getLang("common.not_configured"));
   }
-
-  if (!audioBuffer) {
+  if (!isQuotedAudio(message)) {
     return await message.reply(
-      `❌ ${getLang("plugins.voice.download_failed")}`,
+      getLang("plugins.voice.reply_audio", config.PREFIX),
     );
   }
 
-  await message.react("⏳");
-
-  const OPENAI_API_KEY = config.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-
-  if (!OPENAI_API_KEY) {
-    return await message.reply(`❌ ${getLang("plugins.voice.no_api_key")}`);
-  }
-
-  const tempAudio = path.join("/tmp", `audio_${Date.now()}.ogg`);
-  const tempMp3 = path.join("/tmp", `audio_${Date.now()}.mp3`);
-
-  try {
-    await fs.writeFile(tempAudio, audioBuffer);
-
-    // Convert to MP3 for OpenAI Whisper
-    await execAsync(
-      `ffmpeg -i ${tempAudio} -ar 16000 -ac 1 -c:a libmp3lame ${tempMp3}`,
+  // Whisper is a paid API
+  if (!message.isSudo()) {
+    const wait = cooldown.hit(
+      message.sender || message.jid,
+      "voice:transcribe",
+      TRANSCRIBE_COOLDOWN_MS,
     );
-
-    const OpenAI = require("openai");
-    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-    const audioFile = await fs.readFile(tempMp3);
-    const transcription = await openai.audio.transcriptions.create({
-      file: new File([audioFile], "audio.mp3"),
-      model: "whisper-1",
-    });
-
-    await message.react("✅");
-    await message.reply(
-      `🎤 *${getLang("plugins.voice.transcription")}*\n\n${transcription.text}`,
-    );
-  } finally {
-    await fs.unlink(tempAudio).catch(() => {});
-    await fs.unlink(tempMp3).catch(() => {});
-  }
-}
-
-async function handleTextToSpeech(message, text) {
-  if (!text) {
-    // Check if replying to a message
-    if (message.quoted && message.quoted.message) {
-      const quotedMsg = message.quoted.message;
-      const quotedType = Object.keys(quotedMsg)[0];
-      const quotedContent = quotedMsg[quotedType];
-      text =
-        quotedContent.text ||
-        quotedContent.caption ||
-        quotedContent.conversation ||
-        "";
+    if (wait) {
+      return await message.reply(
+        getLang("common.cooldown", Math.ceil(wait / 1000)),
+      );
     }
   }
 
-  if (!text) {
-    return await message.reply(getLang("plugins.voice.tts_usage"));
-  }
-
-  // Limit text length
-  if (text.length > 500) {
-    return await message.reply(getLang("plugins.voice.text_too_long"));
+  // Throws MEDIA_TOO_LARGE before downloading when over the cap
+  const media = await message.getQuotedMedia({ maxBytes: WHISPER_MAX_BYTES });
+  if (!media) {
+    return await message.reply(getLang("plugins.voice.download_failed"));
   }
 
   await message.react("⏳");
 
   try {
-    const googleTTS = require("google-tts-api");
-
-    // Get TTS URL
-    const url = googleTTS.getAudioUrl(text, {
-      lang: config.LANG || "en",
-      slow: false,
-      host: "https://translate.google.com",
+    // Small mono mp3 for Whisper
+    const mp3 = await withTempDir(async (dir) => {
+      const input = path.join(dir, "input");
+      const output = path.join(dir, "output.mp3");
+      await fs.writeFile(input, media.buffer);
+      await runFfmpeg(
+        [
+          "-i", input,
+          "-vn",
+          "-ar", "16000",
+          "-ac", "1",
+          "-c:a", "libmp3lame",
+          "-b:a", "32k",
+          output,
+        ],
+        { timeout: FFMPEG_TIMEOUT_MS },
+      );
+      return fs.readFile(output);
     });
 
-    // Download audio
-    const axios = require("axios");
-    const response = await axios.get(url, {
-      responseType: "arraybuffer",
-      timeout: 30000,
+    if (mp3.length > WHISPER_MAX_BYTES) {
+      await message.react("❌");
+      return await message.reply(
+        getLang("common.media_too_large", WHISPER_MAX_MB),
+      );
+    }
+
+    const OpenAI = require("openai");
+    const openai = new OpenAI({
+      apiKey: config.OPENAI_API_KEY,
+      timeout: OPENAI_TIMEOUT_MS,
+      maxRetries: 0,
     });
-    const audioBuffer = Buffer.from(response.data);
+    const transcription = await openai.audio.transcriptions.create({
+      file: new File([mp3], "audio.mp3", { type: "audio/mpeg" }),
+      model: "whisper-1",
+    });
+
+    const text = String(transcription?.text || "").trim();
+    if (!text) {
+      await message.react("❌");
+      return await message.reply(getLang("plugins.voice.no_speech"));
+    }
 
     await message.react("✅");
-    await message.sendVoice(audioBuffer);
+    await message.reply(getLang("plugins.voice.transcription", text));
   } catch (error) {
-    console.error("TTS error:", error);
+    // Never reply with error.message: OpenAI errors can contain a key fragment
+    console.error("Voice transcription error:", safeLog(error));
     await message.react("❌");
-    await message.reply(
-      `❌ ${getLang("plugins.voice.tts_error")}: ${error.message}`,
+    await message.reply(getLang(failureKey(error, "plugins.voice.error")));
+  }
+}
+
+async function handleTextToSpeech(message, rawArgs) {
+  const typed = String(rawArgs || "").replace(/\s+/g, " ").trim();
+  const text = typed || message.getQuotedText().replace(/\s+/g, " ").trim();
+
+  if (!text) {
+    return await message.reply(
+      `${getLang("common.usage_prefix")}\n${getLang("plugins.voice.tts_usage", config.PREFIX, maxTextLength())}`,
     );
+  }
+  if (text.length > maxTextLength()) {
+    return await message.reply(
+      getLang("plugins.voice.text_too_long", maxTextLength()),
+    );
+  }
+
+  await message.react("⏳");
+
+  try {
+    // Same synthesis as the tts command: pieces of 200 characters at most, joined
+    const { synthesizeSpeech } = require("./tts");
+    const audio = await synthesizeSpeech(
+      text,
+      String(config.LANG || "en").toLowerCase(),
+    );
+    await message.sendVoice(audio);
+    await message.react("✅");
+  } catch (error) {
+    console.error("Speak error:", safeLog(error));
+    await message.react("❌");
+    await message.reply(getLang(failureKey(error, "plugins.voice.tts_error")));
   }
 }

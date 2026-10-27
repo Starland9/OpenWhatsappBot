@@ -1,110 +1,23 @@
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
+const config = require("../config");
 
 /**
- * Pinterest Plugin
- * Download and search Pinterest images
+ * Pinterest plugin.
+ * Pinterest closed its anonymous search (HTTP 403) and no keyless alternative exists,
+ * so the command stays registered but only answers "service unavailable" and points
+ * to `.image`. No network call is made.
  */
 
 module.exports = {
   command: {
     pattern: "pinterest",
-    desc: "Search Pinterest images",
+    desc: getLang("plugins.pinterest.desc"),
     type: "search",
   },
 
-  async execute(message, args) {
-    if (!args) {
-      return await message.reply(
-        "*Please provide a search query!*\n\nExample: `.pinterest cats`"
-      );
-    }
-
-    try {
-      await message.react("🔍");
-
-      // Search Pinterest images
-      const response = await axios.get(
-        `https://www.pinterest.com/resource/BaseSearchResource/get/`,
-        {
-          params: {
-            source_url: "/search/pins/?q=" + encodeURIComponent(args),
-            data: JSON.stringify({
-              options: {
-                isPrefetch: false,
-                query: args,
-                scope: "pins",
-                no_fetch_context_on_resource: false,
-              },
-              context: {},
-            }),
-          },
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          },
-        }
-      );
-
-      if (
-        response.data &&
-        response.data.resource_response &&
-        response.data.resource_response.data &&
-        response.data.resource_response.data.results
-      ) {
-        const results = response.data.resource_response.data.results;
-
-        if (results.length === 0) {
-          return await message.reply("*No results found!*");
-        }
-
-        // Get first 10 results
-        const images = results.slice(0, 10);
-        let sent = 0;
-
-        await message.reply(
-          `*🔍 Found ${images.length} images*\n\nSending first 5 images...`
-        );
-
-        for (let i = 0; i < Math.min(5, images.length); i++) {
-          const pin = images[i];
-          const imageUrl = pin.images?.orig?.url || pin.images?.["736x"]?.url;
-
-          if (imageUrl) {
-            try {
-              const imgResponse = await axios.get(imageUrl, {
-                responseType: "arraybuffer",
-                timeout: 15000,
-              });
-
-              const buffer = Buffer.from(imgResponse.data);
-              await message.sendImage(
-                buffer,
-                pin.title || pin.description || "*Pinterest Image*"
-              );
-              sent++;
-            } catch (err) {
-              console.log(`Failed to send image ${i + 1}`);
-            }
-          }
-        }
-
-        if (sent > 0) {
-          await message.react("✅");
-        } else {
-          await message.reply("*Failed to download images!*");
-          await message.react("❌");
-        }
-      } else {
-        await message.reply("*No results found!*");
-        await message.react("❌");
-      }
-    } catch (error) {
-      console.error("Pinterest search error:", error);
-      await message.reply(
-        "*Search failed!*\n\nPlease try again with a different query."
-      );
-      await message.react("❌");
-    }
+  async execute(message) {
+    await message.reply(
+      `${getLang("common.service_unavailable")}\n\n${getLang("plugins.pinterest.hint", config.PREFIX)}`
+    );
   },
 };

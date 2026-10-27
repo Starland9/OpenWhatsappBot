@@ -1,0 +1,18 @@
+{
+  "en": {
+    "plugins.sticker.desc": "Create a sticker from a photo or a short video (10 seconds max)",
+    "plugins.sticker.reply_required": "❌ Reply to a photo or a short video (10 seconds max) with {0}sticker, or send one with the command as caption.",
+    "plugins.sticker.already_sticker": "❌ That message is already a sticker. Reply to a photo or a short video instead.",
+    "plugins.sticker.download_failed": "❌ Couldn't download the media.",
+    "plugins.sticker.too_big": "❌ The sticker is still too heavy after compression. Try a shorter or simpler video.",
+    "plugins.sticker.error": "❌ Couldn't create the sticker. The file may be corrupted or in an unsupported format."
+  },
+  "fr": {
+    "plugins.sticker.desc": "Créer un sticker à partir d'une photo ou d'une courte vidéo (10 secondes max)",
+    "plugins.sticker.reply_required": "❌ Répondez à une photo ou à une courte vidéo (10 secondes max) avec {0}sticker, ou envoyez-en une avec la commande en légende.",
+    "plugins.sticker.already_sticker": "❌ Ce message est déjà un sticker. Répondez plutôt à une photo ou à une courte vidéo.",
+    "plugins.sticker.download_failed": "❌ Impossible de télécharger le média.",
+    "plugins.sticker.too_big": "❌ Le sticker reste trop lourd après compression. Essayez une vidéo plus courte ou plus simple.",
+    "plugins.sticker.error": "❌ Impossible de créer le sticker. Le fichier est peut-être corrompu ou dans un format non pris en charge."
+  }
+}

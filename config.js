@@ -5,9 +5,14 @@ const path = require("path");
 // Load environment variables
 const configPath = path.join(__dirname, "./config.env");
 const databasePath = path.join(__dirname, "./database.db");
-if (existsSync(configPath)) require("dotenv").config({ path: configPath });
+// quiet: dotenv >= 17 prints an "injected env" line on every load
+if (existsSync(configPath))
+  require("dotenv").config({ path: configPath, quiet: true });
 
 const toBool = (x) => x === "true";
+// Unquoted values in config.env keep a literal "\n": turn it into a real newline
+const unescapeNewlines = (x) => x.replace(/\\n/g, "\n");
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const DATABASE_URL = process.env.DATABASE_URL || databasePath;
 // SSL is required by hosted Postgres (Heroku...); set DATABASE_SSL=false for a plain internal server
 const DATABASE_SSL = process.env.DATABASE_SSL !== "false";
@@ -76,6 +81,14 @@ module.exports = {
   GROQ_API_KEY: process.env.GROQ_API_KEY || "",
   RMBG_KEY: process.env.RMBG_KEY || "",
 
+  // AI models
+  GEMINI_MODEL,
+  GEMINI_VISION_MODEL: process.env.GEMINI_VISION_MODEL || GEMINI_MODEL,
+  // Image generation model (empty = the imagen plugin picks its default)
+  IMAGE_MODEL: process.env.IMAGE_MODEL || "",
+  // OpenAI chat model (gpt command)
+  OPENAI_MODEL: process.env.OPENAI_MODEL || "gpt-4o-mini",
+
   // New Plugin API Keys
   WEATHER_API_KEY: process.env.WEATHER_API_KEY || "",
   UNSPLASH_API_KEY: process.env.UNSPLASH_API_KEY || "",
@@ -84,6 +97,9 @@ module.exports = {
   ALPHA_VANTAGE_KEY: process.env.ALPHA_VANTAGE_KEY || "",
   SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || "",
   SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || "",
+  // Reddit OAuth (client credentials), required by the reddit plugin
+  REDDIT_CLIENT_ID: process.env.REDDIT_CLIENT_ID || "",
+  REDDIT_CLIENT_SECRET: process.env.REDDIT_CLIENT_SECRET || "",
   // Image API Keys
   CLOUDMERSIVE_API_KEY: process.env.CLOUDMERSIVE_API_KEY || "",
   APYHUB_API_KEY: process.env.APYHUB_API_KEY || "",
@@ -95,7 +111,12 @@ module.exports = {
   IMAGE_API_MAX_SIZE_MB: parseInt(process.env.IMAGE_API_MAX_SIZE_MB) || 10,
 
   // Social DL Backend
-  BACKEND_URL: process.env.BACKEND_URL || "https://api.socialdl.starland9.dev",
+  // Optional social download backend (empty = yt-dlp only)
+  BACKEND_URL: process.env.BACKEND_URL || "",
+
+  // Media downloads (yt-dlp)
+  YTDLP_PATH: process.env.YTDLP_PATH || "yt-dlp",
+  DOWNLOAD_TIMEOUT: parseInt(process.env.DOWNLOAD_TIMEOUT) || 180000, // ms
 
   // Logging
   LOG_LEVEL: process.env.LOG_LEVEL || "info",
@@ -125,10 +146,13 @@ module.exports = {
     process.env.ANTILINK_MSG || "_Antilink Detected &mention kicked_",
   ANTIBOT_MSG: process.env.ANTIBOT_MSG || "&mention removed",
   WARN_LIMIT: parseInt(process.env.WARN_LIMIT) || 3,
-  WARN_MESSAGE:
+  WARN_MESSAGE: unescapeNewlines(
     process.env.WARN_MESSAGE ||
-    "⚠️WARNING⚠️\n*User:* &mention\n*Warn:* &warn\n*Remaining:* &remaining",
-  WARN_KICK_MESSAGE: process.env.WARN_KICK_MESSAGE || "&mention kicked",
+      "⚠️WARNING⚠️\n*User:* &mention\n*Warn:* &warn\n*Remaining:* &remaining",
+  ),
+  WARN_KICK_MESSAGE: unescapeNewlines(
+    process.env.WARN_KICK_MESSAGE || "&mention kicked",
+  ),
 
   // Misc
   TIMEZONE: process.env.TIMEZONE || "UTC",
@@ -180,4 +204,6 @@ module.exports = {
   PANEL_HOST: process.env.PANEL_HOST || process.env.HOST || "0.0.0.0",
   KEEP_ALIVE_INTERVAL: parseInt(process.env.KEEP_ALIVE_INTERVAL) || 60000, // 60 seconds
   PANEL_ENABLED: toBool(process.env.PANEL_ENABLED),
+  // Bearer token required by POST /api/restart; empty = the endpoint is disabled (403)
+  PANEL_TOKEN: process.env.PANEL_TOKEN || "",
 };

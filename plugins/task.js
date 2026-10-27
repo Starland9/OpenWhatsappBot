@@ -1,235 +1,164 @@
 const { getLang } = require("../lib/utils/language");
-const cron = require("cron");
 const config = require("../config");
+const { Task } = require("../lib/database");
+const { normalizeJid, toPnJid } = require("../lib/utils/permissions");
 
 /**
- * Task Manager & Reminders Plugin
- * Store tasks in memory (can be extended to database)
+ * Task manager (research R17): a shared to-do list per chat, stored in the
+ * `Task` table.
+ *
+ *   .task add <text>        1 to 300 characters, at most 100 tasks per chat
+ *   .task list
+ *   .task done <n>          .task undone <n>
+ *   .task del <n>           the creator, a group admin or an owner
+ *   .task clear [all]       removes the done tasks (all: every task)
+ *                           admins and owners: any task; others: their own tasks
+ *
+ * `<n>` is the number shown by `.task list`.
  */
 
-// In-memory storage for tasks and reminders
-const tasks = new Map(); // chatId -> [{id, text, done, created}]
-const reminders = new Map(); // chatId -> [{id, text, time, cronJob}]
+const MAX_TEXT_LENGTH = 300;
+const MAX_TASKS_PER_CHAT = 100;
+const ADD_WORDS = new Set(["add", "new", "ajouter"]);
+const LIST_WORDS = new Set(["list", "liste", "ls"]);
+const DONE_WORDS = new Set(["done", "fait"]);
+const UNDONE_WORDS = new Set(["undone", "undo", "reopen"]);
+const DELETE_WORDS = new Set(["del", "delete", "remove", "rm", "supprimer"]);
+const CLEAR_WORDS = new Set(["clear", "vider"]);
+
+/** Stored author id (phone-number form first) and the other forms of the sender */
+async function identityForms(message) {
+  const pn = await toPnJid(message, message.sender);
+  return [...new Set([pn, normalizeJid(message.sender), normalizeJid(message.senderLid)].filter(Boolean))];
+}
+
+/** The chat's tasks in display order (the number shown to users is index + 1) */
+const chatTasks = (chatJid) => Task.findAll({ where: { chatJid }, order: [["id", "ASC"]] });
+
+function usage() {
+  return `${getLang("common.usage_prefix")}\n${getLang("plugins.task.usage", config.PREFIX)}`;
+}
+
+/** The task designated by `.task <action> <n>`, or null after replying */
+async function pickTask(message, rest) {
+  const match = rest.trim().match(/^#?(\d{1,6})$/);
+  if (!match) {
+    await message.reply(getLang("plugins.task.invalid_index"));
+    return null;
+  }
+  const tasks = await chatTasks(message.jid);
+  const task = tasks[Number(match[1]) - 1];
+  if (!task) {
+    await message.reply(getLang("plugins.task.invalid_index"));
+    return null;
+  }
+  return task;
+}
+
+/** May the sender delete this task? Creator, group admin or owner (any member in a private chat) */
+async function canRemove(message, task, forms) {
+  if (!message.isGroup) return true;
+  if (forms.includes(normalizeJid(task.createdBy))) return true;
+  return message.isSudo() || (await message.isSenderAdmin());
+}
+
+async function addTask(message, rest) {
+  const text = rest.replace(/\s+/g, " ").trim();
+  if (!text) return message.reply(getLang("plugins.task.add_usage", config.PREFIX));
+  if (text.length > MAX_TEXT_LENGTH) {
+    return message.reply(getLang("plugins.task.text_too_long", MAX_TEXT_LENGTH));
+  }
+
+  const count = await Task.count({ where: { chatJid: message.jid } });
+  if (count >= MAX_TASKS_PER_CHAT) {
+    return message.reply(getLang("plugins.task.limit_reached", MAX_TASKS_PER_CHAT));
+  }
+
+  const [createdBy] = await identityForms(message);
+  await Task.create({ chatJid: message.jid, text, createdBy });
+  await message.react("✅");
+  return message.reply(getLang("plugins.task.added", count + 1, text));
+}
+
+async function listTasks(message) {
+  const tasks = await chatTasks(message.jid);
+  if (!tasks.length) return message.reply(getLang("plugins.task.no_tasks"));
+
+  const lines = tasks.map((task, index) =>
+    getLang(task.done ? "plugins.task.item_done" : "plugins.task.item_open", index + 1, task.text),
+  );
+  const open = tasks.filter((task) => !task.done).length;
+  return message.reply(
+    `${getLang("plugins.task.list_title", open, tasks.length)}\n\n${lines.join("\n")}`,
+  );
+}
+
+async function setDone(message, rest, done) {
+  const task = await pickTask(message, rest);
+  if (!task) return undefined;
+
+  if (task.done === done) {
+    return message.reply(getLang(done ? "plugins.task.already_done" : "plugins.task.already_open"));
+  }
+  const [doneBy] = await identityForms(message);
+  await task.update({ done, doneBy: done ? doneBy : null });
+  await message.react("✅");
+  return message.reply(getLang(done ? "plugins.task.marked_done" : "plugins.task.marked_open", task.text));
+}
+
+async function deleteTask(message, rest) {
+  const task = await pickTask(message, rest);
+  if (!task) return undefined;
+
+  const forms = await identityForms(message);
+  if (!(await canRemove(message, task, forms))) {
+    return message.reply(getLang("plugins.task.delete_denied"));
+  }
+  await task.destroy();
+  await message.react("🗑️");
+  return message.reply(getLang("plugins.task.deleted", task.text));
+}
+
+async function clearTasks(message, rest) {
+  const everything = /^(all|tout|tous)$/i.test(rest.trim());
+  if (rest.trim() && !everything) return message.reply(usage());
+
+  const tasks = (await chatTasks(message.jid)).filter((task) => everything || task.done);
+  if (!tasks.length) return message.reply(getLang("plugins.task.nothing_to_clear"));
+
+  const forms = await identityForms(message);
+  const privileged = !message.isGroup || message.isSudo() || (await message.isSenderAdmin());
+  const removable = tasks.filter(
+    (task) => privileged || forms.includes(normalizeJid(task.createdBy)),
+  );
+  if (!removable.length) return message.reply(getLang("plugins.task.delete_denied"));
+
+  await Task.destroy({ where: { id: removable.map((task) => task.id) } });
+  await message.react("✅");
+  const skipped = tasks.length - removable.length;
+  const reply = getLang("plugins.task.cleared", removable.length);
+  return message.reply(skipped ? `${reply}\n${getLang("plugins.task.clear_skipped", skipped)}` : reply);
+}
 
 module.exports = {
   command: {
-    pattern: "task",
+    pattern: "task|todo",
     desc: getLang("plugins.task.desc"),
     type: "utility",
   },
 
-  async execute(message, query) {
-    const [action, ...params] = query.split(" ");
+  async execute(message, argsString, ctx) {
+    const raw = String(ctx?.rawArgs ?? argsString ?? "").replace(/^\s+/, "");
+    const first = raw.split(/\s+/, 1)[0];
+    const action = first.toLowerCase();
+    const rest = raw.slice(first.length);
 
-    try {
-      // Task management
-      if (
-        message.body.startsWith(`${config.PREFIX}task`) ||
-        message.body.startsWith(`${config.PREFIX}todo`)
-      ) {
-        return await handleTask(message, action, params.join(" "));
-      }
-
-      // Reminder management
-      if (message.body.startsWith(`${config.PREFIX}remind`)) {
-        return await handleReminder(message, action, params.join(" "));
-      }
-
-      // Show help if no valid action
-      await message.reply(getLang("plugins.task.usage"));
-    } catch (error) {
-      await message.react("❌");
-      console.error("Task/Reminder error:", error);
-      await message.reply(
-        `❌ ${getLang("plugins.task.error")}: ${error.message}`
-      );
-    }
+    if (ADD_WORDS.has(action)) return addTask(message, rest);
+    if (LIST_WORDS.has(action)) return listTasks(message);
+    if (DONE_WORDS.has(action)) return setDone(message, rest, true);
+    if (UNDONE_WORDS.has(action)) return setDone(message, rest, false);
+    if (DELETE_WORDS.has(action)) return deleteTask(message, rest);
+    if (CLEAR_WORDS.has(action)) return clearTasks(message, rest);
+    return message.reply(usage());
   },
 };
-
-async function handleTask(message, action, text) {
-  const chatId = message.jid;
-
-  if (!tasks.has(chatId)) {
-    tasks.set(chatId, []);
-  }
-
-  const chatTasks = tasks.get(chatId);
-
-  switch (action?.toLowerCase()) {
-    case "add":
-      if (!text) {
-        return await message.reply(getLang("plugins.task.add_usage"));
-      }
-
-      const newTask = {
-        id: Date.now(),
-        text,
-        done: false,
-        created: new Date(),
-      };
-
-      chatTasks.push(newTask);
-      await message.react("✅");
-      await message.reply(`✅ ${getLang("plugins.task.added")}: _${text}_`);
-      break;
-
-    case "list":
-      if (chatTasks.length === 0) {
-        return await message.reply(getLang("plugins.task.no_tasks"));
-      }
-
-      const taskList = chatTasks
-        .map(
-          (task, idx) => `${idx + 1}. ${task.done ? "✅" : "⬜"} ${task.text}`
-        )
-        .join("\n");
-
-      await message.reply(
-        `📝 *${getLang("plugins.task.list_title")}*\n\n${taskList}`
-      );
-      break;
-
-    case "done":
-      const taskIndex = parseInt(text) - 1;
-      if (isNaN(taskIndex) || taskIndex < 0 || taskIndex >= chatTasks.length) {
-        return await message.reply(getLang("plugins.task.invalid_index"));
-      }
-
-      chatTasks[taskIndex].done = true;
-      await message.react("✅");
-      await message.reply(
-        `✅ ${getLang("plugins.task.marked_done")}: _${
-          chatTasks[taskIndex].text
-        }_`
-      );
-      break;
-
-    case "delete":
-    case "remove":
-      const deleteIndex = parseInt(text) - 1;
-      if (
-        isNaN(deleteIndex) ||
-        deleteIndex < 0 ||
-        deleteIndex >= chatTasks.length
-      ) {
-        return await message.reply(getLang("plugins.task.invalid_index"));
-      }
-
-      const deletedTask = chatTasks.splice(deleteIndex, 1)[0];
-      await message.react("🗑️");
-      await message.reply(
-        `🗑️ ${getLang("plugins.task.deleted")}: _${deletedTask.text}_`
-      );
-      break;
-
-    case "clear":
-      tasks.set(chatId, []);
-      await message.react("✅");
-      await message.reply(`✅ ${getLang("plugins.task.cleared")}`);
-      break;
-
-    default:
-      await message.reply(getLang("plugins.task.task_usage"));
-  }
-}
-
-async function handleReminder(message, action, text) {
-  const chatId = message.jid;
-
-  if (!reminders.has(chatId)) {
-    reminders.set(chatId, []);
-  }
-
-  const chatReminders = reminders.get(chatId);
-
-  switch (action?.toLowerCase()) {
-    case "add":
-    case "set":
-      // Format: remind add <time_in_minutes> <message>
-      const parts = text.split(" ");
-      const minutes = parseInt(parts[0]);
-      const reminderText = parts.slice(1).join(" ");
-
-      if (isNaN(minutes) || !reminderText) {
-        return await message.reply(getLang("plugins.task.reminder_usage"));
-      }
-
-      const reminderId = Date.now();
-      const reminderTime = new Date(Date.now() + minutes * 60000);
-
-      // Schedule reminder
-      const cronJob = new cron.CronJob(reminderTime, async () => {
-        await message.client.getSocket().sendMessage(chatId, {
-          text: `⏰ *${getLang("plugins.task.reminder")}*\n\n${reminderText}`,
-        });
-
-        // Remove from list after sending
-        const index = chatReminders.findIndex((r) => r.id === reminderId);
-        if (index !== -1) {
-          chatReminders.splice(index, 1);
-        }
-      });
-
-      cronJob.start();
-
-      chatReminders.push({
-        id: reminderId,
-        text: reminderText,
-        time: reminderTime,
-        cronJob,
-      });
-
-      await message.react("⏰");
-      await message.reply(
-        `⏰ ${getLang("plugins.task.reminder_set")}: ${minutes} ${getLang(
-          "plugins.task.minutes"
-        )}\n_${reminderText}_`
-      );
-      break;
-
-    case "list":
-      if (chatReminders.length === 0) {
-        return await message.reply(getLang("plugins.task.no_reminders"));
-      }
-
-      const reminderList = chatReminders
-        .map((reminder, idx) => {
-          const timeLeft = Math.round((reminder.time - Date.now()) / 60000);
-          return `${idx + 1}. ${reminder.text} (${timeLeft} ${getLang(
-            "plugins.task.minutes"
-          )})`;
-        })
-        .join("\n");
-
-      await message.reply(
-        `⏰ *${getLang("plugins.task.reminders_title")}*\n\n${reminderList}`
-      );
-      break;
-
-    case "cancel":
-      const cancelIndex = parseInt(text) - 1;
-      if (
-        isNaN(cancelIndex) ||
-        cancelIndex < 0 ||
-        cancelIndex >= chatReminders.length
-      ) {
-        return await message.reply(getLang("plugins.task.invalid_index"));
-      }
-
-      const canceledReminder = chatReminders[cancelIndex];
-      canceledReminder.cronJob.stop();
-      chatReminders.splice(cancelIndex, 1);
-
-      await message.react("✅");
-      await message.reply(
-        `✅ ${getLang("plugins.task.reminder_canceled")}: _${
-          canceledReminder.text
-        }_`
-      );
-      break;
-
-    default:
-      await message.reply(getLang("plugins.task.reminder_usage"));
-  }
-}

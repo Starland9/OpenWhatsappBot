@@ -1,22 +1,17 @@
+const config = require("../config");
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
+const { createStore } = require("../lib/utils/gameStore");
+const { safeLog } = require("../lib/utils/http");
 
-const CATEGORIES = {
-  general: 9,
-  books: 10,
-  film: 11,
-  music: 12,
-  science: 17,
-  computers: 18,
-  math: 19,
-  sports: 21,
-  geography: 22,
-  history: 23,
-};
+const MAX_ATTEMPTS = 6;
+const GAME_TTL_MS = 15 * 60 * 1000;
+const MAX_BOARD_IDS = 10;
 
-const games = new Map(); // chatId -> { answer, masked, guessed:Set, attempts, maxAttempts, messageId, category }
+// One game per chat; expires after GAME_TTL_MS without a guess
+const store = createStore("hangman", { ttlMs: GAME_TTL_MS });
 
-const WORDS = [
+// Word lists; the French one may carry accents, the game itself plays on the plain letters
+const WORDS_EN = [
   "banana",
   "computer",
   "elephant",
@@ -82,12 +77,9 @@ const WORDS = [
   "rosebush",
   "scorpion",
   "tornado",
-  "umbrella",
   "violin",
   "watermelon",
   "xenon",
-  "yo-yo",
-  "zeppelin",
   "android",
   "browser",
   "cathedral",
@@ -96,7 +88,6 @@ const WORDS = [
   "forest",
   "garden",
   "helmet",
-  "ice",
   "jacket",
   "kite",
   "leopard",
@@ -109,119 +100,297 @@ const WORDS = [
   "ship",
 ];
 
-function pickWord() {
-  return WORDS[Math.floor(Math.random() * WORDS.length)].toLowerCase();
+const WORDS_FR = [
+  "banane",
+  "ordinateur",
+  "éléphant",
+  "guitare",
+  "horizon",
+  "jungle",
+  "kangourou",
+  "citron",
+  "montagne",
+  "nébuleuse",
+  "océan",
+  "pyramide",
+  "satellite",
+  "télescope",
+  "parapluie",
+  "volcan",
+  "murmure",
+  "xylophone",
+  "yaourt",
+  "zèbre",
+  "diamant",
+  "émeraude",
+  "flamant",
+  "gondole",
+  "hélicoptère",
+  "iceberg",
+  "jaguar",
+  "phare",
+  "mosaïque",
+  "narval",
+  "pieuvre",
+  "pégase",
+  "sable",
+  "saphir",
+  "trésor",
+  "licorne",
+  "vampire",
+  "sorcier",
+  "voilier",
+  "dirigeable",
+  "avion",
+  "bicyclette",
+  "calendrier",
+  "libellule",
+  "séisme",
+  "luciole",
+  "serrure",
+  "lanterne",
+  "mandoline",
+  "obélisque",
+  "citrouille",
+  "carquois",
+  "scorpion",
+  "tornade",
+  "violon",
+  "pastèque",
+  "cathédrale",
+  "dauphin",
+  "moteur",
+  "forêt",
+  "jardin",
+  "casque",
+  "léopard",
+  "marbre",
+  "nouille",
+  "loutre",
+  "piano",
+  "plume",
+  "ruban",
+  "bateau",
+  "fromage",
+  "croissant",
+  "baguette",
+  "chocolat",
+  "chandelle",
+  "papillon",
+  "tournesol",
+  "boussole",
+  "château",
+  "bibliothèque",
+  "arbre",
+  "nuage",
+  "étoile",
+  "orage",
+  "fenêtre",
+  "valise",
+];
+
+function stripAccents(text) {
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
-function maskWord(word, guessed) {
-  return word
-    .split("")
-    .map((c) => (guessed.has(c) ? c : "_"))
+/**
+ * Keep the words that can be played letter by letter: only a-z once the accents are
+ * gone (so no "yo-yo" or "arc-en-ciel"), at least 4 letters, no duplicates.
+ * @returns {Array<{ key: string, display: string }>} key = plain letters, display = as written
+ */
+function buildPool(words) {
+  const seen = new Set();
+  const pool = [];
+  for (const word of words) {
+    const display = word.toLowerCase();
+    const key = stripAccents(display);
+    if (!/^[a-z]{4,}$/.test(key) || key.length !== display.length || seen.has(key)) continue;
+    seen.add(key);
+    pool.push({ key, display });
+  }
+  return pool;
+}
+
+const POOLS = { en: buildPool(WORDS_EN), fr: buildPool(WORDS_FR) };
+
+function pickWord() {
+  const lang = String(config.LANG || "en").slice(0, 2).toLowerCase();
+  const pool = POOLS[lang] || POOLS.en;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** Normalize a typed letter: lower case, accents removed ("É" -> "e") */
+function normalizeLetter(text) {
+  return stripAccents(String(text || "").trim().toLowerCase());
+}
+
+function maskWord(game) {
+  return [...game.display]
+    .map((ch, i) => (game.guessed.has(game.answer[i]) ? ch : "_"))
     .join(" ");
 }
 
-function renderHangman(attempts, max) {
-  const stages = [
-    "+---+\n|   |\n|   \n|   \n|   \n=== ",
-    "+---+\n|   |\n|   O\n|   \n|   \n=== ",
-    "+---+\n|   |\n|   O\n|   |\n|   \n=== ",
-    "+---+\n|   |\n|   O\n|  /|\n|   \n=== ",
-    "+---+\n|   |\n|   O\n|  /|\\\n|   \n=== ",
-    "+---+\n|   |\n|   O\n|  /|\\\n|  / \n=== ",
-    "+---+\n|   |\n|   O\n|  /|\\\n|  / \\\n=== ",
-  ];
-  const i = Math.min(
-    stages.length - 1,
-    Math.floor((attempts / max) * (stages.length - 1)),
+function isSolved(game) {
+  return [...game.answer].every((ch) => game.guessed.has(ch));
+}
+
+const STAGES = [
+  "+---+\n|   |\n|   \n|   \n|   \n=== ",
+  "+---+\n|   |\n|   O\n|   \n|   \n=== ",
+  "+---+\n|   |\n|   O\n|   |\n|   \n=== ",
+  "+---+\n|   |\n|   O\n|  /|\n|   \n=== ",
+  "+---+\n|   |\n|   O\n|  /|\\\n|   \n=== ",
+  "+---+\n|   |\n|   O\n|  /|\\\n|  / \n=== ",
+  "+---+\n|   |\n|   O\n|  /|\\\n|  / \\\n=== ",
+];
+
+function renderGallows(attempts) {
+  return "```" + STAGES[Math.min(attempts, STAGES.length - 1)] + "```";
+}
+
+function renderBoard(game) {
+  const wrong = [...game.guessed].filter((ch) => !game.answer.includes(ch));
+  return getLang(
+    "plugins.hangman.board",
+    renderGallows(game.attempts),
+    maskWord(game),
+    wrong.length ? wrong.join(" ").toUpperCase() : "-",
+    game.attempts,
+    MAX_ATTEMPTS,
+    config.PREFIX,
   );
-  return "```" + stages[i] + "```";
+}
+
+/** Remember the board message so replies to it (or to a recent one) count as guesses */
+function rememberBoard(game, sent) {
+  const id = sent?.key?.id;
+  if (!id) return;
+  game.botMessageId = id;
+  game.boardIds.add(id);
+  while (game.boardIds.size > MAX_BOARD_IDS) {
+    game.boardIds.delete(game.boardIds.values().next().value);
+  }
+}
+
+/** The game's creator, a group admin or an owner may stop or replace a game */
+async function canManage(message, game) {
+  if (message.sender && message.sender === game.creator) return true;
+  if (message.isSudo()) return true;
+  return await message.isSenderAdmin();
+}
+
+async function startGame(message) {
+  const word = pickWord();
+  const game = {
+    answer: word.key,
+    display: word.display,
+    guessed: new Set(),
+    attempts: 0,
+    creator: message.sender,
+    botMessageId: null,
+    boardIds: new Set(),
+  };
+
+  let res = store.start(message.jid, game);
+  if (!res.ok) {
+    if (!(await canManage(message, res.existing))) {
+      return await message.reply(getLang("plugins.hangman.already_running", config.PREFIX));
+    }
+    store.end(message.jid);
+    res = store.start(message.jid, game);
+    if (!res.ok) {
+      return await message.reply(getLang("plugins.hangman.already_running", config.PREFIX));
+    }
+  }
+
+  const sent = await message.reply(renderBoard(game));
+  rememberBoard(game, sent);
+}
+
+async function stopGame(message) {
+  const game = store.get(message.jid);
+  if (!game) return await message.reply(getLang("plugins.hangman.no_game", config.PREFIX));
+  if (!(await canManage(message, game))) {
+    return await message.reply(getLang("plugins.hangman.stop_denied"));
+  }
+  store.end(message.jid);
+  return await message.reply(getLang("plugins.hangman.stopped", game.display.toUpperCase()));
+}
+
+/**
+ * Apply one guess to the chat's game and answer in the chat.
+ * The state is updated before the first await, so two guesses cannot both win.
+ */
+async function guessLetter(message, game, text) {
+  const letter = normalizeLetter(text);
+  if (!/^[a-z]$/.test(letter)) {
+    return await message.reply(getLang("plugins.hangman.invalid"));
+  }
+  if (game.guessed.has(letter)) {
+    return await message.reply(getLang("plugins.hangman.already", letter));
+  }
+
+  game.guessed.add(letter);
+  if (!game.answer.includes(letter)) game.attempts += 1;
+  store.touch(message.jid);
+
+  if (isSolved(game)) {
+    store.end(message.jid);
+    return await message.reply(getLang("plugins.hangman.win", game.display.toUpperCase()));
+  }
+  if (game.attempts >= MAX_ATTEMPTS) {
+    store.end(message.jid);
+    return await message.reply(getLang("plugins.hangman.lose", game.display.toUpperCase()));
+  }
+
+  const sent = await message.reply(renderBoard(game));
+  rememberBoard(game, sent);
 }
 
 /**
  * Hangman: word-guessing game.
- * 1vBot — single player picks letters; bot maintains state.
+ * Anyone in the chat can guess: `.hangman <letter>` or a reply to the board.
  */
 module.exports = {
   command: {
-    pattern: "hangman",
+    pattern: "hangman|pendu",
     desc: getLang("plugins.hangman.desc"),
     type: "games",
   },
 
-  async execute(message) {
-    const args = (message.body || "").trim().toLowerCase().split(/\s+/);
-    const arg = args[1];
-    if (arg && CATEGORIES[arg]) {
-      // Fetch from opentdb (but opentdb returns trivia, not hangman words)
-      // We ignore category for hangman — we use built-in word list
+  async execute(message, argsString) {
+    const arg = String(argsString || "").trim().toLowerCase().split(/\s+/)[0] || "";
+
+    if (arg === "stop" || arg === "quit") return await stopGame(message);
+    if (arg === "help") {
+      return await message.reply(getLang("plugins.hangman.usage", config.PREFIX));
     }
 
-    const word = pickWord();
-    const game = {
-      answer: word,
-      masked: maskWord(word, new Set()),
-      guessed: new Set(),
-      attempts: 0,
-      maxAttempts: 7,
-      messageId: message.id,
-    };
-    games.set(message.jid, game);
+    if (arg === "" || arg === "start" || arg === "new") return await startGame(message);
 
-    const text =
-      `🎯 *Hangman*\n\n${renderHangman(0, 7)}\n` +
-      `Word: \`${game.masked}\`\n` +
-      `Attempts: 0/7\n\n` +
-      `_Send ${require("../config").PREFIX}guess <letter> or reply to this message with a single letter._`;
+    // A single letter is a guess
+    if (stripAccents(arg).length === 1) {
+      const game = store.get(message.jid);
+      if (!game) return await message.reply(getLang("plugins.hangman.no_game", config.PREFIX));
+      return await guessLetter(message, game, arg);
+    }
 
-    const sent = await message.reply(text);
-    if (sent?.key?.id) game.botMessageId = sent.key.id;
+    return await message.reply(getLang("plugins.hangman.usage", config.PREFIX));
   },
 
-  async handleReply(message) {
-    if (!message.quoted) return false;
-    const game = games.get(message.jid);
-    if (!game) return false;
-    if (message.quoted.id !== game.botMessageId) return false;
+  // A reply to the board with a letter. Never claims anything else.
+  async handleButtonReply(message) {
+    if (!message.quoted || message.fromMe) return false;
+    const game = store.get(message.jid);
+    if (!game || !game.boardIds.has(message.quoted.id)) return false;
+    const body = (message.body || "").trim();
+    if (!body || body.startsWith(config.PREFIX)) return false;
 
-    const guess = (message.body || "").trim().toLowerCase();
-    if (guess.length !== 1 || !/[a-z]/.test(guess)) {
-      await message.reply(getLang("plugins.hangman.invalid"));
-      return true;
+    try {
+      await guessLetter(message, game, body);
+    } catch (err) {
+      console.error("Hangman reply error:", safeLog(err));
     }
-    if (game.guessed.has(guess)) {
-      await message.reply(getLang("plugins.hangman.already", guess));
-      return true;
-    }
-    game.guessed.add(guess);
-    if (game.answer.includes(guess)) {
-      // correct
-    } else {
-      game.attempts += 1;
-    }
-    game.masked = maskWord(game.answer, game.guessed);
-
-    if (game.masked.replace(/\s/g, "") === game.answer) {
-      games.delete(message.jid);
-      await message.reply(
-        getLang("plugins.hangman.win", game.answer.toUpperCase()),
-      );
-      return true;
-    }
-    if (game.attempts >= game.maxAttempts) {
-      games.delete(message.jid);
-      await message.reply(
-        getLang("plugins.hangman.lose", game.answer.toUpperCase()),
-      );
-      return true;
-    }
-
-    const text =
-      `${renderHangman(game.attempts, game.maxAttempts)}\n` +
-      `Word: \`${game.masked}\`\n` +
-      `Attempts: ${game.attempts}/${game.maxAttempts}\n\n` +
-      `_Reply with a single letter._`;
-    const sent = await message.reply(text);
-    if (sent?.key?.id) game.botMessageId = sent.key.id;
     return true;
   },
 };

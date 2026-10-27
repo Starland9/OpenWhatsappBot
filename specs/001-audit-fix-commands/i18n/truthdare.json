@@ -1,0 +1,24 @@
+{
+  "en": {
+    "plugins.truthdare.desc": "Truth or Dare for friends and couples",
+    "plugins.truthdare.usage": "*Truth or Dare (AV)*\n\n{0}av - A random truth or dare\n{0}av truth - A truth question\n{0}av dare - A dare\n{0}av mode - Show the current mode\n{0}av mode <mild|flirty|romantic|adult> - Change the mode (group admins and owners)\n{0}av on|off - Enable or disable it in this chat (group admins and owners)\n\n*Modes:* mild, flirty, romantic, adult\n_The questions and dares are written in French._",
+    "plugins.truthdare.disabled": "❌ Truth or Dare is disabled in this chat. A group admin can enable it with {0}av on.",
+    "plugins.truthdare.mode_status": "*Truth or Dare, current mode:* {0}\n*Status:* {1}",
+    "plugins.truthdare.mode_changed": "✅ Truth or Dare mode changed to: {0}",
+    "plugins.truthdare.mode_updated": "✅ Truth or Dare settings updated: {0}",
+    "plugins.truthdare.mode_invalid": "❌ Invalid mode. Use: {0}",
+    "plugins.truthdare.card_truth": "🔍 *Truth*\n\n{0}",
+    "plugins.truthdare.card_dare": "🎲 *Dare*\n\n{0}"
+  },
+  "fr": {
+    "plugins.truthdare.desc": "Action ou Vérité entre amis ou en couple",
+    "plugins.truthdare.usage": "*Action ou Vérité (AV)*\n\n{0}av - Une action ou une vérité au hasard\n{0}av truth - Une question « Vérité »\n{0}av dare - Un défi « Action »\n{0}av mode - Voir le mode actuel\n{0}av mode <mild|flirty|romantic|adult> - Changer le mode (admins du groupe et propriétaires)\n{0}av on|off - Activer ou désactiver dans cette discussion (admins du groupe et propriétaires)\n\n*Modes :* mild, flirty, romantic, adult",
+    "plugins.truthdare.disabled": "❌ Action ou Vérité est désactivé dans cette discussion. Un admin du groupe peut l'activer avec {0}av on.",
+    "plugins.truthdare.mode_status": "*Action ou Vérité, mode actuel :* {0}\n*État :* {1}",
+    "plugins.truthdare.mode_changed": "✅ Mode Action ou Vérité changé en : {0}",
+    "plugins.truthdare.mode_updated": "✅ Paramètres Action ou Vérité mis à jour : {0}",
+    "plugins.truthdare.mode_invalid": "❌ Mode invalide. Utilise : {0}",
+    "plugins.truthdare.card_truth": "🔍 *Vérité*\n\n{0}",
+    "plugins.truthdare.card_dare": "🎲 *Action*\n\n{0}"
+  }
+}

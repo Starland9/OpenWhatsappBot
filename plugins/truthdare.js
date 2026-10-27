@@ -1,9 +1,14 @@
+const config = require("../config");
 const { getLang } = require("../lib/utils/language");
 const { Group } = require("../lib/database");
 
 /**
  * Action ou Vérité / Truth or Dare plugin
- * Usage: .av [truth|dare|mode|get|on|off]
+ * Usage: .av [truth|dare|mode [name]|on|off|help]
+ *
+ * The questions and dares are French-only content; every message of the bot around them
+ * goes through getLang. Group settings live in the Group row (created only when an admin
+ * changes them); private chats keep theirs in memory.
  */
 
 const MODES = ["mild", "flirty", "romantic", "adult"];
@@ -61,7 +66,7 @@ const ITEMS = {
       "Quelle est la chose la plus embarrassante que tu aies faite au travail ?",
       "As-tu déjà sauvé un animal ou aidé un animal en détresse ?",
       "Quel est le geste le plus gentil que tu aies fait pour quelqu'un ?",
-      "Quelle est la dernière chanson que tu as appris par cœur ?",
+      "Quelle est la dernière chanson que tu as apprise par cœur ?",
       "Quelle est la chose la plus surprenante que tu aies mangée ?",
       "Quel est ton péché mignon culinaire ?",
       "Quelle est la dernière chose que tu as apprise et que tu trouves utile ?",
@@ -98,7 +103,7 @@ const ITEMS = {
       "Crée un acronyme avec ton prénom et explique-le.",
       "Envoie une photo d'un objet bleu près de toi.",
       "Raconte une anecdote où tu as ri aux larmes.",
-      "Envoie une selfie de toi avec un chapeau amusant.",
+      "Envoie un selfie de toi avec un chapeau amusant.",
       "Mime une action pendant 10s et envoie une vidéo.",
       "Fais un compliment anonyme à quelqu'un du groupe.",
       "Envoie le son d'un animal que tu imites.",
@@ -126,7 +131,7 @@ const ITEMS = {
       "Envoie une courte vidéo où tu dis merci à quelqu'un.",
       "Décris un souvenir heureux en 1 phrase.",
       "Chante une ligne d'une chanson connue (courte).",
-      "Fais un bruit d'animaux et fais deviner le type d'animal.",
+      "Imite un animal et fais deviner lequel.",
       "Envoie une photo du ciel de ta fenêtre maintenant.",
       "Dis la première chose que tu ferais si tu gagnais un billet d'avion.",
       "Envoie un emoji qui représente ton humeur aujourd'hui.",
@@ -181,7 +186,7 @@ const ITEMS = {
       "Quelle est la petite attention qui te fait fondre ?",
       "Quelle est la meilleure excuse pour prolonger une soirée ensemble ?",
       "Qu'est-ce qui te fait craquer dans un message vocal ?",
-      "Quelle est la chose la plus attentionnée que tu aies fait pour impressionner quelqu'un ?",
+      "Quelle est la chose la plus attentionnée que tu aies faite pour impressionner quelqu'un ?",
       "Quelle est ta technique pour écrire un message séduisant ?",
       "As-tu déjà eu un 'crush' inattendu ? Raconte brièvement.",
       "Quelle est la première chose que tu fais après avoir reçu un compliment ?",
@@ -191,7 +196,7 @@ const ITEMS = {
       "Quelle est une qualité attirante chez une personne que tu aurais négligée avant ?",
       "Quel geste de flirt t'a déconcerté(e) ?",
       "As-tu déjà eu un moment où tu as cru que quelqu'un flirtait avec toi par erreur ?",
-      "Quelle est la pire tentative de drague que tu aies entendu ?",
+      "Quelle est la pire tentative de drague que tu aies entendue ?",
       "As-tu une anecdote amusante de flirt raté ?",
       "Que trouves-tu le plus charmant dans la conversation ?",
       "Quel est le compliment qui t'a mis(e) le plus en valeur ?",
@@ -220,12 +225,12 @@ const ITEMS = {
       "Écris en une ligne une promesse amusante que tu ferais à ton/ta partenaire.",
       "Fais un petit poème improvisé de 2 lignes.",
       "Décris le rendez-vous parfait en 3 mots.",
-      "Fais 10 secondes d'un chant romantique et envoie le vocal.",
+      "Chante pendant 10 secondes une chanson romantique et envoie le vocal.",
       "Raconte en 1 phrase un moment intime mais mignon que tu as vécu.",
-      "Envoie une photo d'un carnet de notes si tu en as une et montre un mot d'amour.",
+      "Envoie une photo d'un carnet de notes si tu en as un, avec un mot d'amour.",
       "Fais un compliment original et drôle en 1 phrase.",
       "Écris un acronyme mignon avec les initiales de deux personnes.",
-      "Envoie une courte voix où tu dis ton mot préféré (romantique).",
+      "Envoie un court vocal où tu dis ton mot romantique préféré.",
       "Fais 3 choses gentilles pour quelqu'un dans la prochaine heure et dis lesquelles.",
       "Prends une courte photo d'un détail que tu aimes chez quelqu'un et partage-la en privé.",
       "Fais un compliment inattendu à un ami dans le chat.",
@@ -234,7 +239,7 @@ const ITEMS = {
       "Envoie une photo d'un café près de chez toi.",
       "Partage la note la plus gentille que tu aies reçue.",
       "Écris la description de ton dîner idéal en 1 phrase.",
-      "Dites trois qualités qui vous rassurent dans une relation.",
+      "Dis trois qualités qui te rassurent dans une relation.",
       "Conseille un film romantique à regarder pour les prochaines soirées.",
       "Écris une chanson courte (2 lignes) sur 'nous'.",
       "Écris un court slogan romantique pour un t-shirt.",
@@ -250,7 +255,7 @@ const ITEMS = {
       "Envoie une playlist de 3 chansons romantiques que tu aimes.",
       "Partage un compliment qui mélange humour et affection.",
       "Fais un geste gentil dans la vraie vie et décris-le en 1 phrase.",
-      "Envoye un emoji qui représente le rendez-vous parfait pour toi.",
+      "Envoie un emoji qui représente le rendez-vous parfait pour toi.",
       "Raconte en 1 mot comment tu te sens aujourd'hui à cause de quelqu'un (si applicable).",
     ],
   },
@@ -268,7 +273,7 @@ const ITEMS = {
       "Quels petits gestes te rendent le/la plus heureux(se) au quotidien ?",
       "Si tu devais choisir une destination romantique, laquelle serait-ce ?",
       "Quelle est ta plus douce habitude en couple ?",
-      "Quel est le souvenir dont tu veux te souvenir dans 20 ans ?",
+      "Quel est le souvenir dont tu voudras encore te rappeler dans 20 ans ?",
       "Quelle est ta plus belle chanson d'amour ?",
       "As-tu déjà fait une déclaration publique d'amour ? Raconte.",
       "Quelle est la meilleure surprise que tu aimerais recevoir ?",
@@ -350,12 +355,12 @@ const ITEMS = {
       "Raconte une erreur d'amour qui a débouché sur un moment tendre.",
       "Fais une liste de 5 petites choses qui font une bonne nuit romantique.",
       "Fais une déclaration drôle et mignonne en 1 phrase.",
-      "Envoie la première photo de vous deux si tu la trouves et partage-le.",
+      "Envoie la première photo de vous deux si tu la retrouves, et partage-la.",
       "Écris 3 petits noms affectueux que tu utiliserais.",
       "Énumère 5 petites attentions qui prouvent l'amour.",
       "Envoie une courte vidéo où tu expliques ton petit rituel romantique.",
       "Donne trois idées de rendez-vous qui ne coûtent pas cher mais qui sont mémorables.",
-      "Chante une petite jingle tendre et envoie le message vocal.",
+      "Chante un petit jingle tendre et envoie le message vocal.",
       "Programme une attention pour demain et écris ce que ce sera.",
     ],
   },
@@ -376,11 +381,11 @@ const ITEMS = {
       "Quelle est la première chose que tu remarques chez quelqu'un d'attirant ?",
       "Y a-t-il une odeur qui te rend instantanément attiré(e) ? Laquelle ?",
       "Quelle est la façon la plus romantique de se laisser séduire pour toi ?",
-      "As-tu déjà eu une chanson qui a rendu un moment très spécial et suggestif ?",
+      "As-tu déjà vécu un moment très spécial et suggestif grâce à une chanson ?",
       "Quelle est la qualité la plus sexy chez quelqu'un selon toi ?",
       "Quelle est la chose la plus inattendue qui t'ait attiré(e) chez quelqu'un ?",
       "As-tu déjà surpris quelqu'un avec quelque chose de très tendre et sensuel (discret) ?",
-      "Quel est le souvenir le plus sensiblement romantique que tu as partagé ?",
+      "Quel est le souvenir le plus sincèrement romantique que tu as partagé ?",
       "As-tu déjà eu des papillons à cause d'un regard ? Raconte en bref.",
       "Quelle est la meilleure manière de flirter sans être explicite ?",
       "As-tu déjà fait un geste spontané de séduction qui a marché ?",
@@ -389,10 +394,10 @@ const ITEMS = {
       "As-tu déjà été gêné(e) après un compliment romantique ? Raconte.",
       "Quelle est ta façon préférée de dire quelque chose de suggestif sans le dire explicitement ?",
       "As-tu déjà envoyé un message suggestif par accident ? Que s'est-il passé ?",
-      "Quelle est la façon la plus subtile d'exprimer un désir (ne pas être graphique) ?",
+      "Quelle est la façon la plus subtile d'exprimer un désir (sans être graphique) ?",
       "As-tu déjà eu un rendez-vous qui a changé ta perception de l'attirance ?",
       "Quelle est la meilleure manière d'exprimer de l'attirance sans atteindre l'intimité explicite ?",
-      "As-tu déjà ressenti une connexion irrésistible instantanée ? Raconte brèvement.",
+      "As-tu déjà ressenti une connexion irrésistible instantanée ? Raconte brièvement.",
       "Quelle est la chose la plus attrayante que tu as entendue dans une conversation intime ?",
       "As-tu déjà été surpris(e) par l'audace d'un compliment ?",
       "Quelle est la meilleure ligne d'accroche que tu aies entendue ?",
@@ -407,22 +412,22 @@ const ITEMS = {
       "Quelle est la chose la plus charmante qu'on t'ait dite tard le soir ?",
       "As-tu une habitude secrète qui te rend plus séduisant(e) ?",
       "Décris un moment intime qui t'a marqué (sans détails).",
-      "Quelle est ta façon préférée de montrer de l'intérêt en private ?",
+      "Quelle est ta façon préférée de montrer de l'intérêt en privé ?",
       "Quelle est la petite chose qui peut raviver ton intérêt pour quelqu'un ?",
       "Dis une courte astuce pour un regard significatif.",
       "As-tu déjà écrit une liste de choses à faire en couple ?",
     ],
     dare: [
-      "Rien de graphique : envoie un ton suggestif par message vocal (court, discret).",
+      "Rien de graphique : envoie un message vocal sur un ton suggestif (court, discret).",
       "Envoie un compliment un peu coquin mais respectueux, en 1 phrase.",
       "Fais un petit clin d'œil emoji et explique pourquoi en 1 phrase.",
       "Envoie un message vocal chuchoté (court et respectueux).",
       "Choisis une chanson sensuelle (non explicite) et partage-la.",
       "Dis en privé à ton/ta partenaire une qualité qui te rend fou/folle.",
       "Décris en une phrase la tenue qui te fait le plus craquer (discret).",
-      "Prends une photo safe d’un accessoire romantique et envoie-la en privé.",
+      "Prends une photo safe d'un accessoire romantique et envoie-la en privé.",
       "Lis à voix haute une phrase romantique et envoie le message vocal.",
-      "Envoie une voix où tu sussures une phrase douce (court).",
+      "Envoie un vocal où tu susurres une phrase douce (court).",
       "Envoie un compliment qui mélange humour et séduction.",
       "Écris une phrase qui montre ton intérêt sans être explicite.",
       "Fais un compliment sur l'odeur d'une personne (subtil).",
@@ -431,7 +436,7 @@ const ITEMS = {
       "Écris un message de 2 mots qui montre de l'intérêt et envoie-le.",
       "Raconte une anecdote suggestive mais discrète sans entrer dans des détails.",
       "Dis une chose que tu trouves magnétique chez quelqu'un.",
-      "Envoie une voix où tu dis le compliment le plus charmant que tu puisses dire.",
+      "Envoie un vocal où tu dis le compliment le plus charmant que tu puisses faire.",
       "Partage une image qui symbolise la passion pour toi (safe).",
       "Écris une phrase courte qui titille la curiosité de ton/ta partenaire.",
       "Envoie un message où tu dis 'tu me rends curieux(se) parce que...' en 1 phrase.",
@@ -447,9 +452,9 @@ const ITEMS = {
       "Donne une petite 'mise au défi' romantique (ex: préparer une surprise).",
       "Envoie une citation romantique courte qui te touche.",
       "Fais un compliment sur le style vestimentaire sans être trop direct.",
-      "Écris une phrase qui commence par 'Tu es...' pour complimenter,",
+      "Écris une phrase qui commence par 'Tu es...' pour complimenter quelqu'un.",
       "Explique en 1 mot ce que tu trouves le plus séduisant chez quelqu'un.",
-      "Envoie une courte humeur (en emoji) qui décrit ton désir de douceur.",
+      "Envoie un emoji qui décrit ton envie de douceur.",
       "Donne en 1 phrase l'idée d'une surprise qui pourrait faire fondre.",
       "Écris une petite note que tu laisserais sur l'oreiller.",
       "Dis une chose polie mais coquine que tu ferais pour surprendre.",
@@ -464,157 +469,134 @@ const ITEMS = {
   },
 };
 
+const TRUTH_WORDS = ["truth", "t", "v", "verite", "vérité"];
+const DARE_WORDS = ["dare", "d", "a", "action"];
+const MAX_PM_SETTINGS = 500;
+
+// Private chats have no Group row: chat JID -> { enabled, mode }
+const pmSettings = new Map();
+
+function randomItem(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/** The chat's settings: group row (defaults: disabled, mild) or the in-memory private ones */
+async function loadSettings(message) {
+  if (!message.isGroup) {
+    return pmSettings.get(message.jid) || { enabled: true, mode: "mild" };
+  }
+  const group = await Group.findOne({ where: { jid: message.jid } });
+  return {
+    enabled: !!(group && group.truthDareEnabled),
+    mode: group && MODES.includes(group.truthDareMode) ? group.truthDareMode : "mild",
+  };
+}
+
+/** Save `patch` ({ enabled?, mode? }); a Group row is only created for a group */
+async function saveSettings(message, patch) {
+  if (!message.isGroup) {
+    const next = { ...(await loadSettings(message)), ...patch };
+    pmSettings.delete(message.jid);
+    pmSettings.set(message.jid, next);
+    while (pmSettings.size > MAX_PM_SETTINGS) {
+      pmSettings.delete(pmSettings.keys().next().value);
+    }
+    return;
+  }
+
+  const metadata = await message.getGroupMetadata();
+  const [group] = await Group.findOrCreate({
+    where: { jid: message.jid },
+    defaults: { name: metadata?.subject || "" },
+  });
+  const update = {};
+  if (patch.enabled !== undefined) update.truthDareEnabled = patch.enabled;
+  if (patch.mode !== undefined) update.truthDareMode = patch.mode;
+  await group.update(update);
+}
+
+/** Anyone may change the settings of their private chat; in a group, admins and owners */
+async function canChangeSettings(message) {
+  if (!message.isGroup) return true;
+  return message.isSudo() || (await message.isSenderAdmin());
+}
+
+function statusText(enabled) {
+  return getLang(enabled ? "common.status_enabled" : "common.status_disabled");
+}
+
+async function handleMode(message, args) {
+  const value = args[1] || "get";
+
+  if (value === "get") {
+    const settings = await loadSettings(message);
+    return await message.reply(
+      getLang("plugins.truthdare.mode_status", settings.mode, statusText(settings.enabled)),
+    );
+  }
+
+  if (!(await canChangeSettings(message))) {
+    return await message.reply(getLang("common.sender_not_admin"));
+  }
+
+  if (value === "on" || value === "off") {
+    const enabled = value === "on";
+    await saveSettings(message, { enabled });
+    return await message.reply(getLang("plugins.truthdare.mode_updated", statusText(enabled)));
+  }
+
+  if (!MODES.includes(value)) {
+    return await message.reply(getLang("plugins.truthdare.mode_invalid", MODES.join("|")));
+  }
+
+  await saveSettings(message, { mode: value, enabled: true });
+  return await message.reply(getLang("plugins.truthdare.mode_changed", value));
+}
+
 module.exports = {
   command: {
     pattern: "av",
-    desc: getLang("plugins.truthdare.desc") || "Action ou Vérité (jeu)",
+    desc: getLang("plugins.truthdare.desc"),
     type: "fun",
   },
 
   async execute(message, argsString) {
-    const args = (argsString || "").trim();
-    const sub = args.split(" ")[0]?.toLowerCase() || "";
-    const chatId = message.jid;
+    const args = String(argsString || "")
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+    const sub = args[0] || "";
 
-    // For group configurations we use Group model
-    let group = null;
-    try {
-      group = await Group.findOne({ where: { jid: chatId } });
-      if (!group) {
-        // Create default group entry if missing
-        group = await Group.create({
-          jid: chatId,
-          name: (await message.getGroupMetadata())?.subject || "Unknown",
-        });
-      }
-    } catch (err) {
-      console.error("Error loading group for truthdare:", err);
+    if (sub === "help" || sub === "usage") {
+      return await message.reply(getLang("plugins.truthdare.usage", config.PREFIX));
     }
 
-    // Manage mode and on/off if the sender is admin or sudo (for groups)
-    if (sub === "mode") {
-      // Only in group or sudo/admin can change
-      if (message.isGroup) {
-        const isAdmin = await message.isSenderAdmin();
-        if (!isAdmin && !message.isSudo())
-          return await message.reply(getLang("common.not_admin"));
-      }
-
-      const rest = args.split(" ").slice(1).join(" ").trim();
-      if (!rest || rest === "get") {
-        const current = (group && group.truthDareMode) || "mild";
-        return await message.reply(
-          getLang("plugins.truthdare.mode_status").replace("{0}", current)
-        );
-      }
-
-      if (rest === "on" || rest === "off") {
-        const enable = rest === "on";
-        if (group) {
-          group.truthDareEnabled = enable;
-          await group.save();
-        }
-        return await message.reply(
-          getLang("plugins.truthdare.mode_updated").replace(
-            "{0}",
-            enable
-              ? getLang("common.status_enabled")
-              : getLang("common.status_disabled")
-          )
-        );
-      }
-
-      if (!MODES.includes(rest)) {
-        return await message.reply(getLang("plugins.truthdare.mode_invalid"));
-      }
-
-      // Adult mode safety: require sudo/admin to enable
-      if (rest === "adult" && message.isGroup) {
-        const isAdmin = await message.isSenderAdmin();
-        if (!isAdmin && !message.isSudo()) {
-          return await message.reply(
-            getLang("plugins.truthdare.adult_requires_admin")
-          );
-        }
-      }
-
-      // Save mode
-      if (group) {
-        group.truthDareMode = rest;
-        group.truthDareEnabled = true;
-        await group.save();
-      }
-
-      return await message.reply(
-        getLang("plugins.truthdare.mode_changed").replace("{0}", rest)
-      );
-    }
+    if (sub === "mode") return await handleMode(message, args);
 
     if (sub === "on" || sub === "off") {
-      if (message.isGroup) {
-        const isAdmin = await message.isSenderAdmin();
-        if (!isAdmin && !message.isSudo())
-          return await message.reply(getLang("common.not_admin"));
+      if (!(await canChangeSettings(message))) {
+        return await message.reply(getLang("common.sender_not_admin"));
       }
-      const enable = sub === "on";
-      if (group) {
-        group.truthDareEnabled = enable;
-        await group.save();
-      }
-      return await message.reply(
-        getLang("plugins.truthdare.mode_updated").replace(
-          "{0}",
-          enable
-            ? getLang("common.status_enabled")
-            : getLang("common.status_disabled")
-        )
-      );
+      const enabled = sub === "on";
+      await saveSettings(message, { enabled });
+      return await message.reply(getLang("plugins.truthdare.mode_updated", statusText(enabled)));
     }
 
-    // Show help only if explicitly asked for; otherwise an empty args means random
-    if (sub === "help" || sub === "usage") {
-      return await message.reply(getLang("plugins.truthdare.usage"));
+    let kind;
+    if (TRUTH_WORDS.includes(sub)) kind = "truth";
+    else if (DARE_WORDS.includes(sub)) kind = "dare";
+    else if (sub === "" || sub === "random") kind = Math.random() > 0.5 ? "truth" : "dare";
+    else return await message.reply(getLang("plugins.truthdare.usage", config.PREFIX));
+
+    const settings = await loadSettings(message);
+    if (!settings.enabled) {
+      return await message.reply(getLang("plugins.truthdare.disabled", config.PREFIX));
     }
 
-    // Check if enabled
-    if (group && !group.truthDareEnabled) {
-      return await message.reply(getLang("plugins.truthdare.disabled"));
-    }
-
-    // Determine mode
-    const mode = group?.truthDareMode || "mild";
-
-    // Specific truth/dare
-    if (sub === "truth" || sub === "t" || sub === "v") {
-      const list = ITEMS[mode].truth;
-      const item = list[Math.floor(Math.random() * list.length)];
-      return await message.reply(
-        `🔍 *${getLang("plugins.truthdare.truth")}*\n\n${item}`
-      );
-    }
-
-    if (sub === "dare" || sub === "a" || sub === "action") {
-      const list = ITEMS[mode].dare;
-      const item = list[Math.floor(Math.random() * list.length)];
-      return await message.reply(
-        `🎲 *${getLang("plugins.truthdare.dare")}*\n\n${item}`
-      );
-    }
-
-    // Random truth or dare
-    if (sub === "random" || args === "") {
-      const choose = Math.random() > 0.5 ? "truth" : "dare";
-      const list = ITEMS[mode][choose];
-      const item = list[Math.floor(Math.random() * list.length)];
-      const emoji = choose === "truth" ? "🔍" : "🎲";
-      const label =
-        choose === "truth"
-          ? getLang("plugins.truthdare.truth")
-          : getLang("plugins.truthdare.dare");
-      return await message.reply(`${emoji} *${label}*\n\n${item}`);
-    }
-
-    // unknown action
-    return await message.reply(getLang("plugins.truthdare.usage"));
+    const item = randomItem(ITEMS[settings.mode][kind]);
+    return await message.reply(
+      getLang(kind === "truth" ? "plugins.truthdare.card_truth" : "plugins.truthdare.card_dare", item),
+    );
   },
 };

@@ -222,7 +222,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
   - `lib/utils/conversationManager.js` (read through pending updates; `upsert`; `unref` + flush on SIGTERM; 30-day purge).
 
   Write the i18n fragments. — agent E5 (sonnet)
-- [ ] T027 [P] [US3] Game plugins, following the research R8 id contract (`<plugin>:<action>:<nonce>[:<arg>]`, chat from `message.jid`, explicit `true` for owned ids, `false` otherwise, never throwing; free-text replies require game + `quoted.id === botMessageId` + a non-empty body + not starting with `PREFIX`) and `lib/utils/gameStore.js`:
+- [X] T027 [P] [US3] Game plugins, following the research R8 id contract (`<plugin>:<action>:<nonce>[:<arg>]`, chat from `message.jid`, explicit `true` for owned ids, `false` otherwise, never throwing; free-text replies require game + `quoted.id === botMessageId` + a non-empty body + not starting with `PREFIX`) and `lib/utils/gameStore.js`:
   - `plugins/hangman.js` (words filtered with `/^[a-z]+$/` and deduplicated; a localized word list; `.hangman <letter>` and `.hangman stop`);
   - `plugins/quiz.js` (subcommands from `ctx.command`; ignore PREFIX and empty replies; drop the special-case reliance);
   - `plugins/rps.js` (the player picks via buttons; picks collected without public disclosure; `tie_game`/`win_game` keys; timer identity);

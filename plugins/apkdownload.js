@@ -1,111 +1,223 @@
 const { getLang } = require("../lib/utils/language");
-const axios = require("axios");
+const config = require("../config");
+const {
+  fetchJson,
+  fetchBuffer,
+  replyKeyForError,
+  safeLog,
+} = require("../lib/utils/http");
+const { createStore } = require("../lib/utils/gameStore");
+const cooldown = require("../lib/utils/cooldown");
 
 /**
- * APK Downloader Plugin
- * Download Android APK files from Aptoide
+ * APK Downloader Plugin (Aptoide)
+ *
+ *   .apk <name>      lists the top results (nothing is downloaded)
+ *   .apk dl <n>      downloads result n of your last search in this chat
+ *   .apk get <n>     same as dl
  */
+
+const SEARCH_URL = "https://ws75.aptoide.com/api/7/apps/search";
+const MAX_RESULTS = 5;
+const MAX_QUERY_LENGTH = 100;
+const MB = 1024 * 1024;
+const MAX_APK_BYTES = 100 * MB;
+const DOWNLOAD_COOLDOWN_MS = 20 * 1000;
+const SEARCH_COOLDOWN_MS = 3 * 1000;
+
+// Last search of each user in each chat (10 minutes of inactivity)
+const lastSearches = createStore("apk", { ttlMs: 10 * 60 * 1000 });
+const searchKey = (message) => `${message.jid}|${message.sender}`;
+
+const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+
+/** Size cap of a download: 100 MB, or MAX_UPLOAD when lower */
+function maxApkBytes() {
+  const uploadCap = (config.MAX_UPLOAD || 230) * MB;
+  return Math.min(MAX_APK_BYTES, uploadCap);
+}
+
+/** Only Aptoide's own https hosts are downloaded from */
+function isAptoideUrl(value) {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      (url.hostname === "aptoide.com" || url.hostname.endsWith(".aptoide.com"))
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
+/** Keep what we need from an Aptoide result */
+function toResult(app) {
+  const file = app.file || {};
+  return {
+    name: String(app.name || app.package || "app"),
+    pkg: app.package || "",
+    version: file.vername || "",
+    size: Number(file.filesize || app.size) || 0,
+    rating: Number(app.stats?.prating?.avg || app.stats?.rating?.avg) || 0,
+    downloads: Number(app.stats?.pdownloads || app.stats?.downloads) || 0,
+    trust: file.malware?.rank || "",
+    url: file.path || file.path_alt || "",
+  };
+}
+
+async function search(query) {
+  const data = await fetchJson(
+    `${SEARCH_URL}/query=${encodeURIComponent(query)}/limit=10`,
+    { headers: { "User-Agent": "Aptoide/9.20.0.0" }, timeoutMs: 15000 },
+  );
+  const list = data?.datalist?.list;
+  if (!Array.isArray(list)) return [];
+  return list
+    .map(toResult)
+    .filter((app) => isAptoideUrl(app.url))
+    .slice(0, MAX_RESULTS);
+}
+
+function formatResults(query, results) {
+  const lines = results.map((app, i) => {
+    const stats = [
+      app.rating ? `⭐ ${app.rating.toFixed(1)}` : "",
+      app.downloads ? `⬇️ ${compact.format(app.downloads)}` : "",
+      app.size ? `📏 ${(app.size / MB).toFixed(1)} MB` : "",
+      app.trust ? `🛡️ ${app.trust}` : "",
+    ].filter(Boolean);
+    return (
+      `*${i + 1}. ${app.name}*${app.version ? ` v${app.version}` : ""}\n` +
+      `📦 ${app.pkg || "-"}` +
+      (stats.length ? `\n${stats.join("  ")}` : "")
+    );
+  });
+  return (
+    `${getLang("plugins.apk.results_title", query)}\n\n` +
+    `${lines.join("\n\n")}\n\n` +
+    getLang("plugins.apk.results_hint", config.PREFIX)
+  );
+}
+
+function safeFileName(app) {
+  const base = `${app.name}${app.version ? `-${app.version}` : ""}`
+    .replace(/[^\p{L}\p{N}._ -]+/gu, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
+  return `${base || "app"}.apk`;
+}
+
+/** Reply with the message matching a failed external call */
+async function replyFailure(message, err) {
+  console.error("apk:", safeLog(err));
+  const key = replyKeyForError(err);
+  await message.react("❌");
+  await message.reply(
+    key === "common.media_too_large"
+      ? getLang(key, Math.floor(maxApkBytes() / MB))
+      : getLang(key),
+  );
+}
+
+async function runSearch(message, query) {
+  if (query.length > MAX_QUERY_LENGTH) {
+    return await message.reply(getLang("plugins.apk.query_too_long", MAX_QUERY_LENGTH));
+  }
+  const wait = cooldown.hit(message.sender, "apk-search", SEARCH_COOLDOWN_MS);
+  if (wait) {
+    return await message.reply(getLang("common.cooldown", Math.ceil(wait / 1000)));
+  }
+
+  await message.react("🔍");
+  let results;
+  try {
+    results = await search(query);
+  } catch (err) {
+    return await replyFailure(message, err);
+  }
+
+  if (results.length === 0) {
+    await message.react("❌");
+    return await message.reply(getLang("plugins.apk.no_results", query));
+  }
+
+  const key = searchKey(message);
+  lastSearches.end(key);
+  lastSearches.start(key, { query, results });
+  await message.reply(formatResults(query, results));
+  await message.react("✅");
+}
+
+async function runDownload(message, index) {
+  const stored = lastSearches.get(searchKey(message));
+  if (!stored) {
+    return await message.reply(getLang("plugins.apk.no_search", config.PREFIX));
+  }
+  const app = stored.results[index - 1];
+  if (!app) {
+    return await message.reply(
+      getLang("plugins.apk.bad_number", stored.results.length),
+    );
+  }
+
+  const maxBytes = maxApkBytes();
+  if (app.size > maxBytes) {
+    return await message.reply(
+      getLang("common.media_too_large", Math.floor(maxBytes / MB)),
+    );
+  }
+  const wait = cooldown.hit(message.sender, "apk-dl", DOWNLOAD_COOLDOWN_MS);
+  if (wait) {
+    return await message.reply(getLang("common.cooldown", Math.ceil(wait / 1000)));
+  }
+
+  lastSearches.touch(searchKey(message));
+  await message.react("⏳");
+  try {
+    const { buffer } = await fetchBuffer(app.url, {
+      maxBytes,
+      timeoutMs: config.DOWNLOAD_TIMEOUT || 180000,
+    });
+    await message.sendDocument(buffer, {
+      fileName: safeFileName(app),
+      mimetype: "application/vnd.android.package-archive",
+      caption: getLang("plugins.apk.caption", app.name, app.version || "-", app.pkg || "-"),
+    });
+    await message.react("✅");
+  } catch (err) {
+    await replyFailure(message, err);
+  }
+}
 
 module.exports = {
   command: {
     pattern: "apk",
-    desc: "Download APK from Aptoide",
+    desc: getLang("plugins.apk.desc"),
     type: "downloader",
   },
 
   async execute(message, args) {
-    if (!args) {
-      return await message.reply(
-        "*APK Downloader*\n\n*Usage:* .apk <app name>\n\n*Example:* .apk whatsapp\n\nSearches and downloads Android apps from Aptoide."
-      );
+    const query = (args || "").trim();
+    if (!query) {
+      return await message.reply(getLang("plugins.apk.usage", config.PREFIX));
     }
 
-    try {
-      await message.react("🔍");
-
-      // Search for APK using a public API
-      // Note: This is a simplified version. In production, you'd want a reliable API
-      const searchQuery = encodeURIComponent(args);
-
-      await message.reply(`*Searching for: ${args}*\n\nPlease wait...`);
-
-      // Using APKPure or Aptoide API alternative
-      const searchUrl = `https://ws75.aptoide.com/api/7/apps/search/query=${searchQuery}/limit=10`;
-
-      const response = await axios.get(searchUrl, {
-        headers: {
-          "User-Agent": "Aptoide/9.20.0.0",
-        },
-        timeout: 15000,
-      });
-
-      if (
-        response.data &&
-        response.data.datalist &&
-        response.data.datalist.list &&
-        response.data.datalist.list.length > 0
-      ) {
-        const apps = response.data.datalist.list.slice(0, 5);
-
-        let resultMsg = `*📱 APK Search Results*\n\n`;
-
-        apps.forEach((app, index) => {
-          resultMsg += `*${index + 1}. ${app.name}*\n`;
-          resultMsg += `📦 Package: ${app.package || "N/A"}\n`;
-          resultMsg += `⭐ Rating: ${app.stats?.rating?.avg || "N/A"}\n`;
-          resultMsg += `⬇️ Downloads: ${app.stats?.downloads || "N/A"}\n`;
-          resultMsg += `📏 Size: ${
-            app.size ? (app.size / 1024 / 1024).toFixed(2) + " MB" : "N/A"
-          }\n\n`;
-        });
-
-        resultMsg += `\n*Note:* Direct APK download requires API key.\n*Alternative:* Download manually from Aptoide store.`;
-
-        await message.reply(resultMsg);
-        await message.react("✅");
-
-        // Send first app details with download link if available
-        const firstApp = apps[0];
-        if (firstApp.file && firstApp.file.path) {
-          try {
-            await message.reply(
-              `*Downloading: ${firstApp.name}*\n\nPlease wait, this may take a moment...`
-            );
-
-            const apkResponse = await axios.get(firstApp.file.path, {
-              responseType: "arraybuffer",
-              timeout: 120000, // 2 minutes for large files
-              maxContentLength: 100 * 1024 * 1024, // 100MB max
-            });
-
-            const buffer = Buffer.from(apkResponse.data);
-
-            await message.sendDocument(buffer, {
-              fileName: `${firstApp.name}.apk`,
-              mimetype: "application/vnd.android.package-archive",
-              caption: `*${firstApp.name}*\n\n⚠️ Install at your own risk\n📦 Source: Aptoide`,
-            });
-
-            await message.react("✅");
-          } catch (downloadError) {
-            console.error("APK download error:", downloadError);
-            await message.reply(
-              `*Download failed!*\n\nThe APK might be too large or unavailable.\n\n*Alternative:* Visit https://en.aptoide.com/search?query=${searchQuery}`
-            );
-          }
-        }
-      } else {
-        await message.reply(
-          `*No results found for: ${args}*\n\nTry:\n• Different app name\n• Simpler search terms\n• Official app name`
-        );
-        await message.react("❌");
+    // ".apk dl <n>" downloads; ".apk dl" alone shows the usage; ".apk get contact" is a search
+    const words = query.split(" ");
+    if (["dl", "get"].includes(words[0].toLowerCase())) {
+      if (words.length === 1) {
+        return await message.reply(getLang("plugins.apk.usage", config.PREFIX));
       }
-    } catch (error) {
-      console.error("APK search error:", error);
-      await message.reply(
-        `*Search failed!*\n\n*Alternative:* Visit https://www.aptoide.com and search for "${args}"`
-      );
-      await message.react("❌");
+      if (words.length === 2 && /^\d{1,2}$/.test(words[1])) {
+        const index = parseInt(words[1], 10);
+        if (index < 1) {
+          return await message.reply(getLang("plugins.apk.usage", config.PREFIX));
+        }
+        return await runDownload(message, index);
+      }
     }
+
+    return await runSearch(message, query);
   },
 };

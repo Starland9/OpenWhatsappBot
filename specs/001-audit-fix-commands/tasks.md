@@ -317,7 +317,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 ### Implementation for User Story 5
 
-- [ ] T033 [P] [US5] Menu, help and utility plugins:
+- [X] T033 [P] [US5] Menu, help and utility plugins:
   - `plugins/help.js`: normalize the argument (strip prefix, first token); show the main name plus `aliases`; usage when available;
   - `plugins/menu.js`: localized; icons applied per real `type`; aliases shown; owner-only commands hidden from non-owners; no unused imports;
   - `plugins/buttonmenu.js`: ids `menu:cmd:<name>`; no dead `||` fallbacks;

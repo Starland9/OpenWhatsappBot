@@ -10,7 +10,7 @@
     "stop": "pm2 stop open-whatsapp-bot",
     "panel": "node panel.js",
     "panel:pm2": "pm2 start panel.js --attach --name open-whatsapp-bot-panel",
-    "test": "node --test test/"
+    "test": "node --test --test-force-exit \"test/**/*.test.js\""
   },
   "author": "Landry Simo",
   "license": "MIT",

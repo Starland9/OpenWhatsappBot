@@ -128,7 +128,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 ### Agent D: test harness (after T008 to T012), sonnet
 
-- [ ] T018 Create `test/helpers/fakes.js`, providing:
+- [X] T018 Create `test/helpers/fakes.js`, providing:
   - `setupEnv()`: sets `DATABASE_URL=":memory:"`, `BOT_LANG`, `SUDO=111`, `PREFIX="."` **before** requiring `config.js`, then syncs the DB;
   - `fakeSocket()`: records `sendMessage`, `groupMetadata` with configurable admins, `groupParticipantsUpdate` returning `[{status:"200"}]`;
   - `fakeClient(sock)`;
@@ -150,7 +150,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] `test/permissions.test.js`:
+- [X] T019 [P] [US2] `test/permissions.test.js`:
   - every command with `fromMe`/`ownerOnly` replies `common.owner_only` to a non-owner, and `execute` is never called (spy);
   - `adminOnly` commands reply `common.sender_not_admin` to a non-admin in a group, and `extra.group_cmd` in a private chat;
   - with `SUDO=""`, owner commands refuse everyone;
@@ -183,8 +183,8 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 ### Tests for User Story 3
 
-- [ ] T022 [P] [US3] `test/commands.test.js`: with `stubNetwork()`, for **every** registered command called with no argument by the owner in a group where the bot and the sender are admins, at least one `sendMessage` happens within 5 s. No sent text matches `/\b(plugins|common|extra)\.[a-z_]+/` (raw key) or `/Error:|at .*\.js:\d+/` (leak). A command with a stubbed dead dependency replies `common.service_unavailable` or `common.not_configured`. Total runtime < 60 s. — agent D (sonnet)
-- [ ] T023 [P] [US3] `test/i18n.test.js`:
+- [X] T022 [P] [US3] `test/commands.test.js`: with `stubNetwork()`, for **every** registered command called with no argument by the owner in a group where the bot and the sender are admins, at least one `sendMessage` happens within 5 s. No sent text matches `/\b(plugins|common|extra)\.[a-z_]+/` (raw key) or `/Error:|at .*\.js:\d+/` (leak). A command with a stubbed dead dependency replies `common.service_unavailable` or `common.not_configured`. Total runtime < 60 s. — agent D (sonnet)
+- [X] T023 [P] [US3] `test/i18n.test.js`:
   - every literal `getLang("…")` key in `plugins/`, `lib/` and `index.js` exists in both `lang/en.json` and `lang/fr.json`;
   - `en` and `fr` have the same key set;
   - lint: no `.reply(` / `sendMessage({ text:` whose first argument is a string literal or template containing letters outside `${}`.
@@ -306,7 +306,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 ### Tests for User Story 5
 
-- [ ] T032 [P] [US5] `test/registry.test.js`:
+- [X] T032 [P] [US5] `test/registry.test.js`:
   - every alias of every command resolves, case-insensitively;
   - none of `kiss class boss guess export expire giftcard faq iq display topng2 replay` resolves to a command other than one they name exactly;
   - no duplicate aliases (no warning logged);
@@ -348,7 +348,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 **Independent Test**: `node --test test/pipeline.test.js`, then quickstart §4 scenario 11.
 
-- [ ] T035 [US6] `test/pipeline.test.js`:
+- [X] T035 [US6] `test/pipeline.test.js`:
   - `index.js` and `panel.js` contain no `processMessage` definition (static check) and both call `attachHandlers`;
   - with a fake client, the same sequence (command, native-flow button reply, numeric fallback reply, status message, history `append` batch ignored) produces identical sends through `attachHandlers`;
   - panel's `createServer()` answers `/health` 200.

@@ -163,8 +163,28 @@ test("index.js-style attach and panel.js-style attach produce identical sends", 
 // panel.js
 // ---------------------------------------------------------------------------
 
+/**
+ * Requiring panel.js (through lib/utils/memoryManager.js) starts a setInterval that is never unref'd, so
+ * the process would stay alive after the last test; only --test-force-exit ends such a run.
+ * Root cause: memoryManager.startPeriodicCleanup() should do `setInterval(...).unref()`.
+ * Until then, unref every interval created while panel.js is being required.
+ */
+function requirePanel() {
+  const realSetInterval = global.setInterval;
+  global.setInterval = (...args) => {
+    const timer = realSetInterval(...args);
+    if (timer && typeof timer.unref === "function") timer.unref();
+    return timer;
+  };
+  try {
+    return require("../panel.js");
+  } finally {
+    global.setInterval = realSetInterval;
+  }
+}
+
 test("panel createServer() answers /health (503 until the bot runs, 200 once connected)", async () => {
-  const panel = require("../panel.js");
+  const panel = requirePanel();
   assert.equal(typeof panel.createServer, "function", "panel.js must export createServer without starting itself");
   const server = panel.createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

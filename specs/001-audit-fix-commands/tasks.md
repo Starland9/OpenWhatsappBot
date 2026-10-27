@@ -244,7 +244,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
 
 ### Tests for User Story 4
 
-- [ ] T028 [P] [US4] `test/hooks.test.js`:
+- [X] T028 [P] [US4] `test/hooks.test.js`:
   - `onGroupParticipants` `add` with welcome on → one message mentioning every participant (both string and object participants); `remove` with goodbye on → goodbye;
   - a filter matches case-insensitively at a word boundary and the pipeline stops; the pattern `.*` is treated literally;
   - AFK: a mention gets an AFK reply, and the AFK user's next message clears the status;

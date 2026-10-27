@@ -277,7 +277,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
   - `plugins/give.js`: a transaction with conditional decrement/increment; no gift to the bot or self; first numeric token.
 
   Write the i18n fragments. — agent E8 (sonnet)
-- [ ] T031 [P] [US4] Scheduling per research R17 and [data-model.md](data-model.md):
+- [X] T031 [P] [US4] Scheduling per research R17 and [data-model.md](data-model.md):
   - Create `lib/database/models/Reminder.js`:
     - `id` INTEGER PK autoincrement; `chatJid` STRING not null; `creatorJid` STRING not null;
     - `text` TEXT not null "1 to 500 characters"; `dueAt` DATE not null indexed (UTC);

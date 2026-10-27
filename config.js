@@ -86,6 +86,8 @@ module.exports = {
   GEMINI_VISION_MODEL: process.env.GEMINI_VISION_MODEL || GEMINI_MODEL,
   // Image generation model (empty = the imagen plugin picks its default)
   IMAGE_MODEL: process.env.IMAGE_MODEL || "",
+  // OpenAI chat model (gpt command)
+  OPENAI_MODEL: process.env.OPENAI_MODEL || "gpt-4o-mini",
 
   // New Plugin API Keys
   WEATHER_API_KEY: process.env.WEATHER_API_KEY || "",
@@ -109,7 +111,8 @@ module.exports = {
   IMAGE_API_MAX_SIZE_MB: parseInt(process.env.IMAGE_API_MAX_SIZE_MB) || 10,
 
   // Social DL Backend
-  BACKEND_URL: process.env.BACKEND_URL || "https://api.socialdl.starland9.dev",
+  // Optional social download backend (empty = yt-dlp only)
+  BACKEND_URL: process.env.BACKEND_URL || "",
 
   // Media downloads (yt-dlp)
   YTDLP_PATH: process.env.YTDLP_PATH || "yt-dlp",

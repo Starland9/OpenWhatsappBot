@@ -45,12 +45,10 @@ const MEDIA_TIMEOUT_MS = 120000;
 const NO_FALLBACK_CODES = new Set(["MEDIA_TOO_LARGE", "INVALID_URL"]);
 
 /**
- * Base URL of the backend, or "" when it is not configured. config.js always fills
- * BACKEND_URL with a default (the former, now dead, public instance), so "explicitly
- * configured" is read from the environment variable itself.
+ * Base URL of the optional backend, or "" when BACKEND_URL is not configured.
  */
 function backendUrl() {
-  if (!process.env.BACKEND_URL) return "";
+  if (!config.BACKEND_URL) return "";
   try {
     const url = new URL(String(config.BACKEND_URL));
     if (url.protocol !== "https:" && url.protocol !== "http:") return "";

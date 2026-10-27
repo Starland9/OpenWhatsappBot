@@ -384,7 +384,7 @@ description: "Task list: audit and fix every bot command, update dependencies"
   - drop the gotchas that are now fixed.
 
   Also update `README.md` (Node 24, yt-dlp, commands whose syntax changed). — agent R (sonnet)
-- [ ] T041 Final review of the full branch diff, focused on the core (`lib/core`, `lib/plugins`, `lib/classes/Message.js`), security (permissions, notify scope, reddit SSRF, eval) and data integrity (economy atomicity, additive `alter`). Report findings, then fix any confirmed critical issue. — agent Z (opus)
+- [X] T041 Final review of the full branch diff, focused on the core (`lib/core`, `lib/plugins`, `lib/classes/Message.js`), security (permissions, notify scope, reddit SSRF, eval) and data integrity (economy atomicity, additive `alter`). Report findings, then fix any confirmed critical issue. — agent Z (opus)
 
 ---
 

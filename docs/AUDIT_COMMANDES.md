@@ -451,3 +451,31 @@ node tools/check-unused-deps.js   # attendu : 0 unused dependencies
 - `yarn test` charge les 79 modules, vérifie les alias (aucun doublon, aucun faux positif), les refus de permissions, la réponse de chaque commande sans argument, la présence des traductions fr et en, le pipeline et la synchronisation de la base. Il n'utilise ni WhatsApp ni le réseau, et dure une dizaine de secondes.
 - Une commande testée seule : `node --test --test-force-exit test/commands.test.js`.
 - Les tests tournent en français par défaut ; `BOT_LANG=en yarn test` les lance en anglais.
+
+## 9. Revue finale (sécurité, cœur, intégrité des données)
+
+Une revue indépendante de toute la branche a été faite en fin de chantier. Elle a fuzzé chaque alias avec des arguments inattendus, soit 24 656 appels. Résultat : aucune erreur levée, aucune fuite (`Error:`, `undefined`, `NaN`, `[object Object]`) et aucun contournement des droits propriétaire. L'économie, le planificateur et la synchronisation de la base ont été vérifiés.
+
+### Corrigé à l'issue de la revue
+
+| Gravité | Problème | Correction |
+| --- | --- | --- |
+| Critique | `.dl` acceptait un lien de playlist, de chaîne ou de profil et téléchargeait **toutes** les entrées (jusqu'à 230 Mo chacune) : de quoi saturer le disque et la bande passante en quelques requêtes | `--playlist-items 1` dans `lib/utils/downloader.js` + test `test/downloader.test.js` |
+| Majeur | Les téléchargements yt-dlp n'avaient aucune limite de concurrence | Au plus 2 en parallèle ; au-delà, l'utilisateur reçoit « trop de demandes, réessayez » |
+| Majeur | La sauvegarde auto des statuts ignorait les statuts adressés en LID (numéro dans `remoteJidAlt`) | `remoteJidAlt` pris en compte |
+
+### Restant (connu, non corrigé)
+
+| Gravité | Point | Commentaire |
+| --- | --- | --- |
+| Majeur | Les messages reçus pendant une déconnexion (lots `append`) ne sont plus traités | C'est un compromis volontaire : cela évite de rejouer l'historique et les messages du bot. Le bot sur `master` les traitait. **Décision à prendre** : les accepter s'ils sont récents (moins de 2 min) et ne viennent pas du bot ? |
+| Mineur | En mode anti-delete `g`, un message supprimé est republié dans une discussion désactivée par `.ban` ; les rappels créés avant `.ban` y sont quand même envoyés | Le filtre des discussions désactivées ne couvre que les messages entrants |
+| Mineur | Un propriétaire vu uniquement en LID (sans `participantAlt`) est refusé | Contournement : ajouter aussi son LID dans `SUDO`. Même comportement que sur `master` |
+| Mineur | Un membre `muted` peut encore cliquer des boutons de jeu | Les réponses de boutons sont traitées avant le hook de modération |
+| Mineur | Comptes d'économie possiblement séparés pour un expéditeur vu seulement en LID (`daily`, `dice`) | Peu probable ; l'utilisateur ne le contrôle pas |
+
+### Problèmes antérieurs au chantier, hors périmètre
+
+- **`panel.js`** : l'arrêt (SIGTERM) appelle `client.stop()` → `sock.logout()`. **Chaque redémarrage en mode panel déconnecte la session WhatsApp**, et il faut rescanner le QR.
+- **`panel.js`** : `POST /api/restart` n'a aucune authentification. N'importe qui ayant accès au port peut redémarrer le bot.
+- **`data/status_save.json`** est suivi par git alors qu'il est ignoré. Il contient des numéros. Dès que `.ss` le modifie, `.update now` refuse de s'exécuter (« modifications non commitées »). Correctif proposé : `git rm --cached data/status_save.json`.

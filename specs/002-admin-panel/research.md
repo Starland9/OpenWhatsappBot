@@ -48,6 +48,8 @@ The user delegated the remaining decisions ("je te laisse les prendre s'il y a e
 | --- | --- | --- |
 | O1 | Media of a "new broadcast to the failed targets" (U14) | Copied server-side from the original broadcast (`reuseMediaOf`) while it still exists (7-day retention, U15); otherwise the owner re-uploads |
 | O2 | `LOG_LEVEL` effect | Immediate (`logger.setLevel`), as in the catalog |
+| O3 | Listing/downloading pre-restore backups (BAK-4/5, optional) | Kept: they are the only way back after a bad restore (US10 "retour arrière") |
+| O4 | CORS on the legacy `POST /api/restart` | Unchanged (byte-compatible, admin-http-api.md wins over runtime.md §15) |
 
 ## 2. Arbitration between streams
 

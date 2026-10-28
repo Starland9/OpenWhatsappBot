@@ -1,0 +1,26 @@
+{
+  "en": {
+    "stats.chart_label": "Messages processed per day over the last 7 days. {summary}",
+    "stats.failed_commands": "Failing commands",
+    "stats.messages_per_day": "Messages processed per day",
+    "stats.no_commands": "No command used in this period.",
+    "stats.no_failures": "No command failed in this period.",
+    "stats.no_groups": "No group activity in this period.",
+    "stats.nothing_yet": "Nothing has been counted yet. The figures appear as the bot processes messages.",
+    "stats.timezone": "Days follow the bot time zone ({zone}); the window is today and the 6 previous days.",
+    "stats.top_commands": "Most used commands",
+    "stats.top_groups": "Most active groups"
+  },
+  "fr": {
+    "stats.chart_label": "Messages traités par jour sur les 7 derniers jours. {summary}",
+    "stats.failed_commands": "Commandes en échec",
+    "stats.messages_per_day": "Messages traités par jour",
+    "stats.no_commands": "Aucune commande utilisée sur cette période.",
+    "stats.no_failures": "Aucune commande en échec sur cette période.",
+    "stats.no_groups": "Aucune activité de groupe sur cette période.",
+    "stats.nothing_yet": "Rien n'a encore été compté. Les chiffres apparaissent à mesure que le bot traite des messages.",
+    "stats.timezone": "Les jours suivent le fuseau horaire du bot ({zone}) ; la période est aujourd'hui et les 6 jours précédents.",
+    "stats.top_commands": "Commandes les plus utilisées",
+    "stats.top_groups": "Groupes les plus actifs"
+  }
+}

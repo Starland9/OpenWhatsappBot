@@ -24,25 +24,43 @@ const parseList = (value) =>
 
 const onlyDigits = (value) => String(value || "").replace(/[^0-9]/g, "");
 
-/** Single settings row (id 1), created from the config defaults when missing */
-async function loadSettings() {
-  let settings = await AutoResponder.findOne({ where: { id: 1 } });
+/**
+ * Single settings row (id 1), created from the config defaults when missing.
+ * Pass `{ transaction }` to join one (admin panel).
+ */
+async function loadSettings(options = {}) {
+  let settings = await AutoResponder.findOne({ where: { id: 1 }, ...options });
   if (!settings) {
-    settings = await AutoResponder.create({
-      id: 1,
-      ignoreNumbers: config.AUTO_RESPONDER_IGNORE_NUMBERS,
-      personality: config.AUTO_RESPONDER_PERSONALITY,
-      enabled: config.AUTO_RESPONDER_ENABLED,
-    });
-    settingsCache.invalidate(SETTINGS_KEY);
+    settings = await AutoResponder.create(
+      {
+        id: 1,
+        ignoreNumbers: config.AUTO_RESPONDER_IGNORE_NUMBERS,
+        personality: config.AUTO_RESPONDER_PERSONALITY,
+        enabled: config.AUTO_RESPONDER_ENABLED,
+      },
+      options,
+    );
+    dropCache(options.transaction);
   }
   return settings;
 }
 
+/**
+ * Drop the cached copy the auto-responder reads on every message; inside a transaction,
+ * once it has committed (a reader must not cache the old row in between).
+ */
+function dropCache(transaction) {
+  if (transaction && typeof transaction.afterCommit === "function") {
+    transaction.afterCommit(() => settingsCache.invalidate(SETTINGS_KEY));
+  } else {
+    settingsCache.invalidate(SETTINGS_KEY);
+  }
+}
+
 /** Write settings, then drop the cached copy the auto-responder reads on every message */
-async function updateSettings(settings, values) {
-  await settings.update(values);
-  settingsCache.invalidate(SETTINGS_KEY);
+async function updateSettings(settings, values, options = {}) {
+  await settings.update(values, options);
+  dropCache(options.transaction);
 }
 
 async function handleIgnore(message, settings, args) {
@@ -91,6 +109,12 @@ async function handleIgnore(message, settings, args) {
 }
 
 module.exports = {
+  // reused by the admin panel (settings adapter `autoResponder`): same row, same cache key
+  loadSettings,
+  updateSettings,
+  parseList,
+  SETTINGS_KEY,
+
   command: {
     pattern: "ar",
     desc: getLang("plugins.autorespond.desc"),

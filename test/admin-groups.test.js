@@ -229,9 +229,11 @@ describe("route table", () => {
 
   test("a group JID that is not one, or an unknown route, is a 404", async () => {
     const { http } = await boot();
-    for (const path of ["/admin/api/groups/not-a-jid", "/admin/api/groups/123@s.whatsapp.net", "/admin/api/groups/refresh"]) {
+    for (const path of ["/admin/api/groups/not-a-jid", "/admin/api/groups/123@s.whatsapp.net"]) {
       assert.equal((await http.get(path)).status, 404, path);
     }
+    // a declared path with the wrong method is a 405 (test/admin-security.test.js), not GET /groups/:jid
+    assert.equal((await http.get("/admin/api/groups/refresh")).status, 405);
     assert.equal((await http.get(url(G(99)))).status, 404, "a well-formed JID the panel has never seen");
     assert.deepEqual((await http.get(url(G(99)))).json.error.params, { resource: "group" });
   });

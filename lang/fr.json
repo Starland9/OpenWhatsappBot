@@ -405,7 +405,11 @@
       "network_error": "❌ *Erreur réseau!*\n\nImpossible de se connecter à GitHub. Veuillez vérifier votre connexion internet.",
       "busy": "⏳ Une mise à jour est déjà en cours.",
       "detached": "⚠️ Le dépôt n'est pas sur une branche (HEAD détaché). Mise à jour annulée.",
-      "diverged": "❌ *Fast-forward impossible !*\n\nL'historique local diffère de celui de GitHub. Veuillez le résoudre manuellement avant la mise à jour."
+      "diverged": "❌ *Fast-forward impossible !*\n\nL'historique local diffère de celui de GitHub. Veuillez le résoudre manuellement avant la mise à jour.",
+      "no_remote_branch": "⚠️ *Rien à récupérer :* la branche courante n'a pas d'équivalent sur GitHub (ni amont, ni origin/<branche>).\n\nPoussez la branche ou passez sur une branche qui suit GitHub, puis réessayez.",
+      "rolled_back": "❌ *Mise à jour annulée.* La nouvelle version n'a pas passé les vérifications, le bot est revenu à la version qu'il exécutait. Consultez les logs du serveur.",
+      "unavailable": "⚠️ Cette installation ne peut pas se mettre à jour toute seule (image de conteneur, archive, git absent ou dossier en lecture seule).\n\nUtilisez la page Maintenance du panel pour les instructions adaptées à votre installation.",
+      "restart_manual": "✅ *Mise à jour installée.*\n\nRien ne redémarre ce bot automatiquement ici : redémarrez vous-même le programme pour lancer la nouvelle version."
     },
     "weather": {
       "desc": "Obtenir la météo actuelle d'une ville",
@@ -1169,16 +1173,34 @@
     "cannot_target_self": "❌ Vous ne pouvez pas vous viser vous-même.",
     "not_admin": "❌ Le bot doit être administrateur pour effectuer cette action.",
     "status_enabled": "✅ Activé",
-    "status_disabled": "❌ Désactivé"
+    "status_disabled": "❌ Désactivé",
+    "command_disabled": "🚫 Cette commande est désactivée pour le moment."
   },
   "admin": {
     "setup_link": "Panel d'administration : ouvrez ce lien pour créer le mot de passe administrateur (usage unique, valable {1} minutes) : {0}",
     "reset_link": "Panel d'administration : ouvrez ce lien pour choisir un nouveau mot de passe administrateur (usage unique, valable {1} minutes) : {0}",
     "reset_no_account": "Aucun compte administrateur n'existe encore. Démarrez le bot : un lien de configuration s'affiche dans la console.",
     "reset_failed": "Le lien de réinitialisation n'a pas pu être émis ({0}). Vérifiez DATABASE_URL et que la base de données est accessible.",
-    "panel_enabled_ignored": "PANEL_ENABLED n'est plus lu : le panneau d'administration dépend de ADMIN_PANEL (mettez ADMIN_PANEL=false pour le désactiver). Retirez PANEL_ENABLED de votre configuration.",
-    "panel_listening": "Panneau d'administration disponible sur {0}",
-    "listen_failed": "Panneau d'administration non démarré : impossible d'écouter sur {0}:{1} ({2}). Modifiez PANEL_PORT ou PANEL_HOST, ou mettez ADMIN_PANEL=false pour désactiver le panneau. Le bot continue de fonctionner.",
+    "panel_enabled_ignored": "PANEL_ENABLED n'est plus lu : le panel d'administration dépend de ADMIN_PANEL (mettez ADMIN_PANEL=false pour le désactiver). Retirez PANEL_ENABLED de votre configuration.",
+    "panel_listening": "Panel d'administration disponible sur {0}",
+    "listen_failed": "Panel d'administration non démarré : impossible d'écouter sur {0}:{1} ({2}). Modifiez PANEL_PORT ou PANEL_HOST, ou mettez ADMIN_PANEL=false pour désactiver le panel. Le bot continue de fonctionner.",
     "trust_proxy_invalid": "PANEL_TRUST_PROXY n'est pas une liste valide (adresses IP, plages CIDR, loopback, private ou all) : les en-têtes de transfert sont ignorés."
+  },
+  "alerts": {
+    "reconnected": "🔌 Le bot est de nouveau en ligne après {0} sans connexion.",
+    "errors_series": "⚠️ {0} erreurs de commandes en {1} minutes. Les plus touchées : {2}.",
+    "key_refused": "🔑 Le service {0} a refusé la clé d'API configurée. Vérifiez la clé dans le panel (Clés d'API).",
+    "login_blocked": "🚫 Trop de connexions échouées au panel depuis {0}. Cette origine est bloquée pendant {1} minutes.",
+    "new_origin": "🆕 Première connexion au panel depuis {0}. Si ce n'était pas vous, changez le mot de passe du panel.",
+    "update_available": "⬆️ La version {0} du bot est disponible. Installez-la depuis le panel ou avec la commande de mise à jour."
+  },
+  "broadcasts": {
+    "rule_daily": "Tous les jours à {0}",
+    "rule_weekly": "Chaque {0} à {1}",
+    "rule_monthly": "Le {0} de chaque mois à {1}",
+    "rule_monthly_last": "Le {0} de chaque mois à {1} (le dernier jour des mois plus courts)"
+  },
+  "groupguard": {
+    "reason_link": "Lien envoyé (anti-lien)"
   }
 }

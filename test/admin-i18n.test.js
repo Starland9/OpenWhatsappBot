@@ -6,12 +6,13 @@
  *  - errors.<code> for every envelope code and fields.<code> for every field code of admin-http-api.md 1.9,
  *    banners.<id> for the 11 banner ids of 3.3, settings.theme.<id> for the 10 themes, status.<id> for the
  *    client states, nav.<area> and <area>.title for the 14 areas;
- *  - every literal t("...") key used under lib/admin/public/js/** exists in both catalogs
- *    (fragments specs/002-admin-panel/i18n/panel-*.json count as defined until W2-A merges them);
- *  - the fragments themselves are valid, complete and do not conflict;
+ *  - settings.<KEY>.label and .desc for the 101 entries of the settings catalog (settings-catalog.md 8, item 4);
+ *  - every literal t("...") key used under lib/admin/public/js/** exists in both catalogs (the fragments are merged:
+ *    nothing counts as "pending" any more);
+ *  - the fragments themselves are valid, complete, do not conflict, and are all merged (panel-*.json into the panel
+ *    catalogs, bot-*.json into lang/{en,fr}.json);
+ *  - the French texts say "panel d'administration" (never "panneau");
  *  - tools/merge-panel-i18n.js and the --pattern option of tools/merge-i18n.js behave.
- *
- * W2-A completes this file (settings.<KEY>.label/.desc for the 101 catalog entries, no pending fragment).
  */
 
 const test = require("node:test");
@@ -28,6 +29,7 @@ const CATALOG_DIR = path.join(ROOT, "lib", "admin", "public", "i18n");
 const FRAGMENT_DIR = path.join(ROOT, "specs", "002-admin-panel", "i18n");
 const JS_DIR = path.join(ROOT, "lib", "admin", "public", "js");
 const CONTRACT = path.join(ROOT, "specs", "002-admin-panel", "contracts", "admin-http-api.md");
+const LANG_DIR = path.join(ROOT, "lang");
 const LANGS = ["en", "fr"];
 
 const ENVELOPE_CODES = [
@@ -57,6 +59,8 @@ const AREAS = [
   "dashboard", "settings", "commands", "groups", "pairing", "data", "broadcasts",
   "backup", "maintenance", "texts", "alerts", "logs", "stats", "audit",
 ];
+// codes the server sends that the contract table of 1.9 does not list (the boot window of runtime.md section 15)
+const EXTRA_SERVER_CODES = ["starting"];
 // codes only the browser produces (no server answer carries them)
 const CLIENT_ERROR_CODES = ["unknown", "network_error", "invalid_response", "aborted"];
 const CLIENT_FIELD_CODES = ["unknown", "mismatch"];
@@ -92,7 +96,7 @@ function loadFragments() {
     });
 }
 const fragments = loadFragments();
-const defined = Object.fromEntries(LANGS.map((l) => [l, new Set([...Object.keys(catalogs[l]), ...fragments.flatMap((f) => Object.keys(f.flat[l]))])]));
+const defined = Object.fromEntries(LANGS.map((l) => [l, new Set(Object.keys(catalogs[l]))]));
 
 // ---------------------------------------------------------------------------
 // The catalogs
@@ -156,7 +160,7 @@ test("the code lists of this test still match the contract (admin-http-api.md 1.
 
 test("panel catalogs define errors.<code>, fields.<code>, banners.<id>, settings.theme.<id>, status.<id>, nav.<area> and <area>.title", () => {
   const expected = [
-    ...[...ENVELOPE_CODES, ...CLIENT_ERROR_CODES].map((c) => `errors.${c}`),
+    ...[...ENVELOPE_CODES, ...EXTRA_SERVER_CODES, ...CLIENT_ERROR_CODES].map((c) => `errors.${c}`),
     ...[...FIELD_CODES, ...CLIENT_FIELD_CODES].map((c) => `fields.${c}`),
     ...BANNER_IDS.map((id) => `banners.${id}`),
     ...THEMES.map((id) => `settings.theme.${id}`),
@@ -173,6 +177,61 @@ test("panel catalogs define errors.<code>, fields.<code>, banners.<id>, settings
   assert.equal(BANNER_IDS.length, 11);
   assert.equal(THEMES.length, 10);
   assertNone(problems, "expected panel keys:");
+});
+
+test("every code the HTTP layer can send has an errors.<code> text (STATUS_BY_CODE of lib/admin/http/response.js)", () => {
+  const { STATUS_BY_CODE } = require("../lib/admin/http/response");
+  const sent = Object.keys(STATUS_BY_CODE);
+  assert.ok(sent.length >= ENVELOPE_CODES.length, "the status map covers the contract");
+  const problems = [];
+  for (const code of sent) {
+    for (const lang of LANGS) if (typeof catalogs[lang][`errors.${code}`] !== "string") problems.push(`errors.${code} missing in ${lang}.json`);
+  }
+  const unlisted = sent.filter((code) => !ENVELOPE_CODES.includes(code) && !EXTRA_SERVER_CODES.includes(code));
+  assert.deepEqual(unlisted, [], "a code was added to STATUS_BY_CODE: list it in ENVELOPE_CODES (contract 1.9) or EXTRA_SERVER_CODES");
+  assertNone(problems, "error codes without a text:");
+});
+
+test("settings.<KEY>.label and settings.<KEY>.desc exist in both catalogs for all 101 settings catalog entries, and for nothing else", () => {
+  const settingsCatalog = require("../lib/utils/settingsCatalog");
+  const keys = settingsCatalog.entries.map((entry) => entry.key);
+  assert.equal(keys.length, 101, "settings-catalog.md: 101 entries");
+  assert.equal(new Set(keys).size, keys.length, "setting keys are unique");
+  const problems = [];
+  for (const lang of LANGS) {
+    for (const key of keys) {
+      for (const part of ["label", "desc"]) {
+        const text = catalogs[lang][`settings.${key}.${part}`];
+        if (typeof text !== "string" || text.trim() === "") problems.push(`settings.${key}.${part} missing or empty in ${lang}.json`);
+      }
+    }
+    // a text for a setting that left the catalog is dead weight (and a sign that a rename was half done)
+    const known = new Set(keys);
+    for (const name of Object.keys(catalogs[lang])) {
+      const match = /^settings\.([A-Z][A-Z0-9_]*)\.(label|desc)$/.exec(name);
+      if (match && !known.has(match[1])) problems.push(`${name} (${lang}.json) names a setting that is not in the catalog`);
+    }
+  }
+  assertNone(problems, "setting texts:");
+});
+
+test("settings.theme.<id> exists for every theme of the settings catalog, in both catalogs", () => {
+  const { themes } = require("../lib/utils/settingsCatalog");
+  assert.deepEqual([...themes].sort(), [...THEMES].sort(), "the themes of the catalog are the ones this test knows");
+  for (const id of themes) {
+    for (const lang of LANGS) assert.equal(typeof catalogs[lang][`settings.theme.${id}`], "string", `settings.theme.${id} in ${lang}.json`);
+  }
+});
+
+test("the French texts say \"panel d'administration\", never \"panneau\" (panel catalog and bot texts)", () => {
+  const files = [path.join(CATALOG_DIR, "fr.json"), path.join(LANG_DIR, "fr.json")];
+  const problems = [];
+  for (const file of files) {
+    const text = fs.readFileSync(file, "utf8");
+    for (const match of text.matchAll(/panneaux?\b/gi)) problems.push(`${path.relative(ROOT, file)}: "${match[0]}" at offset ${match.index}`);
+  }
+  assertNone(problems, "use \"panel\":");
+  assert.match(catalogs.fr["app.name"], /^Panel d'administration$/);
 });
 
 test("panel catalogs: the texts that need parameters keep the names the code passes", () => {
@@ -222,7 +281,7 @@ test("panel catalogs: the texts that need parameters keep the names the code pas
 // ---------------------------------------------------------------------------
 
 test("panel fragments are valid and complete (en and fr: same keys, same placeholders) and do not conflict", (t) => {
-  t.diagnostic(`${fragments.length} panel fragment file(s) pending in specs/002-admin-panel/i18n/`);
+  t.diagnostic(`${fragments.length} panel fragment file(s) in specs/002-admin-panel/i18n/`);
   const problems = [];
   const seen = new Map();
   for (const fragment of fragments) {
@@ -251,6 +310,37 @@ test("panel fragments are valid and complete (en and fr: same keys, same placeho
   assertNone(problems, "panel fragments:");
 });
 
+test("every panel fragment is merged: its keys and texts are in lib/admin/public/i18n/{en,fr}.json", () => {
+  const problems = [];
+  for (const fragment of fragments) {
+    if (fragment.error) continue; // reported by the test above
+    for (const lang of LANGS) {
+      for (const [key, value] of Object.entries(fragment.flat[lang])) {
+        if (!(key in catalogs[lang])) problems.push(`${fragment.file}: "${key}" is not in ${lang}.json (run node tools/merge-panel-i18n.js)`);
+        else if (catalogs[lang][key] !== value) problems.push(`${fragment.file}: "${key}" differs from ${lang}.json (the fragment wins on the next merge)`);
+      }
+    }
+  }
+  assertNone(problems, "unmerged panel fragments:");
+});
+
+test("every bot fragment is merged: its keys and texts are in lang/{en,fr}.json", () => {
+  const botFiles = fs.readdirSync(FRAGMENT_DIR).filter((f) => /^bot-.+\.json$/.test(f)).sort();
+  assert.ok(botFiles.length >= 8, "the bot fragments of feature 002 are there");
+  const lang = Object.fromEntries(LANGS.map((l) => [l, flatten(readJson(path.join(LANG_DIR, `${l}.json`)))]));
+  const problems = [];
+  for (const file of botFiles) {
+    const data = readJson(path.join(FRAGMENT_DIR, file));
+    for (const l of LANGS) {
+      for (const [key, value] of Object.entries(flatten(data[l]))) {
+        if (!(key in lang[l])) problems.push(`${file}: "${key}" is not in lang/${l}.json (run node tools/merge-i18n.js --frag-dir specs/002-admin-panel/i18n --pattern "bot-*.json")`);
+        else if (lang[l][key] !== value) problems.push(`${file}: "${key}" differs from lang/${l}.json`);
+      }
+    }
+  }
+  assertNone(problems, "unmerged bot fragments:");
+});
+
 // ---------------------------------------------------------------------------
 // Keys used by the code
 // ---------------------------------------------------------------------------
@@ -265,7 +355,7 @@ function listMjs(dir) {
   return out.sort();
 }
 
-test("every literal t(\"...\") key under lib/admin/public/js/** exists in en and fr (pending panel fragments count as defined)", (t) => {
+test("every literal t(\"...\") key under lib/admin/public/js/** exists in en and fr", (t) => {
   const missing = [];
   const used = new Set();
   let dynamic = 0;
@@ -289,6 +379,30 @@ test("every literal t(\"...\") key under lib/admin/public/js/** exists in en and
   const unused = [...defined.en].filter((k) => !used.has(k)).length;
   t.diagnostic(`${used.size} literal key(s) used, ${dynamic} dynamic call(s) skipped, ${unused} defined key(s) not used literally (dynamic families such as errors.*, fields.*, nav.* included)`);
   assertNone(missing, "t() keys without a translation:");
+});
+
+test("every t(`prefix${...}`) call names a family that exists: some key of each catalog starts with the static prefix", (t) => {
+  const problems = [];
+  const prefixes = new Set();
+  for (const file of listMjs(JS_DIR)) {
+    const src = fs.readFileSync(file, "utf8");
+    const { masked, tokens } = scan(src);
+    const lineOf = (index) => src.slice(0, index).split("\n").length;
+    for (const token of tokens) {
+      if (token.quote !== "`" || !token.hasInterpolation || token.nested) continue;
+      const before = masked.slice(Math.max(0, token.start - 30), token.start);
+      if (!/(?<![\w$.])t\s*\(\s*$/.test(before)) continue;
+      const prefix = src.slice(token.start + 1, token.end - 1).split("${")[0];
+      if (!/^[a-z][a-z0-9_]*\.[A-Za-z0-9_.]*$/.test(prefix)) continue; // a key that is built entirely at run time
+      prefixes.add(prefix);
+      for (const lang of LANGS) {
+        if (!Object.keys(catalogs[lang]).some((key) => key.startsWith(prefix))) problems.push(`${path.relative(ROOT, file)}:${lineOf(token.start)}  t(\`${prefix}\${...}\`) matches no key in ${lang}.json`);
+      }
+    }
+  }
+  t.diagnostic(`${prefixes.size} dynamic key prefix(es) checked`);
+  assert.ok(prefixes.size >= 10, "the scan finds the dynamic calls");
+  assertNone(problems, "dynamic t() families:");
 });
 
 test("dynamic key families used by the shell are complete", () => {

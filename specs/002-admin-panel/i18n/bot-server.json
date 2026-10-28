@@ -5,8 +5,8 @@
     "admin.trust_proxy_invalid": "PANEL_TRUST_PROXY is not a valid list (IP addresses, CIDR ranges, loopback, private or all): the forwarded headers are ignored."
   },
   "fr": {
-    "admin.panel_listening": "Panneau d'administration disponible sur {0}",
-    "admin.listen_failed": "Panneau d'administration non démarré : impossible d'écouter sur {0}:{1} ({2}). Modifiez PANEL_PORT ou PANEL_HOST, ou mettez ADMIN_PANEL=false pour désactiver le panneau. Le bot continue de fonctionner.",
+    "admin.panel_listening": "Panel d'administration disponible sur {0}",
+    "admin.listen_failed": "Panel d'administration non démarré : impossible d'écouter sur {0}:{1} ({2}). Modifiez PANEL_PORT ou PANEL_HOST, ou mettez ADMIN_PANEL=false pour désactiver le panel. Le bot continue de fonctionner.",
     "admin.trust_proxy_invalid": "PANEL_TRUST_PROXY n'est pas une liste valide (adresses IP, plages CIDR, loopback, private ou all) : les en-têtes de transfert sont ignorés."
   }
 }

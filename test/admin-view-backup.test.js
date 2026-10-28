@@ -259,15 +259,17 @@ describe("the safety copies", () => {
 describe("panel-backup.json", () => {
   const fragment = readJson(FRAGMENT);
 
-  test("same keys and placeholders in both languages, no empty text, nothing already in the catalog", () => {
+  test("same keys and placeholders in both languages, no empty text, nothing defined twice with another text", () => {
     assert.deepEqual(Object.keys(fragment).sort(), ["en", "fr"]);
     assert.deepEqual(Object.keys(fragment.en).sort(), Object.keys(fragment.fr).sort());
+    // once the fragment is merged (W2-A) its keys are in the catalog with the same text; what must never happen is a
+    // key that another area defined with a different text (the merge would silently replace it)
     const catalog = readJson(path.join(ROOT, "lib", "admin", "public", "i18n", "en.json"));
     for (const [key, text] of Object.entries(fragment.en)) {
       assert.ok(typeof text === "string" && text.trim() && fragment.fr[key].trim(), key);
       assert.equal(placeholdersOf(text), placeholdersOf(fragment.fr[key]), `${key}: placeholders`);
       assert.ok(key.startsWith("backup."), key);
-      assert.ok(!(key in catalog), `${key} would be defined twice`);
+      assert.ok(!(key in catalog) || catalog[key] === text, `${key} would be defined twice`);
     }
     assert.ok(Object.keys(fragment.en).length > 100);
   });

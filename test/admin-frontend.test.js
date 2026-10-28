@@ -188,28 +188,52 @@ test("vendored files match the sha256 of vendor/MANIFEST.json", () => {
   assertNone(problems, "vendor/:");
 });
 
+/**
+ * The module specifiers of a source file: `import x from "s"`, `import "s"`, `export ... from "s"` and `import("s")`.
+ * Found on the token level (a string literal preceded by `from` / `import` / `import(`), so a string that merely
+ * ends with the word "export" or "import", such as the path "/admin/api/backup/export", is not read as a statement.
+ */
+function moduleSpecifiers(src) {
+  const { skeleton, tokens } = scan(src);
+  const out = [];
+  for (const token of tokens) {
+    if (token.quote === "`" || token.nested) continue;
+    const before = skeleton.slice(Math.max(0, token.start - 40), token.start);
+    if (/(?<![\w$.])(?:from|import)\s*$/.test(before) || /(?<![\w$.])import\s*\(\s*$/.test(before)) out.push({ spec: token.text, index: token.start });
+  }
+  return out;
+}
+
+test("the module specifier scan reads real import/export statements only", () => {
+  const found = (code) => moduleSpecifiers(code).map((m) => m.spec);
+  assert.deepEqual(found('import { a } from "./a.mjs";\nimport b from "./b.mjs";\nimport "./c.mjs";'), ["./a.mjs", "./b.mjs", "./c.mjs"]);
+  assert.deepEqual(found('export * from "./d.mjs";\nexport { x } from "./e.mjs";\nconst m = await import("./f.mjs");'), ["./d.mjs", "./e.mjs", "./f.mjs"]);
+  assert.deepEqual(found('import {\n  a,\n  b,\n} from "./g.mjs";'), ["./g.mjs"]);
+  // strings that only look like statements
+  assert.deepEqual(found('export const EXPORT_PATH = "/admin/api/backup/export";\nconst other = "/admin/api/backup/export", next = "x";'), []);
+  assert.deepEqual(found('const url = "/x/import";\nconst from = "y";\nArray.from("abc");\nconst o = { from: "z" };'), []);
+  assert.deepEqual(found('// import "./commented.mjs";\n/* export * from "./block.mjs" */'), []);
+});
+
 test("every relative import resolves; no bare specifier outside vendor/", () => {
   const problems = [];
-  const staticRe = /\b(?:import|export)\s*(?:[^"'`;]*?\bfrom\s*)?["']([^"']+)["']/g;
-  const dynamicRe = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+  let seen = 0;
   for (const file of allFiles.filter((f) => f.endsWith(".mjs"))) {
-    const text = inVendor(file) ? read(file) : stripComments(file);
-    for (const re of [staticRe, dynamicRe]) {
-      re.lastIndex = 0;
-      for (const match of text.matchAll(re)) {
-        const spec = match[1];
-        const where = `${rel(file)}:${lineOf(text, match.index)}  "${spec}"`;
-        if (!spec.startsWith(".") && !spec.startsWith("/admin/")) {
-          problems.push(`${where}  bare specifier (the browser cannot resolve it)`);
-          continue;
-        }
-        const target = spec.startsWith("/admin/") ? path.join(PUBLIC, spec.slice("/admin/".length)) : path.resolve(path.dirname(file), spec);
-        if (!target.startsWith(PUBLIC + path.sep)) problems.push(`${where}  leaves lib/admin/public`);
-        else if (!fs.existsSync(target) || !fs.statSync(target).isFile()) problems.push(`${where}  does not resolve`);
-        else if (inVendor(target) === false && !/\.m?js$/.test(target) && !/\.json$/.test(target)) problems.push(`${where}  unexpected file type`);
+    const src = read(file);
+    for (const { spec, index } of moduleSpecifiers(src)) {
+      seen++;
+      const where = `${rel(file)}:${lineOf(src, index)}  "${spec}"`;
+      if (!spec.startsWith(".") && !spec.startsWith("/admin/")) {
+        problems.push(`${where}  bare specifier (the browser cannot resolve it)`);
+        continue;
       }
+      const target = spec.startsWith("/admin/") ? path.join(PUBLIC, spec.slice("/admin/".length)) : path.resolve(path.dirname(file), spec);
+      if (!target.startsWith(PUBLIC + path.sep)) problems.push(`${where}  leaves lib/admin/public`);
+      else if (!fs.existsSync(target) || !fs.statSync(target).isFile()) problems.push(`${where}  does not resolve`);
+      else if (inVendor(target) === false && !/\.m?js$/.test(target) && !/\.json$/.test(target)) problems.push(`${where}  unexpected file type`);
     }
   }
+  assert.ok(seen > 150, `the scan finds the imports of the SPA (${seen})`);
   assertNone(problems, "imports:");
 });
 
@@ -996,4 +1020,345 @@ test("app.css: tables collapse to labelled cards under 600 px, dialogs and toast
   assert.match(css, /overflow-wrap:\s*anywhere/);
   const widths = [...css.matchAll(/(?<![-\w])(?:min-)?width:\s*(\d+)px/g)].filter((m) => Number(m[1]) > 1);
   assertNone(widths.map((m) => `width: ${m[1]}px`), "fixed pixel widths (360 px support):");
+});
+
+// ---------------------------------------------------------------------------
+// Contract test 11: every API path used by the SPA is a registered route (admin-http-api.md section 2)
+// ---------------------------------------------------------------------------
+
+const API_PREFIX = "/admin/api/";
+const CALL_CONTEXT = /(?:api|apiImpl|request|download|open)\s*\(\s*["'](GET|POST|PUT|PATCH|DELETE)["']\s*,\s*$/;
+
+/** A template literal's text with every `${...}` (nested braces balanced) replaced by one NUL */
+function templateShape(raw) {
+  let out = "";
+  let i = 0;
+  while (i < raw.length) {
+    if (raw[i] === "$" && raw[i + 1] === "{") {
+      let depth = 1;
+      i += 2;
+      while (i < raw.length && depth > 0) {
+        if (raw[i] === "{") depth += 1;
+        else if (raw[i] === "}") depth -= 1;
+        i += 1;
+      }
+      out += "\u0000";
+    } else {
+      out += raw[i];
+      i += 1;
+    }
+  }
+  return out;
+}
+
+/** Every string or template literal of the SPA that starts with /admin/api/: { file, line, method|null, segments } */
+function apiPathLiterals() {
+  const out = [];
+  const toSegments = (shape) =>
+    shape.split("?")[0].slice(1).split("/").map((segment) => {
+      if (!segment.includes("\u0000")) return { literal: segment };
+      const prefix = segment.slice(0, segment.indexOf("\u0000"));
+      return prefix ? { literal: prefix } : { any: true };
+    });
+  for (const file of mjsOurs) {
+    const src = read(file);
+    const { masked, tokens } = scan(src);
+    const rawOf = (token) => src.slice(token.start + 1, token.end - 1);
+    const shapeOf = (token) => (token.quote === "`" ? templateShape(rawOf(token)) : rawOf(token));
+    // `const base = ...` / `const groupPath = (group) => ...` that hold an API prefix, reused as `${base}/filters`
+    const prefixes = new Map();
+    for (const token of tokens) {
+      if (token.nested || !rawOf(token).startsWith(API_PREFIX)) continue;
+      const def = /\bconst\s+(\w+)\s*=\s*(?:\([^)]*\)\s*=>\s*)?$/.exec(masked.slice(Math.max(0, token.start - 80), token.start));
+      if (def) prefixes.set(def[1], shapeOf(token).split("?")[0]);
+    }
+    // `const base = groupBase(group)`: the same prefix under another name
+    for (const alias of masked.matchAll(/\bconst\s+(\w+)\s*=\s*(\w+)\([^()]*\)\s*;/g)) {
+      if (prefixes.has(alias[2])) prefixes.set(alias[1], prefixes.get(alias[2]));
+    }
+    for (const token of tokens) {
+      if (token.nested) continue;
+      let shape = null;
+      if (rawOf(token).startsWith(API_PREFIX)) shape = shapeOf(token);
+      else if (token.quote === "`") {
+        const use = /^\$\{(\w+)(?:\([^{}]*\))?\}/.exec(rawOf(token));
+        if (use && prefixes.has(use[1])) shape = prefixes.get(use[1]) + templateShape(rawOf(token).slice(use[0].length));
+      }
+      if (shape === null) continue;
+      const context = CALL_CONTEXT.exec(masked.slice(Math.max(0, token.start - 60), token.start));
+      out.push({ file, line: lineOf(src, token.start), method: context ? context[1] : null, segments: toSegments(shape), shape });
+    }
+  }
+  return out;
+}
+
+function routeAccepts(route, call) {
+  if (call.method && route.method !== call.method) return false;
+  const parts = route.path.slice(1).split("/");
+  if (parts[parts.length - 1] === "*" || parts.length !== call.segments.length) return false;
+  return call.segments.every((segment, i) => parts[i].startsWith(":") || segment.any || segment.literal === parts[i]);
+}
+
+test("contract test 11: every /admin/api/... path used by the SPA matches a registered route (method and shape)", async (t) => {
+  const { createTestAdmin } = require("./helpers/adminHarness");
+  const admin = await createTestAdmin();
+  t.after(() => admin.close());
+  const routes = admin.admin.routes();
+  assert.ok(routes.length > 60, `the registry is loaded (${routes.length} routes)`);
+
+  const calls = apiPathLiterals();
+  const problems = calls.filter((call) => !routes.some((route) => routeAccepts(route, call))).map((call) => `${rel(call.file)}:${call.line}  ${call.method || "(any method)"} ${call.shape.replace(/\u0000/g, "${...}")}`);
+  const distinct = new Set(calls.map((call) => `${call.method || "*"} ${call.segments.map((s) => (s.any ? ":" : s.literal)).join("/")}`));
+  t.diagnostic(`${calls.length} path literal(s), ${distinct.size} distinct, ${routes.length} registered routes`);
+  assert.ok(distinct.size >= 45, `the scan finds the API paths of the views (${distinct.size})`);
+  assertNone(problems, "API path without a registered route:");
+
+  // the scan itself: a made-up path is not accepted
+  const probe = { method: "POST", segments: ["admin", "api", "nothing", "here"].map((literal) => ({ literal })) };
+  assert.equal(routes.some((route) => routeAccepts(route, probe)), false);
+  // a wrong method on a real path is refused too
+  const wrongMethod = { method: "DELETE", segments: ["admin", "api", "restart"].map((literal) => ({ literal })) };
+  assert.equal(routes.some((route) => routeAccepts(route, wrongMethod)), false);
+  const right = { method: "POST", segments: ["admin", "api", "restart"].map((literal) => ({ literal })) };
+  assert.equal(routes.some((route) => routeAccepts(route, right)), true);
+});
+
+// ---------------------------------------------------------------------------
+// Confirmation convention (FR-039, admin-http-api.md section 1.10)
+// ---------------------------------------------------------------------------
+
+/**
+ * The destructive or disruptive actions of section 1.10. For each one: the file and the exact call that sends the
+ * confirmation the server enforces (`"confirm": true` in the body, `?confirm=true` on a DELETE, or the richer forms
+ * of BC-3, SET-2 and BAK-1), and the dialog (`confirm(...)` of ui.mjs) that must be shown shortly before it.
+ */
+const CONFIRMED_ACTIONS = [
+  { id: "RST-1 restart (dashboard)", file: "js/views/dashboard.mjs", call: /api\("POST", "\/admin\/api\/restart", \{ confirm: true \}\)/ },
+  { id: "RST-1 restart (settings, after a restart-effect change)", file: "js/views/settings.mjs", call: /api\("POST", "\/admin\/api\/restart", \{ confirm: true \}\)/ },
+  { id: "RST-1 restart (banner restart_needed)", file: "js/ui.mjs", call: /apiImpl\("POST", "\/admin\/api\/restart", \{ confirm: true \}\)/ },
+  { id: "PAIR-4 session logout", file: "js/views/pairing.mjs", call: /api\("POST", "\/admin\/api\/pairing\/logout", \{ confirm: true \}\)/ },
+  { id: "GRP-6 group settings deletion", file: "js/views/groups-page.mjs", call: /api\("DELETE", `\$\{base\}\?confirm=true`\)/ },
+  { id: "GRP-16 warnings reset (all)", file: "js/views/groups-members.mjs", call: /api\("DELETE", `\$\{base\}\/warnings\?confirm=true`\)/ },
+  { id: "MNT-3 update apply", file: "js/views/maintenance-update.mjs", call: /api\("POST", "\/admin\/api\/maintenance\/update\/apply", \{ confirm: true \}\)/ },
+  { id: "MNT-5 yt-dlp update", file: "js/views/maintenance-ytdlp.mjs", call: /api\("POST", "\/admin\/api\/maintenance\/ytdlp\/update", \{ confirm: true \}\)/ },
+  { id: "MNT-7 storage purge", file: "js/views/maintenance-storage.mjs", call: /api\("POST", `\/admin\/api\/maintenance\/storage\/\$\{encodeURIComponent\(row\.id\)\}\/purge`, \{ confirm: true \}\)/ },
+  { id: "BAK-3 restore", file: "js/views/backup-restore.mjs", call: /api\("POST", "\/admin\/api\/backup\/restore", \{ restoreToken: inspection\.restoreToken, confirm: true \}\)/ },
+  { id: "BC-9 broadcast delete", file: "js/views/broadcasts-detail.mjs", call: /api\("DELETE", `\/admin\/api\/broadcasts\/\$\{broadcast\.id\}\?confirm=true`\)/ },
+  // the richer forms: the call itself, then the field the body builder adds
+  { id: "BC-3 broadcast creation (destination count)", file: "js/views/broadcasts-form.mjs", call: /api\("POST", "\/admin\/api\/broadcasts", buildBody\(form\)\)/, field: { file: "js/views/broadcasts-logic.mjs", needle: /body\.confirmTargets = targets\.length/ } },
+  { id: "SET-2 owners emptied", file: "js/views/settings.mjs", call: /post\(\{ \.\.\.payload, confirm: \["owners_empty"\] \}\)/, field: { file: "js/views/settings-logic.mjs", needle: /"owners_empty"/ } },
+  { id: "BAK-1 session export", file: "js/views/backup-export.mjs", call: /download\("POST", EXPORT_PATH, exportBody\(\{ passphrase, includeSession, sessionConfirmed \}\), fallbackFileName\(\)\)/, field: { file: "js/views/backup-logic.mjs", needle: /body\.confirmSession = Boolean\(sessionConfirmed\)/ } },
+];
+
+test("every destructive action of 1.10 asks first (dialog) and sends the confirmation the server enforces", () => {
+  const problems = [];
+  for (const action of CONFIRMED_ACTIONS) {
+    const file = path.join(PUBLIC, action.file);
+    const text = stripComments(file);
+    const match = action.call.exec(text);
+    if (!match) {
+      problems.push(`${action.id}: call not found in ${action.file} (${action.call})`);
+      continue;
+    }
+    // the dialog comes first: a confirm({...}) of ui.mjs (or the helper that wraps it) within the lines before the call
+    const window = text.slice(Math.max(0, match.index - 2600), match.index);
+    if (!/(?<![\w$.])(?:confirm|askOwners|ask\w*)\s*\(/.test(window)) problems.push(`${action.id}: no confirm(...) dialog shortly before the call in ${action.file}`);
+    if (action.field && !action.field.needle.test(stripComments(path.join(PUBLIC, action.field.file)))) {
+      problems.push(`${action.id}: ${action.field.file} does not add the confirmation field (${action.field.needle})`);
+    }
+  }
+  assert.equal(CONFIRMED_ACTIONS.length, 14);
+  assertNone(problems, "destructive action without its confirmation:");
+});
+
+test("no call to a route of 1.10 leaves the SPA without a confirmation: restart, logout, purge, update, restore, delete", () => {
+  // every literal call to one of these routes, anywhere in the SPA, carries the `confirm` of its form
+  const routes = [
+    [/api\(\s*"POST",\s*"\/admin\/api\/restart"/g, /confirm: true/],
+    [/api\(\s*"POST",\s*"\/admin\/api\/pairing\/logout"/g, /confirm: true/],
+    [/api\(\s*"POST",\s*"\/admin\/api\/maintenance\/update\/apply"/g, /confirm: true/],
+    [/api\(\s*"POST",\s*"\/admin\/api\/maintenance\/ytdlp\/update"/g, /confirm: true/],
+    [/api\(\s*"POST",\s*`\/admin\/api\/maintenance\/storage\/[^`]*\/purge`/g, /confirm: true/],
+    [/api\(\s*"POST",\s*"\/admin\/api\/backup\/restore"/g, /confirm: true/],
+    [/api\(\s*"DELETE",\s*`[^`]*`/g, null], // DELETE: checked below
+  ];
+  const problems = [];
+  let found = 0;
+  for (const file of mjsOurs) {
+    const text = stripComments(file);
+    for (const [re, needle] of routes) {
+      re.lastIndex = 0;
+      for (const match of text.matchAll(re)) {
+        found += 1;
+        const call = text.slice(match.index, match.index + 260).split(/\)\s*[;,)\n]/)[0];
+        if (needle && !needle.test(call)) problems.push(`${rel(file)}:${lineOf(text, match.index)}  ${call.slice(0, 90)}  (no ${needle})`);
+        if (!needle) {
+          // a DELETE of a group, its warnings or a broadcast needs ?confirm=true; the other deletions of the panel
+          // (a filter, one warning, a role, a text, a data row, an upload) are not in section 1.10
+          const guarded = /\/admin\/api\/broadcasts\/|\$\{base\}(?:\/warnings)?\?|`\$\{base\}`/.test(call);
+          if (guarded && !/\?confirm=true/.test(call)) problems.push(`${rel(file)}:${lineOf(text, match.index)}  ${call.slice(0, 90)}  (DELETE without ?confirm=true)`);
+        }
+      }
+    }
+  }
+  assert.ok(found >= 10, `the scan finds the destructive calls (${found})`);
+  assertNone(problems, "call without its confirmation:");
+});
+
+// ---------------------------------------------------------------------------
+// The browser code as a whole: forbidden constructs and external URLs (FR-010)
+// ---------------------------------------------------------------------------
+
+test("the static security scans really cover every view, component and shell module of the SPA", () => {
+  const names = new Set(mjsOurs.map((f) => rel(f).replace(/\\/g, "/")));
+  for (const area of AREAS) assert.ok(names.has(`lib/admin/public/js/views/${area}.mjs`), `${area} view is scanned`);
+  for (const file of ["app", "api", "i18n", "live", "router", "ui"]) assert.ok(names.has(`lib/admin/public/js/${file}.mjs`), `${file}.mjs is scanned`);
+  assert.ok(mjsOurs.length >= 80, `the SPA has ${mjsOurs.length} modules of its own`);
+  assert.equal([...names].filter((n) => n.includes("/vendor/")).length, 0, "vendor files are not 'ours'");
+  // nothing in public/ escapes both scans: every non-vendor text file is either .mjs, .css, .html, .svg or .json
+  const strays = ours.filter((f) => !/\.(mjs|css|html|svg|json|ico)$/.test(f)).map(rel);
+  assertNone(strays, "unexpected file type in lib/admin/public:");
+});
+
+// ---------------------------------------------------------------------------
+// CSS guards for 360 px screens (FR-038, SC-008; the real check on a phone stays manual, see quickstart.md)
+// ---------------------------------------------------------------------------
+
+/** The rules of a stylesheet: { at: ["@media (...)"], selector, decls: { prop: value } } (comments already removed) */
+function cssRules(text) {
+  const rules = [];
+  const walkBlock = (src, at) => {
+    let i = 0;
+    while (i < src.length) {
+      const open = src.indexOf("{", i);
+      if (open === -1) break;
+      const head = src.slice(i, open).trim();
+      let depth = 1;
+      let j = open + 1;
+      while (j < src.length && depth) {
+        if (src[j] === "{") depth += 1;
+        else if (src[j] === "}") depth -= 1;
+        j += 1;
+      }
+      const body = src.slice(open + 1, j - 1);
+      if (/^@(media|supports)\b/.test(head)) walkBlock(body, [...at, head]);
+      else if (!head.startsWith("@")) {
+        const decls = {};
+        for (const part of body.split(";")) {
+          const colon = part.indexOf(":");
+          if (colon > 0) decls[part.slice(0, colon).trim()] = part.slice(colon + 1).trim();
+        }
+        rules.push({ at, selector: head.replace(/\s+/g, " "), decls });
+      }
+      i = j;
+    }
+  };
+  walkBlock(text, []);
+  return rules;
+}
+
+const MOBILE_LIMIT_PX = 360;
+const toPx = (value, unit) => Number(value) * (unit === "px" ? 1 : 16); // rem, em and ch against a 16 px base
+
+/** The fixed lengths (px, rem, em, ch) in a value that sits outside min() / max() / clamp() / calc() */
+function fixedLengths(value) {
+  let flat = value;
+  for (let guard = 0; guard < 8 && /\b(?:min|max|clamp|calc)\(/.test(flat); guard += 1) {
+    flat = flat.replace(/\b(?:min|max|clamp|calc)\([^()]*\)/g, " ");
+  }
+  return [...flat.matchAll(/(?<![\w.-])(\d*\.?\d+)(px|rem|em|ch)\b/g)].map((m) => toPx(m[1], m[2]));
+}
+
+test("css guard: no fixed width above 360 px on a layout container outside a min-width media query", () => {
+  const css = stripComments(path.join(PUBLIC, "css", "app.css"));
+  const rules = cssRules(css);
+  assert.ok(rules.length > 150, `the stylesheet is parsed (${rules.length} rules)`);
+  const problems = [];
+  for (const rule of rules) {
+    if (rule.at.some((a) => /\(min-width:/.test(a))) continue; // wide screens may use wide columns
+    for (const prop of ["width", "min-width", "flex-basis", "inline-size", "min-inline-size"]) {
+      const value = rule.decls[prop];
+      if (value === undefined) continue;
+      for (const px of fixedLengths(value)) if (px > MOBILE_LIMIT_PX) problems.push(`${rule.selector} { ${prop}: ${value} }  (${px}px)`);
+    }
+    // grid tracks: repeat(N, 30rem), minmax(30rem, 1fr) force a column wider than the screen
+    const columns = rule.decls["grid-template-columns"];
+    if (columns !== undefined) {
+      for (const px of fixedLengths(columns)) if (px > MOBILE_LIMIT_PX) problems.push(`${rule.selector} { grid-template-columns: ${columns} }  (${px}px)`);
+    }
+  }
+  assertNone(problems, "fixed width wider than 360 px:");
+
+  // the guard sees what it should: a made-up rule is caught, min() and percentages are fine
+  const fake = cssRules(".a { width: 30rem; } .b { min-width: min(30rem, 100%); } .c { width: 100%; } @media (min-width: 64rem) { .d { width: 40rem; } }");
+  assert.deepEqual(fake.map((r) => [r.selector, fixedLengths(r.decls.width || r.decls["min-width"] || "")]), [[".a", [480]], [".b", []], [".c", []], [".d", [640]]]);
+});
+
+test("css guard: the shell lets the page shrink to 360 px (viewport meta, border-box, no horizontal scroll, long text wraps)", () => {
+  const css = stripComments(path.join(PUBLIC, "css", "app.css"));
+  const rules = cssRules(css);
+  const declared = (selector, prop) => rules.filter((r) => r.selector.split(",").map((s) => s.trim()).includes(selector) && r.decls[prop] !== undefined).map((r) => r.decls[prop]);
+  assert.match(read(path.join(PUBLIC, "index.html")), /<meta name="viewport" content="width=device-width, initial-scale=1">/);
+  assert.ok(declared("*", "box-sizing").includes("border-box"));
+  assert.ok(declared("body", "overflow-x").includes("hidden"));
+  for (const selector of [".main", ".card", ".stack", ".grow", ".field", ".table-wrap"]) {
+    assert.ok(declared(selector, "min-width").some((v) => v === "0" || v === "0px"), `${selector} can shrink (min-width: 0)`);
+  }
+  assert.ok(declared(".table-wrap", "overflow-x").includes("auto"), "a wide table scrolls inside its box, not the page");
+  for (const selector of [".mono", ".log-msg", ".pairing-code", ".banner-body", ".dialog-message", ".toast-body", ".field-error"]) {
+    assert.ok(declared(selector, "overflow-wrap").length > 0, `${selector} wraps long words`);
+  }
+  // the 600 px breakpoint turns the data tables into cards, and the drawer replaces the sidebar below 1024 px
+  assert.ok(rules.some((r) => r.at.some((a) => /max-width:\s*37\.5rem/.test(a)) && /table-cards/.test(r.selector)));
+  assert.ok(rules.some((r) => r.at.some((a) => /min-width:\s*64rem/.test(a)) && r.selector === ".nav"));
+  assert.ok(declared(".nav", "transform").length > 0, "the drawer is off screen by default");
+});
+
+test("css guard: label/value lists stack on a narrow screen, and the toasts container never outgrows the viewport", () => {
+  const rules = cssRules(stripComments(path.join(PUBLIC, "css", "app.css")));
+  const base = (selector) => rules.find((r) => r.at.length === 0 && r.selector === selector);
+  // found with a real browser at 320 px: a long label left 50 px for the value, and a nowrap badge pushed the page to 345 px
+  assert.equal(base(".kv").decls["grid-template-columns"], "minmax(0, 1fr)", "one column by default");
+  assert.ok(rules.some((r) => r.selector === ".kv" && r.at.some((a) => /min-width:\s*30rem/.test(a)) && /fit-content/.test(r.decls["grid-template-columns"])), "two columns from 480 px");
+  assert.equal(base(".toasts").decls["grid-template-columns"], "minmax(0, 1fr)", "the track cannot grow past the container");
+  assert.ok(rules.some((r) => r.selector === ".toasts" && r.at.some((a) => /min-width:\s*40rem/.test(a)) && /calc\(100vw/.test(r.decls.width)), "a bounded width once the container is anchored on the right");
+});
+
+test("css guard: the cards of a grid or a stack are spaced by the gap only (no extra .card + .card margin there)", () => {
+  const rules = cssRules(stripComments(path.join(PUBLIC, "css", "app.css")));
+  const zero = rules.find((r) => r.selector.split(",").map((s) => s.trim()).includes(".grid > .card + .card"));
+  assert.ok(zero && zero.decls["margin-top"] === "0", ".grid > .card + .card resets the margin");
+  assert.ok(rules.some((r) => r.selector.split(",").map((s) => s.trim()).includes(".stack > .card + .card")));
+});
+
+test("css guard: every class written as class=\"...\" in a view or component has a rule in app.css", () => {
+  const css = stripComments(path.join(PUBLIC, "css", "app.css"));
+  const styled = new Set([...css.matchAll(/\.([A-Za-z_][\w-]*)/g)].map((m) => m[1]));
+  const problems = [];
+  const used = new Set();
+  for (const file of mjsOurs) {
+    const text = stripComments(file);
+    for (const match of text.matchAll(/\bclass="([^"]*)"/g)) {
+      for (const word of match[1].split(/\s+/)) {
+        if (!/^[a-z][a-z0-9-]*$/.test(word)) continue; // part of an interpolation
+        used.add(word);
+        if (!styled.has(word)) problems.push(`${rel(file)}:${lineOf(text, match.index)}  class "${word}" has no rule in app.css`);
+      }
+    }
+  }
+  assert.ok(used.size > 60, `the scan finds the classes of the SPA (${used.size})`);
+  assertNone(problems, "unstyled class:");
+});
+
+test("css guard: the widgets filed as requests by the area agents are styled (pairing code, log message, progress bar, chart)", () => {
+  const rules = cssRules(stripComments(path.join(PUBLIC, "css", "app.css")));
+  const find = (selector) => rules.filter((r) => r.selector.split(",").map((s) => s.trim()).includes(selector));
+  const decl = (selector, prop) => find(selector).map((r) => r.decls[prop]).find((v) => v !== undefined);
+  assert.match(decl(".pairing-code", "font-family"), /monospace/);
+  assert.match(decl(".pairing-code", "font-size"), /clamp\(/, "large, and it shrinks with the screen");
+  assert.equal(decl(".log-msg", "white-space"), "pre-wrap");
+  assert.equal(decl(".log-msg", "overflow-wrap"), "anywhere");
+  assert.equal(decl("progress", "width"), "100%");
+  assert.equal(decl("progress", "display"), "block");
+  assert.equal(decl(".chart", "max-width"), "40rem");
 });

@@ -14,6 +14,7 @@ A powerful and modern open-source community WhatsApp bot built with **Baileys v7
 - 👥 **Group Management** - Complete admin tools for groups
 - 🎨 **Media Processing** - Stickers, image editing, and more
 - 🔐 **Permission System** - Sudo users, admin-only commands, enforced before a command runs
+- 🖥️ **Admin Panel** - Web interface (on by default): live dashboard, hot-applied settings, WhatsApp pairing from the browser, per-group moderation, broadcasts, encrypted backups, safe self-update
 - 📊 **Production Ready** - PM2, Docker, Heroku support
 - ⚡ **CPU Optimized** - ~70-80% CPU reduction with caching and parallel processing
 
@@ -47,10 +48,9 @@ Create a `config.env` file:
 cp config.env.example config.env
 ```
 
-Edit `config.env` with your settings:
+Edit `config.env` with your settings (only `SUDO`, your own number, is really needed; everything else can be changed later from the admin panel):
 
 ```env
-SESSION_ID=
 PREFIX=.
 SUDO=your_number_here
 OPENAI_API_KEY=your_openai_key
@@ -63,7 +63,7 @@ GEMINI_API_KEY=your_gemini_key
 yarn start
 ```
 
-Scan the QR code with WhatsApp to authenticate.
+Scan the QR code with WhatsApp to authenticate (or pair from the admin panel, see below). The console also prints a one-time link to set the administrator password of the admin panel (see [First start](#first-start) in the Admin Panel section).
 
 ### 5. Run the Tests (optional)
 
@@ -71,7 +71,7 @@ Scan the QR code with WhatsApp to authenticate.
 yarn test
 ```
 
-The automated checks load every command and simulate their calls without WhatsApp or network access (about 10 seconds, Node 24).
+The automated checks (about 2,350 tests) load every command, simulate their calls and exercise the admin panel without WhatsApp or network access (about 20 seconds, Node 24).
 
 ## 📱 Available Commands
 
@@ -125,7 +125,10 @@ open-whatsapp-bot/
 │   │   └── client.js        # WhatsApp client
 │   ├── classes/
 │   │   └── Message.js       # Message abstraction
+│   ├── admin/               # Admin panel: HTTP router, auth, routes, services, static SPA (public/)
 │   ├── core/
+│   │   ├── boot.js          # Start-up shared by index.js and panel.js
+│   │   ├── botRuntime.js    # Bot state, restart and shutdown
 │   │   └── pipeline.js      # Message pipeline, shared by index.js and panel.js
 │   ├── plugins/
 │   │   ├── loader.js        # Plugin loader
@@ -277,6 +280,65 @@ GEMINI_MODEL=gemini-2.5-flash
 
 See [AUTO_RESPONDER_GUIDE.md](docs/AUTO_RESPONDER_GUIDE.md) for detailed documentation.
 
+## 🖥️ Admin Panel
+
+A web interface to run the bot without editing files or typing commands. **It is on by default** and is part of the bot process (`yarn start`, `yarn dev`, `yarn panel`, Docker): there is nothing else to install.
+
+| Page | What you can do |
+|------|-----------------|
+| Dashboard | Live state, number, uptime, memory, last errors; restart the bot (the session is kept) |
+| Settings | Every setting of `config.env`, applied on the next message; API keys stored encrypted, shown as "set" + last 4 characters, with a Test button |
+| Pairing | Pair WhatsApp with a live QR code or a pairing code, disconnect |
+| Commands | Turn a command off everywhere or in one group |
+| Groups | Welcome and goodbye, filters, anti-link, anti-bot, mute (the bot must be admin of the group) |
+| Data | Reminders, economy, keywords, stickers, AFK, tasks |
+| Broadcasts | One-time and recurring messages to groups and chats, at most once per destination, spaced out |
+| Backup | Encrypted export and verified restore |
+| Maintenance | Update the bot (with automatic rollback), update yt-dlp, storage |
+| Texts, Alerts, Logs, Statistics, History | Edit the bot's texts, WhatsApp alerts to the owner, live logs without secrets, usage charts, the administrator action log |
+
+### First start
+
+1. Start the bot. The panel starts with it.
+2. The console prints a line such as `Admin panel: open this link to create the administrator password (single use, valid 30 minutes): http://localhost:3000/admin/setup?token=...`. It is printed again at every start while no account exists.
+3. Open the link, choose a password of at least 12 characters: you are logged in. The link works once and expires after 30 minutes (the token leaves the address bar as soon as the page opens).
+4. Open **Settings**: from now on you do not need to edit `config.env` again, except for the start-up settings the panel only displays (`ADMIN_PANEL`, `PANEL_HOST`, `PANEL_PORT`, `PANEL_PUBLIC_URL`, `PANEL_TRUST_PROXY`, `LOG_FORMAT`, `SUPERVISED`, `UPDATE_CHECK`, `DATABASE_URL`, `DATABASE_SSL`, `YTDLP_PATH`, `KEEP_ALIVE_INTERVAL`).
+
+Five wrong passwords block the origin for 15 minutes. Forgot the password: run `node tools/admin-reset.js` (the bot can keep running) to print a new single-use link, or, on a host without a second shell, create an empty file `data/admin-reset` and restart the bot. Opening the link revokes every session.
+
+### Reaching the panel
+
+The bind address is chosen for safety (`PANEL_HOST` always wins when set):
+
+| Where the bot runs | Panel listens on |
+|--------------------|------------------|
+| Your computer or a VPS | `127.0.0.1` (this machine only), port `PANEL_PORT`, then `PORT`, then `3000` |
+| A container, or a hosting panel that sets `PORT` | `0.0.0.0` |
+
+- **Same machine**: <http://localhost:3000/admin/>.
+- **VPS**: keep the default and use an SSH tunnel, `ssh -L 3000:127.0.0.1:3000 user@server`, then open <http://localhost:3000/admin/>. Or put a reverse proxy with HTTPS in front. The panel serves plain HTTP itself; opening it to the Internet without TLS shows a permanent warning.
+- **Behind a reverse proxy** (Caddy, Nginx, Traefik, Dokploy): set `PANEL_PUBLIC_URL=https://bot.example.com` (base of the setup link, and an accepted `Origin`) and `PANEL_TRUST_PROXY` to the proxy's address or network (an IP, a CIDR such as `172.18.0.0/16`, or `loopback`, `private`, `all`). Forwarded headers (`X-Forwarded-For/-Proto/-Host`) are never trusted automatically; without `PANEL_TRUST_PROXY` the panel sees the proxy as the visitor and shows an "undeclared proxy" banner. With Caddy, `bot.example.com { reverse_proxy 127.0.0.1:3000 }` and `PANEL_TRUST_PROXY=loopback` are enough. With Nginx, send the `X-Forwarded-*` headers and set `proxy_buffering off` for `/admin/api/events` (live updates; the panel falls back to polling otherwise).
+- **Turn it off**: `ADMIN_PANEL=false`. The bot keeps running. If the port is busy the bot also keeps running and the console names `PANEL_PORT`, `PANEL_HOST` and `ADMIN_PANEL=false`.
+- **`PANEL_ENABLED` is gone.** It was never read by the old code. If it is still set, the console says once that it is ignored; the panel starts anyway, so write `ADMIN_PANEL=false` if you want it off.
+
+The monitoring routes (`/health`, `/healthz`, `/status`, `/ping`, `/metrics`, `/api/info`, `POST /api/restart`) are unchanged, so existing uptime checks keep working.
+
+### Panel hosts (bot-hosting.net and similar)
+
+`node panel.js` and `node index.js` both serve the panel on the host's `PORT`. Read the console for the setup link and set `PANEL_PUBLIC_URL` to the public address of the service so the link is clickable. Without a terminal, create the empty `data/admin-reset` file and restart to get a fresh link.
+
+### Docker notes
+
+`docker-compose.yml` only **exposes** the panel port inside the container network: nothing outside can reach it until you choose how. To open it from the host only, uncomment `ports: ["127.0.0.1:3000:3000"]`; for a server, use a reverse proxy with HTTPS and set `PANEL_PUBLIC_URL` and `PANEL_TRUST_PROXY`. The setup link is in the container logs (`docker compose logs bot | grep admin/setup`). The image health check calls `/ping` (`/health` answers 503 until WhatsApp is paired, which would block the very first pairing). An installation made from an image shows update instructions instead of an update button, and a yt-dlp update lives in the container's writable layer: it is lost when the container is recreated (rebuild the image to get the latest).
+
+### Backups and the encryption key
+
+The **Backup** page exports the settings (API keys included, inside the encrypted file), command states, edited texts and the bot data to one `.owb` file protected by a passphrase of at least 12 characters, chosen at export time and **not recoverable**. The administrator account, history, alert state, AI conversations and `data/panel.key` are never exported. The WhatsApp session is optional and the panel warns that it would let whoever holds the file take over the number. The file is built in `data/tmp` first, so the download shows its size.
+
+A restore first checks the file without changing anything (wrong passphrase, altered file or a backup from a newer bot version are refused) and shows a summary with the number of rows per table and what this version ignores (`ignoredSettings`, `ignoredTexts`, unknown tables and columns). On confirmation the bot writes an automatic backup of the current state to `data/backups/pre-restore-<time>.owb`, replaces the data in one transaction and restarts in-process; if anything fails, the previous state is kept. A backup moves freely between SQLite and PostgreSQL.
+
+API keys saved from the panel are encrypted at rest with a key in `data/panel.key` (created with mode 600 on the first save; keep `data/` on a volume). If that file is lost, the saved keys show "re-enter" in Settings and the values of `config.env` apply meanwhile: you only retype the keys.
+
 ## ☁️ Deployment
 
 ### Bot-Hosting.net / Panel Hosting (NEW!)
@@ -290,13 +352,13 @@ yarn install
 
 # Configure
 cp config.env.example config.env
-# Edit config.env with PANEL_ENABLED=true
+# Edit config.env (SUDO at least). The admin panel is on by default and uses the host's PORT
 
 # Start with panel server
 node panel.js
 ```
 
-The `panel.js` file provides:
+The console prints the one-time link that sets the administrator password of the admin panel (see the Admin Panel section above). `panel.js` runs the same bot as `index.js` (and, with `ADMIN_PANEL=false`, still serves the monitoring routes alone, which is what hosting panels probe). It provides:
 
 - 🏥 Health check endpoint (`/health`)
 - 📊 Metrics endpoint (`/metrics`)
@@ -326,11 +388,18 @@ pm2 stop open-whatsapp-bot
 ### Docker
 
 ```bash
+docker compose up -d --build        # recommended: volumes for sessions/, db/ and data/
+docker compose logs bot | grep admin/setup   # the admin panel setup link
+```
+
+or without compose:
+
+```bash
 docker build -t open-whatsapp-bot .
 docker run -d --env-file config.env open-whatsapp-bot
 ```
 
-The image includes ffmpeg and the latest yt-dlp.
+The image includes ffmpeg and the latest yt-dlp. Mount `/app/sessions`, `/app/db` and `/app/data` as volumes (`data/` holds `panel.key` and the panel backups). See the Docker notes of the Admin Panel section for the port and the health check.
 
 ### Heroku
 
@@ -379,12 +448,10 @@ pm2 startup
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SESSION_ID` | Session authentication data | - |
 | `PREFIX` | Command prefix | `.` |
 | `SUDO` | Sudo user numbers (comma-separated) | - |
 | `ALWAYS_ONLINE` | Keep bot always online | `false` |
-| `AUTO_READ` | Auto-read messages | `true` |
-| `AUTO_STATUS_VIEW` | Auto-view statuses | `true` |
+| `AUTO_STATUS_VIEW` | Auto-view statuses | `false` (`true` in the example file) |
 | `AUTO_STATUS_REACT` | Auto-react to statuses | `false` |
 | `OPENAI_API_KEY` | OpenAI API key for ChatGPT | - |
 | `OPENAI_MODEL` | Model used by `.gpt` | `gpt-4o-mini` |
@@ -394,6 +461,15 @@ pm2 startup
 | `TIMEZONE` | Time zone of reminders | `UTC` |
 | `DATABASE_URL` | PostgreSQL URL (optional) | SQLite |
 | `LOG_LEVEL` | Logging level | `info` |
+| `ADMIN_PANEL` | Admin panel on/off (only `false` turns it off) | `true` |
+| `PANEL_HOST` / `PANEL_PORT` | Panel address and port (`HOST` and `PORT` are accepted as aliases) | auto (`127.0.0.1`, `0.0.0.0` in a container or on a host that sets `PORT`) / `3000` |
+| `PANEL_PUBLIC_URL` | Public origin of the panel (setup link, accepted `Origin`) | - |
+| `PANEL_TRUST_PROXY` | Reverse proxies whose `X-Forwarded-*` headers are trusted | - (never trusted) |
+| `LOG_FORMAT` | `pretty` or `json` | `pretty` |
+| `SUPERVISED` | Who restarts the bot after an update: `auto`, `true`, `false` | `auto` |
+| `UPDATE_CHECK` | Background check for a newer version (`false` disables it) | `true` |
+
+Every setting above is also editable in the admin panel (Settings), except the start-up ones (`ADMIN_PANEL`, `PANEL_*`, `LOG_FORMAT`, `SUPERVISED`, `UPDATE_CHECK`, `DATABASE_*`, `YTDLP_PATH`), which it only displays. A value saved in the panel wins over `config.env`; "Reset" in the panel goes back to the file value. 21 old settings (`SESSION_ID`, `AUTO_READ`, `VPS`, `HEROKU_*`, `KOYEB_*`, `RENDER_*`, ...) are read by no code; they stay at the end of `config.env.example` under "No effect in this version".
 
 See `config.env.example` for all available options.
 
@@ -450,6 +526,7 @@ Models:
 - `BannedChat` - Chats where the bot is disabled (`.ban` / `.unban`)
 - `Reminder`, `Task`, `NotifyKeyword` - Reminders, to-do lists and keyword alerts
 - `UserStats`, `GroupEconomy`, `GroupRole` - Levels and rankings, coins, member roles
+- Admin panel (14 tables): `AdminAccount`, `AdminSession`, `AdminToken`, `AuditLog` (access and history), `SettingOverride`, `TextOverride`, `CommandState` (values edited in the panel), `KnownChat`, `DailyStat` (chats seen, statistics), `Broadcast`, `BroadcastRun`, `BroadcastTarget` (broadcasts), `AlertState`, `AlertOutbox` (owner alerts)
 
 The schema is synchronized at every start without altering existing columns (new tables, columns and indexes only).
 
@@ -460,6 +537,7 @@ The schema is synchronized at every start without altering existing columns (new
 - Environment-based configuration - no hardcoded secrets
 - Permission system - sudo and admin controls
 - Input validation - sanitized user inputs
+- Admin panel - password (scrypt) with 24 h idle / 7 day sessions, per-origin login throttling, CSRF and `Origin` checks, strict CSP with no third-party request, API keys encrypted at rest, secrets masked in every response and log, off the network by default (`127.0.0.1`)
 
 ## 🤝 Contributing
 

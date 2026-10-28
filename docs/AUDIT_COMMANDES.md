@@ -2,7 +2,9 @@
 
 Rapport destiné au propriétaire du bot. Date de l'audit : **2026-10-27**. Branche : `001-audit-fix-commands`.
 
-Documents liés : [spécification](../specs/001-audit-fix-commands/spec.md), [constats bruts avec fichier:ligne](../specs/001-audit-fix-commands/audit-findings.md), [rapport des dépendances](../specs/001-audit-fix-commands/deps-report.md).
+**Mise à jour du 2026-10-28 (fonctionnalité 002, branche `002-admin-panel`)** : le panel d'administration web a changé le comportement de `.update`, ajouté l'application de l'anti-lien, de l'anti-bot et du mode muet, la désactivation de commandes depuis le panel et la limitation des messages d'erreur envoyés au propriétaire. Les lignes concernées sont marquées « (002) » ; la checklist de la section 7 a une nouvelle partie « Panel d'administration ».
+
+Documents liés : [spécification](../specs/001-audit-fix-commands/spec.md), [constats bruts avec fichier:ligne](../specs/001-audit-fix-commands/audit-findings.md), [rapport des dépendances](../specs/001-audit-fix-commands/deps-report.md), [spécification du panel d'administration](../specs/002-admin-panel/spec.md), [guide de validation du panel](../specs/002-admin-panel/quickstart.md).
 
 ## Sommaire
 
@@ -21,7 +23,7 @@ Documents liés : [spécification](../specs/001-audit-fix-commands/spec.md), [co
 
 ### Périmètre
 
-Les 81 fichiers de `plugins/` ont été audités. Ils se répartissent ainsi :
+Les 81 fichiers de `plugins/` ont été audités (la fonctionnalité 002 en a ajouté deux, `knownchats` et `groupguard`, sans commande : 83 fichiers, 81 modules chargés au démarrage). Les 81 d'origine se répartissent ainsi :
 
 - **78 commandes** (une ligne chacune dans le tableau de la section 2) ;
 - 1 module sans commande qui réagit aux messages : `trackmessages` ;
@@ -38,7 +40,7 @@ Chaque commande a été évaluée sur les mêmes critères : réponse sans argum
 | Désactivée | 1 | Le service externe est mort et n'a pas d'équivalent gratuit ; la commande reste au menu et répond « service indisponible ». |
 | À surveiller | 8 | Corrigée, mais l'appel réel n'a pas pu être vérifié (clé absente, paiement requis) ou dépend d'un service instable. Voir la colonne « Défauts » et la section 6. |
 
-Modules sans commande : `trackmessages` Corrigée, `buttons` Corrigée, `pollplus` Désactivée (voir la fin de la section 2).
+Modules sans commande : `trackmessages` Corrigée, `buttons` Corrigée, `pollplus` Désactivée, `knownchats` et `groupguard` Nouveaux (002) (voir la fin de la section 2).
 
 ### Corrections transverses majeures
 
@@ -54,10 +56,11 @@ La plupart des défauts des commandes venaient de quelques manques dans le cœur
 - **Économie atomique.** Plus de double dépense (`daily`, `give`, `dice`). Le dé était une « planche à billets » : tous les modes de mise rapportaient plus qu'ils ne coûtaient (espérance entre 1,25 et 1,84) et une mise perdue plantait après le débit. Le dé a maintenant un avantage pour la maison.
 - **Services morts remplacés.** YouTube, Instagram, paroles, Reddit, Giphy, génération d'images, citations et faits utilisaient des services morts ou bloqués. Détail en section 3.
 - **Traductions fr/en complètes.** Environ 300 réponses étaient écrites en dur ; tous les messages passent maintenant par le système de traduction, en français et en anglais, y compris les descriptions du menu.
-- **Erreurs sans détail technique.** L'utilisateur ne voit plus que des messages génériques ; la trace complète va dans les journaux et en message privé au propriétaire. Les clés d'API ne sont plus écrites dans les journaux.
+- **Erreurs sans détail technique.** L'utilisateur ne voit plus que des messages génériques ; la trace complète va dans les journaux et en message privé au propriétaire. Les clés d'API ne sont plus écrites dans les journaux. (002) Le message privé avec la trace est limité à **un par commande et par période de 10 minutes** (une commande qui échoue en boucle ne noie plus le propriétaire) ; chaque erreur reste dans les journaux et les statistiques du panel, et une série de 10 erreurs en 10 minutes déclenche une seule alerte « erreurs en série » par heure.
+- **(002) Commande désactivée.** Une commande désactivée depuis le panel, partout ou dans un seul groupe, répond « 🚫 Cette commande est désactivée pour le moment. » (propriétaire compris, pour qu'il sache pourquoi rien ne se passe). Le contrôle vient après le refus « propriétaire seulement » (les commandes du propriétaire restent invisibles aux autres) et avant les contrôles de groupe et d'admin. Le réglage survit au redémarrage.
 - **Schéma SQLite réparé.** Le démarrage modifiait les tables à chaque fois (`alter: true`), ce qui transformait des clés composées en contraintes par colonne : un membre averti dans un groupe ne pouvait plus l'être dans un autre. La synchronisation est maintenant additive, et les tables abîmées de votre `database.db` sont reconstruites sans perdre de lignes.
 - **Dépendances.** 18 paquets inutilisés retirés, 3 paquets abandonnés ou dépréciés remplacés, 3 mises à jour majeures, tout le reste à jour sauf deux exceptions (section 5).
-- **Tests automatiques.** `yarn test` charge toutes les commandes et simule leurs appels sans WhatsApp ni réseau (près de 200 tests, une dizaine de secondes).
+- **Tests automatiques.** `yarn test` charge toutes les commandes et simule leurs appels sans WhatsApp ni réseau (près de 200 tests, une dizaine de secondes à l'époque de l'audit ; avec le panel d'administration, environ 2 350 tests en une vingtaine de secondes).
 
 ---
 
@@ -178,7 +181,7 @@ La plupart des défauts des commandes venaient de quelques manques dans le cœur
 | `.ban` | | Propriétaire | aucun | Corrigée | Sans effet : l'état était en mémoire et jamais lu → table `BannedChat`, effet immédiat, survit au redémarrage. |
 | `.exec` | `eval` | Propriétaire, privé | aucun | Corrigée | L'usage annonçait `.eval` sans alias, résultat pouvant afficher des secrets de la configuration dans un groupe → privé seulement, alias `eval`, sortie `util.inspect`, secrets masqués, délai de 60 s, code multi-lignes. |
 | `.unban` | | Propriétaire | aucun | Corrigée | Sans effet → réactive la discussion ; passe la barrière même dans la discussion désactivée (LID compris). |
-| `.update` | | Propriétaire | git (origine) ; `yt-dlp -U` | Corrigée | Les fichiers non suivis bloquaient la mise à jour, `pull` sans `--ff-only`, option Yarn obsolète, aucun délai ni verrou → comparaison indépendante de la langue, `pull --ff-only`, `yarn --immutable`, délai git, verrou, HEAD détaché refusé, mise à jour de yt-dlp au mieux, réponses génériques. |
+| `.update` | | Propriétaire | git (origine) ; `yt-dlp -U` | Corrigée (002 : refaite) | Les fichiers non suivis bloquaient la mise à jour, `pull` sans `--ff-only`, option Yarn obsolète, aucun délai ni verrou → **(002)** même moteur et même verrou que la page Maintenance du panel : refus clair avant toute modification pour une image Docker, une archive sans git, un HEAD détaché, une branche sans équivalent sur GitHub ou des fichiers suivis modifiés ; récupération puis `merge --ff-only` sur `origin/<branche courante>` ; `yarn install --immutable` seulement si les dépendances ont changé ; **démarrage d'essai** du nouveau code dans un processus séparé (`tools/verify-boot.js`) et **retour automatique à la version précédente** s'il échoue (« Mise à jour annulée ») ; mise à jour de yt-dlp au mieux. **Redémarrage** : seul un bot supervisé se relance (PM2, hébergeur de bots, ou `SUPERVISED=true`) ; en conteneur, sous systemd ou sans superviseur, la réponse dit de redémarrer soi-même le programme et le panel affiche le bandeau « redémarrage nécessaire » jusqu'au prochain démarrage. Réponses génériques. |
 
 ### Recherche
 
@@ -229,6 +232,9 @@ La plupart des défauts des commandes venaient de quelques manques dans le cœur
 | `trackmessages` | Suivi des messages : statistiques, niveaux, classement | Corrigée | Jamais appelé, donc statistiques et niveaux figés → branché sur chaque message de groupe, compte atomique, XP de 5, 10 ou 15 avec 1 min entre deux gains, ignore les réactions et les messages du compte du bot. |
 | `buttons` | Aide partagée d'envoi de boutons et de listes | Corrigée | Repli « répondez par le numéro » que rien ne traitait, message cité mal passé → ids enregistrés dans l'ordre d'affichage, repli numéroté traduit, mentions, listes paginées réellement envoyées. Service : `@ryuu-reinzz/button-helper` 2.2.3. |
 | `pollplus` | Ancien fichier de `poll+` | Désactivée | Fusionné dans `poll` : `poll+` et `pollplus` sont des alias de `.poll` ; le fichier est volontairement vide. |
+| `knownchats` (002) | Registre des discussions connues : les privés qui ont écrit au bot et les groupes vus, pour choisir les destinataires d'une diffusion dans le panel | Nouveau | Observateur sans commande (priorité 5, il ne consomme jamais le message) : enregistre un privé la première fois qu'il écrit (au plus une écriture par heure et par discussion), puis, à chaque connexion, actualise les noms des groupes (au plus toutes les 6 h) et marque comme « ancien groupe » ceux que le bot a quittés. Les privés muets depuis plus d'un an sont purgés chaque jour. |
+| `groupguard` (002) | Applique l'**anti-lien** et l'**anti-bot** des groupes, réglés dans le panel (page Groupes) | Nouveau | Les colonnes `antilink` et `antibot` et les messages `ANTILINK_MSG` / `ANTIBOT_MSG` existaient mais rien ne les appliquait → un hook (priorité 50, après les observateurs et avant les filtres). **Le bot doit être admin du groupe**, sinon il ne fait rien (le panel avertit). **Anti-lien** : un lien (URL, `www.`, invitation `chat.whatsapp.com`, `wa.me`) envoyé par un membre qui n'est ni admin ni propriétaire est supprimé ; l'auteur reçoit un avertissement (`WARN_LIMIT`, `WARN_MESSAGE`, mêmes compteurs que `.warn`) et est retiré à la limite (`ANTILINK_MSG`). La règle est stricte : une commande qui contient un lien est supprimée et **n'est pas exécutée** (`.dl <lien>` d'un membre) ; admins et propriétaires sont exemptés, commandes comprises ; un VIP voit son message supprimé sans avertissement. **Anti-bot** : l'expéditeur est retiré (`ANTIBOT_MSG`) seulement quand l'identifiant du message a une forme qu'aucun client WhatsApp ne produit (`3EB0` + 36 caractères hexadécimaux, `BAE5` + 12) ; l'identifiant de 22 caractères (Baileys 7, probablement aussi WhatsApp Web) est seulement journalisé et inscrit à l'historique comme « suspect », jamais suivi d'une action, pour ne pas retirer un humain. |
+| Mode muet (002) | Page Groupes du panel, sans commande ni module | Nouveau | Bascule le réglage WhatsApp « seuls les admins peuvent envoyer des messages » (`announcement` / `not_announcement`) dans les deux sens ; le bot doit être admin ; la colonne `mute` reflète le dernier état posé par le bot. |
 
 ---
 
@@ -262,6 +268,12 @@ Voir `config.env.example` pour les valeurs par défaut.
 | `YTDLP_PATH`, `DOWNLOAD_TIMEOUT` | Chemin du binaire yt-dlp et durée maximale d'un téléchargement (180 000 ms). |
 | `TIMEZONE` | Fuseau horaire des rappels (`UTC` par défaut). |
 | `WARN_MESSAGE`, `WARN_KICK_MESSAGE` | À mettre entre guillemets quand ils contiennent `\n`. |
+| `ADMIN_PANEL` (002) | Panel d'administration activé par défaut ; seule la valeur exacte `false` le désactive. Remplace `PANEL_ENABLED`, qui n'a jamais rien fait et n'est plus lu (une ligne de la console le signale s'il est encore défini). |
+| `PANEL_HOST`, `PANEL_PORT` (002) | Plus définis par défaut : adresse automatique (`127.0.0.1` en local, `0.0.0.0` en conteneur ou quand l'hébergeur définit `PORT`) ; `HOST` et `PORT` sont acceptés. |
+| `PANEL_PUBLIC_URL`, `PANEL_TRUST_PROXY` (002) | Adresse publique du panel (lien de configuration, `Origin` accepté) et reverse proxys dont on croit les en-têtes `X-Forwarded-*`. |
+| `LOG_FORMAT`, `SUPERVISED`, `UPDATE_CHECK` (002) | Format des journaux (`pretty` / `json`), détection du superviseur pour `.update` (`auto`, `true`, `false`), recherche d'une nouvelle version. |
+| `AUTO_STATUS_SAVE`, `STATUS_SAVE_LIST`, `TTS_MAX_LENGTH`, `MESSAGE_CONCURRENCY_LIMIT`, `CACHE_*`, `CONVERSATION_*`, `MEMORY_*` (002) | Déjà lus par le code mais absents de l'exemple ; maintenant documentés dans `config.env.example` et modifiables dans le panel. |
+| 21 réglages (002) | `SESSION_ID`, `AUTO_READ`, `VPS`, `ANTI_DELETE`, `STATUS_SAVE_FOLDER`, les clés `GROQ`, `RMBG`, `CLOUDMERSIVE`, `APYHUB`, `DEEPAI`, `WAIFUPICS`, `PUTERJS`, `IMAGE_API_*`, `HEROKU_*`, `KOYEB*`, `RENDER_*` : aucun code ne les lit. Ils restent en fin de `config.env.example` sous « No effect in this version ». |
 
 ---
 
@@ -319,6 +331,13 @@ Voir `config.env.example` pour les valeurs par défaut.
 | `.exportcontacts` | Exporte les membres du groupe (ou de tous les groupes depuis un privé), envoi en privé à l'appelant. |
 | `.menu`, `.bmenu` | Les commandes du propriétaire sont cachées aux autres ; les ids de `.bmenu` ont changé. |
 
+### Panel d'administration (002)
+
+- **Commande désactivée** : elle répond « 🚫 Cette commande est désactivée pour le moment. » à tout le monde, propriétaire compris, tant qu'elle n'est pas réactivée dans le panel (page Commandes, partout ou par groupe).
+- **`.update now`** : voir la ligne `.update` ; sans superviseur le bot ne se relance pas seul.
+- **Anti-lien** : même `.dl <lien>` est supprimé quand il vient d'un membre non admin d'un groupe protégé.
+- **Textes** : un texte ou une description de commande modifiés dans le panel (page Textes) remplacent ceux de `lang/*.json` à la prochaine réponse ; les variables (`{0}`, `&mention`...) ne peuvent pas être retirées.
+
 ### Boutons
 
 Si les boutons ne s'affichent pas ou ne répondent pas, répondre en **citant le message** avec le numéro de l'option (par exemple `2`) fonctionne.
@@ -351,7 +370,9 @@ Dépendances système : `ffmpeg` (inchangé) et **`yt-dlp`** (nouveau, voir sect
 
 - **Contrôles sur appareil réel non faits.** Tout a été vérifié avec des faux sockets et des simulations, jamais avec un vrai compte : boutons « native-flow » (clic et repli numéroté), événements de suppression (anti-delete), « vue unique », bienvenue et départ, médias envoyés. La checklist de la section 7 sert à cela.
 - **Backend `api.socialdl.starland9.dev`** : à réparer hors de ce dépôt (certificat Traefik par défaut, 404). Tant qu'il est hors service, laisser `BACKEND_URL` vide ; yt-dlp couvre TikTok, Instagram, Facebook, X, YouTube, Pinterest et Reddit.
-- **yt-dlp** : à garder à jour (`.update` tente `yt-dlp -U`). Votre binaire local de 2024 échoue sur YouTube.
+- **yt-dlp** : à garder à jour (`.update` tente `yt-dlp -U` ; la page Maintenance du panel a un bouton dédié et refuse tant qu'un téléchargement tourne). Votre binaire local de 2024 échoue sur YouTube. Dans un conteneur, la mise à jour est perdue quand le conteneur est recréé.
+- **(002) Anti-bot** : les identifiants de message de 22 caractères ne sont jamais suivis d'une action, car WhatsApp Web en produit probablement de la même forme. La forme `BAE5` + 12 caractères est reprise de souvenir de Baileys 6 (absente de Baileys 6.7.9 et 7.0.0-rc14). À valider avec de vraies captures (checklist de la section 7).
+- **(002) Panel exposé** : il écoute en local par défaut. L'ouvrir à Internet exige un reverse proxy avec HTTPS (`PANEL_PUBLIC_URL`, `PANEL_TRUST_PROXY`) ; sinon un avertissement permanent s'affiche. Les clés API enregistrées depuis le panel sont chiffrées avec `data/panel.key` : à conserver avec `data/`.
 - **`.imagen`** : demande un forfait Gemini payant.
 - **`gpt-4o-mini`** : retiré par OpenAI le 2027-01-14. Changer `OPENAI_MODEL` avant cette date.
 - **Postgres non testé.** La nouvelle synchronisation du schéma et les requêtes atomiques de l'économie n'ont été exécutées que sur SQLite. Les anciennes contraintes en double créées par `alter: true` sur Postgres ne sont pas nettoyées (sans danger).
@@ -366,17 +387,18 @@ Dépendances système : `ffmpeg` (inchangé) et **`yt-dlp`** (nouveau, voir sect
 
 ## 7. Checklist de vérification manuelle
 
-À faire sur un vrai compte (FR-025). Préparer : un numéro de test dans `SUDO` (« propriétaire »), un second numéro de test (« B »), et un groupe de test où le bot est admin. Lancer `LOG_LEVEL=debug yarn dev` et lire les journaux : « Loaded 79 plugins », aucune ligne `Failed to load plugin`, aucun avertissement `Duplicate alias`.
+À faire sur un vrai compte (FR-025). Préparer : un numéro de test dans `SUDO` (« propriétaire »), un second numéro de test (« B »), et un groupe de test où le bot est admin. Lancer `LOG_LEVEL=debug yarn dev` et lire les journaux : « Loaded 81 plugins », aucune ligne `Failed to load plugin`, aucun avertissement `Duplicate alias`.
 
 ### Démarrage
 
-- [ ] `LOG_LEVEL=debug yarn dev` : 79 modules chargés, aucun échec de chargement, aucun alias en double.
+- [ ] `LOG_LEVEL=debug yarn dev` : 81 modules chargés, aucun échec de chargement, aucun alias en double.
 - [ ] Sur une base existante : « Database synced », sans erreur, et la table `warns` accepte un avertissement dans deux groupes différents pour le même membre.
 
 ### Accès et correspondance exacte
 
 - [ ] `.kiss`, `.export`, `.faq` : aucune réponse.
 - [ ] Depuis B : `.vv` en réponse à un média « vue unique », `.exec 1`, `.ban`, `.update` : refus clair, aucun effet.
+- [ ] (002) Désactiver `.ping` dans le panel (partout), puis `.ping` depuis B et depuis le propriétaire : « Cette commande est désactivée pour le moment. » aux deux ; redémarrer le bot : toujours désactivée ; la réactiver dans le panel : elle répond de nouveau. Refaire pour un seul groupe : elle répond encore dans l'autre.
 - [ ] Depuis le propriétaire, en groupe (adresses LID comprises) : `.ban` et `.vv` sont acceptés.
 - [ ] Depuis B (non admin) : `.kick @x`, `.tagall`, `.warn @x`, `.welcome on` : refus. Retirer les droits d'admin du bot puis `.kick @x` depuis un admin : le bot explique qu'il doit être promu.
 - [ ] `.PING` (majuscules) répond comme `.ping`.
@@ -437,6 +459,55 @@ Dépendances système : `ffmpeg` (inchangé) et **`yt-dlp`** (nouveau, voir sect
 - [ ] `.dl <lien TikTok>`, `.lyrics <titre>`, `.sticker` sur une photo, `.convert png` sur un sticker, `.tts bonjour`.
 - [ ] `.pinterest chat` : « service indisponible » et suggestion de `.image`.
 
+### Panel d'administration (002)
+
+À faire sur un vrai appareil ; le déroulé complet (installation isolée, scénarios, critères de réussite) est dans le [guide de validation](../specs/002-admin-panel/quickstart.md). Travailler dans une copie de travail (`git worktree`) pour ne pas toucher à vos `sessions/`, `database.db` et `data/`.
+
+**Accès et tableau de bord**
+
+- [ ] Premier démarrage : le lien de configuration s'affiche, le mot de passe se choisit et le réglage d'une valeur se fait en moins de 5 minutes ; le lien ne sert qu'une fois et expire après 30 minutes.
+- [ ] Cinq mots de passe faux bloquent l'origine ; le bon est refusé pendant 15 minutes ; l'historique et une alerte au propriétaire le consignent.
+- [ ] Tableau de bord : état, numéro, durée de fonctionnement, mémoire, dix dernières erreurs ; « Redémarrer » garde la session (pas de QR) et `/health` n'est `503` que brièvement.
+
+**Appairage**
+
+- [ ] Installation neuve : QR en moins de 5 s, il se renouvelle, scan, « connecté » en moins de 10 s.
+- [ ] Appairage par code (chiffres avec indicatif) : saisir `XXXX-XXXX` sur le téléphone, connecté.
+- [ ] « Déconnecter » retire l'appareil sur le téléphone et vide `sessions/main`.
+- [ ] Une tentative par code abandonnée efface la session au bout de 3 minutes environ et un QR revient.
+
+**Réglages, commandes, textes**
+
+- [ ] Changer le préfixe : actif au message suivant ; une valeur invalide est refusée champ par champ.
+- [ ] Clé API affichée « définie » + 4 derniers caractères seulement ; « Tester » répond acceptée ou refusée ; un second clic dans les 10 s est limité ; `enc:v1:` en base ; `data/panel.key` en mode 600.
+- [ ] Commande désactivée partout et dans un groupe : le propriétaire est refusé aussi ; survit au redémarrage.
+- [ ] Un texte et une description de commande modifiés apparaissent aussitôt ; retirer une variable est refusé.
+
+**Groupes et gardien de groupe**
+
+- [ ] Bienvenue avec aperçu ; une variable inconnue est refusée ; les filtres s'appliquent en direct.
+- [ ] Anti-lien : sans admin du bot, le panel avertit ; un lien est supprimé et le membre averti ; retiré à la limite ; le `.dl <lien>` d'un membre est supprimé et non exécuté ; admins et propriétaire exemptés, commandes comprises.
+- [ ] Anti-bot : un compte de bibliothèque (identifiant de 40 caractères `3EB0...` ou `BAE5...`) est retiré ; un identifiant de 22 caractères est seulement journalisé comme suspect ; **un humain sur WhatsApp Web, Android et iPhone n'est pas retiré** ; ajouter le `key.id` capturé sur WhatsApp Web aux fixtures de `test/groupguard.test.js`.
+- [ ] Mode muet : bascule « seuls les admins peuvent envoyer des messages » dans les deux sens.
+- [ ] Un ancien groupe quitté est listé et supprimable.
+
+**Données, diffusions, sauvegarde**
+
+- [ ] Un rappel annulé dans le panel n'arrive jamais ; un ajustement d'économie apparaît dans `.balance` ; un résultat négatif est refusé.
+- [ ] Diffusion vers deux groupes et un privé : espacement respecté, une fois chacun, annulation, reprise sans doublon après un redémarrage en cours d'envoi, ponctuelle et récurrente envoyées une seule fois ; le rapport d'une destination en échec propose une nouvelle diffusion pré-remplie (pas de bouton « réessayer ») ; la page Stockage liste les « médias de diffusion » et garde ceux d'une diffusion récurrente quand on les vide.
+- [ ] Export, restauration sur une installation vierge, données identiques ; mauvaise phrase secrète et fichier altéré refusés. L'export annonce sa taille (`Content-Length`) et la vérification de la restauration affiche `ignoredSettings` / `ignoredTexts`.
+
+**Maintenance et alertes**
+
+- [ ] `.update now` et le bouton du panel avec une version distante plus récente ; retour arrière sur un commit cassé ; un conteneur affiche des instructions ; résultats de la mise à jour de yt-dlp ; purge des médias temporaires.
+- [ ] Alertes reçues : reconnexion après plus de 5 minutes, clé refusée (une fois par jour), connexion bloquée, nouvelle origine, erreurs en série (une alerte, un message privé avec la trace par commande et par période de 10 minutes).
+
+**Transversal**
+
+- [ ] Chaque page à 360 px sans défilement horizontal ; thèmes clair et sombre selon l'appareil.
+- [ ] Aucune requête vers un hôte tiers pendant l'usage du panel (onglet Réseau des outils de développement).
+- [ ] `yarn test`, `node tools/check-unused-deps.js` (0 dépendance inutilisée) et la boucle `curl` des routes historiques (`/ /health /healthz /status /ping /metrics /api/info`) sont verts.
+
 ---
 
 ## 8. Comment vérifier
@@ -448,7 +519,8 @@ yarn test                         # node --test --test-force-exit "test/**/*.tes
 node tools/check-unused-deps.js   # attendu : 0 unused dependencies
 ```
 
-- `yarn test` charge les 79 modules, vérifie les alias (aucun doublon, aucun faux positif), les refus de permissions, la réponse de chaque commande sans argument, la présence des traductions fr et en, le pipeline et la synchronisation de la base. Il n'utilise ni WhatsApp ni le réseau, et dure une dizaine de secondes.
+- `yarn test` charge les 81 modules, vérifie les alias (aucun doublon, aucun faux positif), les refus de permissions, la réponse de chaque commande sans argument, la présence des traductions fr et en, le pipeline et la synchronisation de la base. Depuis la fonctionnalité 002 il couvre aussi le panel d'administration (authentification, routes, interface, sauvegardes, diffusions, mise à jour avec retour arrière, alertes, `config.env.example`). Il n'utilise ni WhatsApp ni le réseau, et dure une vingtaine de secondes (environ 2 350 tests).
+- Lancer les scripts et outils avec `OWB_NO_CONFIG_ENV=1` pour qu'ils ne lisent pas votre `config.env`.
 - Une commande testée seule : `node --test --test-force-exit test/commands.test.js`.
 - Les tests tournent en français par défaut ; `BOT_LANG=en yarn test` les lance en anglais.
 

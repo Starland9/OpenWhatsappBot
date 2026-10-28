@@ -1,0 +1,14 @@
+{
+  "en": {
+    "broadcasts.rule_daily": "Every day at {0}",
+    "broadcasts.rule_weekly": "Every {0} at {1}",
+    "broadcasts.rule_monthly": "On day {0} of every month at {1}",
+    "broadcasts.rule_monthly_last": "On day {0} of every month at {1} (the last day of shorter months)"
+  },
+  "fr": {
+    "broadcasts.rule_daily": "Tous les jours à {0}",
+    "broadcasts.rule_weekly": "Chaque {0} à {1}",
+    "broadcasts.rule_monthly": "Le {0} de chaque mois à {1}",
+    "broadcasts.rule_monthly_last": "Le {0} de chaque mois à {1} (le dernier jour des mois plus courts)"
+  }
+}

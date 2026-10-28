@@ -1,0 +1,14 @@
+{
+  "en": {
+    "plugins.update.no_remote_branch": "⚠️ *Nothing to update from:* the current branch has no counterpart on GitHub (no upstream and no origin/<branch>).\n\nPush the branch or switch to one that tracks GitHub, then try again.",
+    "plugins.update.rolled_back": "❌ *Update cancelled.* The new version did not pass the checks, so the bot went back to the version it was running. Check the server logs.",
+    "plugins.update.unavailable": "⚠️ This installation cannot update itself (container image, archive, missing git or read-only folder).\n\nUse the Maintenance page of the panel for the instructions that fit your installation.",
+    "plugins.update.restart_manual": "✅ *Update installed.*\n\nNothing restarts this bot automatically here: restart the program yourself to run the new version."
+  },
+  "fr": {
+    "plugins.update.no_remote_branch": "⚠️ *Rien à récupérer :* la branche courante n'a pas d'équivalent sur GitHub (ni amont, ni origin/<branche>).\n\nPoussez la branche ou passez sur une branche qui suit GitHub, puis réessayez.",
+    "plugins.update.rolled_back": "❌ *Mise à jour annulée.* La nouvelle version n'a pas passé les vérifications, le bot est revenu à la version qu'il exécutait. Consultez les logs du serveur.",
+    "plugins.update.unavailable": "⚠️ Cette installation ne peut pas se mettre à jour toute seule (image de conteneur, archive, git absent ou dossier en lecture seule).\n\nUtilisez la page Maintenance du panel pour les instructions adaptées à votre installation.",
+    "plugins.update.restart_manual": "✅ *Mise à jour installée.*\n\nRien ne redémarre ce bot automatiquement ici : redémarrez vous-même le programme pour lancer la nouvelle version."
+  }
+}

@@ -77,3 +77,6 @@ Note for the user: W-MNT's killed first test run left 3 `/tmp/owb-updater-*` dir
 ### W1 checkpoint B (all W1 agents committed)
 
 - Full suite: 2349 tests, 2343 pass, 0 fail, 6 skipped (one is the opt-in Postgres round trip), 18 s, identical with `BOT_LANG=fr` and `en`. `check-unused-deps`: 0.
+| W2 | W2-B | T211–T216 | done | 57a6d8f |
+| W2 | W2-A | T206–T210 | done | 5bc858e |
+| W2 | W2-C | T217–T220 + 5 fixes | done | 8268f65 |

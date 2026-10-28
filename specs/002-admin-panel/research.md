@@ -50,6 +50,8 @@ The user delegated the remaining decisions ("je te laisse les prendre s'il y a e
 | O2 | `LOG_LEVEL` effect | Immediate (`logger.setLevel`), as in the catalog |
 | O3 | Listing/downloading pre-restore backups (BAK-4/5, optional) | Kept: they are the only way back after a bad restore (US10 "retour arrière") |
 | O4 | CORS on the legacy `POST /api/restart` | Unchanged (byte-compatible, admin-http-api.md wins over runtime.md §15) |
+| O5 | CSRF secret stored in clear in `AdminSession.csrfSecret` (data-model) vs "no database dump holds it" (API contract §5 item 8) | Kept as data-model.md documents: the CSRF secret is useless without the session cookie, which is only stored hashed; the secrets test allows it in that column only. Hashing or HMAC-deriving it is a possible later hardening |
+| O6 | W-BC's `GET /admin/api/broadcasts/preview` 405 guard route (redundant since the router fix) | Kept: harmless, it pins the 405 answer; whitelisted in the integration test |
 
 ## 2. Arbitration between streams
 

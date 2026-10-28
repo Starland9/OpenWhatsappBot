@@ -1,5 +1,6 @@
 const { getLang } = require("../lib/utils/language");
 const config = require("../config");
+const settingsStore = require("../lib/utils/settingsStore");
 const {
   fetchJson,
   fetchBuffer,
@@ -23,6 +24,11 @@ const SEARCH_LIMIT = 5;
 const PREVIEW_MAX_BYTES = 10 * 1024 * 1024;
 
 let spotifyToken = null; // { value, expiresAt }
+
+// New credentials from the panel: the cached token belongs to the old ones
+settingsStore.onChange(["SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET"], () => {
+  spotifyToken = null;
+});
 
 function hasSpotifyKeys() {
   return !!(config.SPOTIFY_CLIENT_ID && config.SPOTIFY_CLIENT_SECRET);

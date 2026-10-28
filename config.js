@@ -9,10 +9,6 @@ const databasePath = path.join(__dirname, "./database.db");
 if (existsSync(configPath))
   require("dotenv").config({ path: configPath, quiet: true });
 
-const toBool = (x) => x === "true";
-// Unquoted values in config.env keep a literal "\n": turn it into a real newline
-const unescapeNewlines = (x) => x.replace(/\\n/g, "\n");
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const DATABASE_URL = process.env.DATABASE_URL || databasePath;
 // SSL is required by hosted Postgres (Heroku...); set DATABASE_SSL=false for a plain internal server
 const DATABASE_SSL = process.env.DATABASE_SSL !== "false";
@@ -44,166 +40,32 @@ const DATABASE = DATABASE_URL.includes("postgres")
       },
     });
 
-module.exports = {
+// Every setting of lib/utils/settingsCatalog.js becomes an enumerable accessor: the panel override, then
+// the environment / config.env, then the code default (contracts/runtime.md section 1). Types are the
+// ones this file always returned (numbers, booleans, comma-joined strings for lists). Assigning
+// `config.KEY = v` sets a runtime value that wins over everything (tests); nothing is persisted.
+// Before settingsStore.load() runs the object behaves exactly like the old static one.
+const catalog = require("./lib/utils/settingsCatalog");
+const store = require("./lib/utils/settingsStore");
+
+const config = {
   // Version
   VERSION: require("./package.json").version,
 
-  // Session
-  SESSION_ID: (process.env.SESSION_ID || "").trim(),
-
-  // Database
+  // Database (built from process.env above, before the settings store exists)
   DATABASE,
 
-  // Bot Config
-  PREFIX: process.env.PREFIX || ".",
-  SUDO: process.env.SUDO || "",
-
-  // Bot Behavior
-  ALWAYS_ONLINE: toBool(process.env.ALWAYS_ONLINE),
-  AUTO_READ: toBool(process.env.AUTO_READ),
-  AUTO_STATUS_VIEW: toBool(process.env.AUTO_STATUS_VIEW),
-  AUTO_STATUS_REACT: toBool(process.env.AUTO_STATUS_REACT),
-  // Auto Status Save (save statuses from specified numbers)
-  AUTO_STATUS_SAVE: toBool(process.env.AUTO_STATUS_SAVE),
-  STATUS_SAVE_LIST: process.env.STATUS_SAVE_LIST || "",
-  STATUS_SAVE_FOLDER: process.env.STATUS_SAVE_FOLDER || "media/status",
-  ANTI_DELETE: toBool(process.env.ANTI_DELETE),
-  // Message reactions (enable/disable message reaction feature)
-  ENABLE_MESSAGE_REACTIONS: toBool(process.env.ENABLE_MESSAGE_REACTIONS),
-
-  // Sticker Config
-  STICKER_PACKNAME: process.env.STICKER_PACKNAME || "Made with",
-  STICKER_AUTHOR: process.env.STICKER_AUTHOR || "Bot",
-
-  // API Keys
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
-  GROQ_API_KEY: process.env.GROQ_API_KEY || "",
-  RMBG_KEY: process.env.RMBG_KEY || "",
-
-  // AI models
-  GEMINI_MODEL,
-  GEMINI_VISION_MODEL: process.env.GEMINI_VISION_MODEL || GEMINI_MODEL,
-  // Image generation model (empty = the imagen plugin picks its default)
-  IMAGE_MODEL: process.env.IMAGE_MODEL || "",
-  // OpenAI chat model (gpt command)
-  OPENAI_MODEL: process.env.OPENAI_MODEL || "gpt-4o-mini",
-
-  // New Plugin API Keys
-  WEATHER_API_KEY: process.env.WEATHER_API_KEY || "",
-  UNSPLASH_API_KEY: process.env.UNSPLASH_API_KEY || "",
-  GIPHY_API_KEY: process.env.GIPHY_API_KEY || "",
-  NEWS_API_KEY: process.env.NEWS_API_KEY || "",
-  ALPHA_VANTAGE_KEY: process.env.ALPHA_VANTAGE_KEY || "",
-  SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || "",
-  SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET || "",
-  // Reddit OAuth (client credentials), required by the reddit plugin
-  REDDIT_CLIENT_ID: process.env.REDDIT_CLIENT_ID || "",
-  REDDIT_CLIENT_SECRET: process.env.REDDIT_CLIENT_SECRET || "",
-  // Image API Keys
-  CLOUDMERSIVE_API_KEY: process.env.CLOUDMERSIVE_API_KEY || "",
-  APYHUB_API_KEY: process.env.APYHUB_API_KEY || "",
-  DEEPAI_API_KEY: process.env.DEEPAI_API_KEY || "",
-  WAIFUPICS_API_KEY: process.env.WAIFUPICS_API_KEY || "",
-  PUTERJS_API_KEY: process.env.PUTERJS_API_KEY || "",
-  // Generic image API options
-  IMAGE_API_TIMEOUT: parseInt(process.env.IMAGE_API_TIMEOUT) || 20000,
-  IMAGE_API_MAX_SIZE_MB: parseInt(process.env.IMAGE_API_MAX_SIZE_MB) || 10,
-
-  // Social DL Backend
-  // Optional social download backend (empty = yt-dlp only)
-  BACKEND_URL: process.env.BACKEND_URL || "",
-
-  // Media downloads (yt-dlp)
-  YTDLP_PATH: process.env.YTDLP_PATH || "yt-dlp",
-  DOWNLOAD_TIMEOUT: parseInt(process.env.DOWNLOAD_TIMEOUT) || 180000, // ms
-
-  // Logging
-  LOG_LEVEL: process.env.LOG_LEVEL || "info",
-  BAILEYS_LOG_LVL: process.env.BAILEYS_LOG_LVL || "silent",
-
-  // Heroku
-  HEROKU_APP_NAME: process.env.HEROKU_APP_NAME || "",
-  HEROKU_API_KEY: process.env.HEROKU_API_KEY || "",
-
-  // Koyeb
-  KOYEB: toBool(process.env.KOYEB),
-  KOYEB_NAME: process.env.KOYEB_NAME || "",
-  KOYEB_API: process.env.KOYEB_API || "",
-
-  // Render
-  RENDER_NAME: process.env.RENDER_NAME || "",
-  RENDER_API_KEY: process.env.RENDER_API_KEY || "",
-
-  // Language
-  LANG: (process.env.BOT_LANG || "fr").toLowerCase(),
-
-  // TTS Config
-  TTS_MAX_LENGTH: parseInt(process.env.TTS_MAX_LENGTH) || 500,
-
-  // Group Settings
-  ANTILINK_MSG:
-    process.env.ANTILINK_MSG || "_Antilink Detected &mention kicked_",
-  ANTIBOT_MSG: process.env.ANTIBOT_MSG || "&mention removed",
-  WARN_LIMIT: parseInt(process.env.WARN_LIMIT) || 3,
-  WARN_MESSAGE: unescapeNewlines(
-    process.env.WARN_MESSAGE ||
-      "⚠️WARNING⚠️\n*User:* &mention\n*Warn:* &warn\n*Remaining:* &remaining",
-  ),
-  WARN_KICK_MESSAGE: unescapeNewlines(
-    process.env.WARN_KICK_MESSAGE || "&mention kicked",
-  ),
-
-  // Misc
-  TIMEZONE: process.env.TIMEZONE || "UTC",
-  MAX_UPLOAD: parseInt(process.env.MAX_UPLOAD) || 230,
-  VPS: toBool(process.env.VPS),
+  // Constant, no consumer
   BRANCH: "master",
-
-  // Auto Status React Configuration
-  STATUS_EMOJIS: process.env.STATUS_EMOJIS || "😀,👍,❤️,🔥,💯,✨,🎉,👏,💪,🙌",
-
-  // Auto Responder
-  AUTO_RESPONDER_ENABLED: toBool(process.env.AUTO_RESPONDER_ENABLED),
-  AUTO_RESPONDER_IGNORE_NUMBERS:
-    process.env.AUTO_RESPONDER_IGNORE_NUMBERS || "",
-  AUTO_RESPONDER_PERSONALITY:
-    process.env.AUTO_RESPONDER_PERSONALITY ||
-    "You are a helpful and friendly assistant. Respond naturally and conversationally.",
-
-  // Anti-ban measures for auto responder
-  AUTO_RESPONDER_MIN_DELAY:
-    parseInt(process.env.AUTO_RESPONDER_MIN_DELAY) || 1000, // Min delay before response (ms)
-  AUTO_RESPONDER_MAX_DELAY:
-    parseInt(process.env.AUTO_RESPONDER_MAX_DELAY) || 3000, // Max delay before response (ms)
-  AUTO_RESPONDER_TYPING_SPEED:
-    parseInt(process.env.AUTO_RESPONDER_TYPING_SPEED) || 50, // Characters per second
-  AUTO_RESPONDER_MAX_TYPING_TIME:
-    parseInt(process.env.AUTO_RESPONDER_MAX_TYPING_TIME) || 10000, // Max typing indicator duration (ms)
-  AUTO_RESPONDER_RATE_LIMIT:
-    parseInt(process.env.AUTO_RESPONDER_RATE_LIMIT) || 5, // Max responses per time window
-  AUTO_RESPONDER_RATE_WINDOW:
-    parseInt(process.env.AUTO_RESPONDER_RATE_WINDOW) || 60000, // Time window for rate limit (ms)
-
-  // Performance Optimization
-  MESSAGE_CONCURRENCY_LIMIT:
-    parseInt(process.env.MESSAGE_CONCURRENCY_LIMIT) || 5, // Parallel message processing limit
-  CACHE_CLEANUP_INTERVAL:
-    parseInt(process.env.CACHE_CLEANUP_INTERVAL) || 600000, // 10 minutes
-  CACHE_MAX_AGE: parseInt(process.env.CACHE_MAX_AGE) || 3600000, // 1 hour
-  CONVERSATION_UPDATE_INTERVAL:
-    parseInt(process.env.CONVERSATION_UPDATE_INTERVAL) || 2000, // 2 seconds
-  CONVERSATION_BATCH_SIZE: parseInt(process.env.CONVERSATION_BATCH_SIZE) || 5, // Batch size for DB updates
-  MEMORY_CLEANUP_INTERVAL:
-    parseInt(process.env.MEMORY_CLEANUP_INTERVAL) || 900000, // 15 minutes
-  MEMORY_WARN_THRESHOLD: parseInt(process.env.MEMORY_WARN_THRESHOLD) || 400, // MB
-
-  // Panel Configuration (for bot-hosting.net and similar platforms)
-  PANEL_PORT:
-    parseInt(process.env.PANEL_PORT) || parseInt(process.env.PORT) || 3000,
-  PANEL_HOST: process.env.PANEL_HOST || process.env.HOST || "0.0.0.0",
-  KEEP_ALIVE_INTERVAL: parseInt(process.env.KEEP_ALIVE_INTERVAL) || 60000, // 60 seconds
-  PANEL_ENABLED: toBool(process.env.PANEL_ENABLED),
-  // Bearer token required by POST /api/restart; empty = the endpoint is disabled (403)
-  PANEL_TOKEN: process.env.PANEL_TOKEN || "",
 };
+
+for (const entry of catalog.entries) {
+  Object.defineProperty(config, entry.configProp, {
+    enumerable: true,
+    configurable: true,
+    get: () => store.get(entry.key),
+    set: (value) => store.setRuntime(entry.key, value),
+  });
+}
+
+module.exports = config;

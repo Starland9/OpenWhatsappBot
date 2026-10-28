@@ -1,5 +1,6 @@
 const { getLang } = require("../lib/utils/language");
 const config = require("../config");
+const settingsStore = require("../lib/utils/settingsStore");
 const {
   fetchJson,
   fetchBuffer,
@@ -36,6 +37,11 @@ const MAX_SEARCH_LENGTH = 200;
 
 let tokenCache = null; // { value, expiresAt }
 let tokenRequest = null;
+
+// New credentials from the panel: the cached token belongs to the old ones
+settingsStore.onChange(["REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET"], () => {
+  tokenCache = null;
+});
 
 function hasKeys() {
   return !!(config.REDDIT_CLIENT_ID && config.REDDIT_CLIENT_SECRET);
@@ -176,6 +182,9 @@ function formatPost(index, post) {
 }
 
 module.exports = {
+  // used by the key test of the panel (settings-catalog.md section 7): Reddit wants the same agent
+  USER_AGENT,
+
   command: {
     pattern: "reddit",
     desc: getLang("plugins.reddit.desc"),

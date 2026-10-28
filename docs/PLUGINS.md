@@ -1,6 +1,51 @@
 # New Plugins Documentation
 
-This document describes the 15 new plugins added to OpenWhatsappBot with multimodal support.
+This document describes the 15 new plugins added to OpenWhatsappBot with multimodal support. It starts with a quick reference of the everyday commands.
+
+## 📱 Essential commands
+
+The prefix is `.` by default (`PREFIX`). Send `.menu` to the bot for the live list, and `.help <command>` for the aliases, access and usage of one command. Matching is exact: a command only answers to its name or one of its aliases.
+
+### General
+
+- `.ping` - Check bot latency
+- `.menu` - Display all commands
+- `.help <command>` - Show the aliases, access and usage of one command
+- `.alive` - Show bot status
+
+### AI
+
+- `.gpt <query>` - Chat with ChatGPT
+- `.gemini <query>` - Chat with Google Gemini
+- `.ar ...` - Configure the AI auto-responder (owner only, see [AUTO_RESPONDER_GUIDE.md](AUTO_RESPONDER_GUIDE.md))
+
+### Group Management
+
+- `.tagall <text>` - Tag all members (admin only)
+- `.kick @user` - Remove member(s) (admin only)
+- `.promote @user` - Promote to admin (admin only)
+- `.demote @user` - Demote from admin (admin only)
+- `.warn @user [reason]` - Warn a member (admin only)
+
+### Media
+
+- `.sticker` - Create sticker from image/video (reply to media)
+- `.qr <text>` - Generate QR code
+
+### Utilities
+
+- `.trt <lang> <text>` - Translate a text (aliases `.translate`, `.tr`; also works on a replied message)
+- `.remind <when> <text>` - Persistent reminder, e.g. `.remind 2h Call` or `.remind 14:30 Meeting`
+
+### Downloads
+
+- `.ytdl <url>` - Download a YouTube video (15 min max; alias `.ytv`)
+- `.yta <url>` - Download YouTube audio (60 min max)
+- `.dl <url> [audio]` - Download from TikTok, Instagram, Facebook, X and more
+
+Every command, its aliases, who can use it, the external service it needs and its audit status are listed in [AUDIT_COMMANDES.md](AUDIT_COMMANDES.md) (in French). Commands can also be turned off everywhere or in one group from the [admin panel](ADMIN_PANEL.md). To write your own, see [PLUGIN_CREATION_DOC.md](PLUGIN_CREATION_DOC.md).
+
+---
 
 ## 🌐 Plugin 1: Translation (translate)
 

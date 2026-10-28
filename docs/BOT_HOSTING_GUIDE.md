@@ -21,7 +21,7 @@ Ce guide complet vous explique comment déployer OpenWhatsappBot sur [bot-hostin
 Avant de commencer, assurez-vous d'avoir :
 
 - ✅ Un compte sur [bot-hosting.net](https://bot-hosting.net) ou une plateforme similaire
-- ✅ Un plan avec support Node.js 20+
+- ✅ Un plan avec support Node.js 24+
 - ✅ Accès au gestionnaire de fichiers du panel
 - ✅ Un compte WhatsApp actif pour le bot
 - ✅ (Optionnel) Des clés API pour les fonctionnalités avancées (Gemini, OpenAI, etc.)
@@ -326,7 +326,7 @@ curl -X POST -H "Authorization: Bearer $PANEL_TOKEN" http://localhost:3000/api/r
 ### Le bot ne démarre pas
 
 1. **Vérifiez les logs** : Consultez les logs du panel pour identifier l'erreur
-2. **Node.js version** : Assurez-vous que Node.js 20+ est utilisé
+2. **Node.js version** : Assurez-vous que Node.js 24+ est utilisé
    ```bash
    node --version
    ```
@@ -413,7 +413,7 @@ Dans une image Docker, reconstruisez l'image : le panel affiche alors la marche 
 - [Documentation Principale](../README.md)
 - [Guide de Création de Plugins](PLUGIN_CREATION_DOC.md)
 - [Guide du Système de Langue](LANGUAGE_SYSTEM.md)
-- [Guide d'Optimisation CPU](../CPU_OPTIMIZATION_GUIDE.md)
+- [Guide d'Optimisation CPU](CPU_OPTIMIZATION_GUIDE.md)
 - [GitHub Repository](https://github.com/Starland9/OpenWhatsappBot)
 
 ---

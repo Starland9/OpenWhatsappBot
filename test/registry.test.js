@@ -10,7 +10,7 @@
  *  - the loader order is sorted.
  */
 
-const { test, before, after } = require("node:test");
+const { test, before, after, mock } = require("node:test");
 const assert = require("node:assert/strict");
 const fakes = require("./helpers/fakes");
 
@@ -213,4 +213,163 @@ test("every command has a description and a category, and the description is tra
   }
   t.diagnostic(`${pendingI18n} translation key(s) from i18n fragments overlaid on lang/*.json`);
   fakes.assertNone(problems);
+});
+
+// ---------------------------------------------------------------------------
+// Lazy command descriptions (feature 002, contracts/runtime.md section 4 "Lazy command descriptions")
+// ---------------------------------------------------------------------------
+
+/** A registry and a loader that are not the shared ones, so that fake plugins never reach the real registry */
+function isolatedRegistry() {
+  const paths = [require.resolve("../lib/plugins/registry"), require.resolve("../lib/plugins/loader")];
+  const saved = paths.map((p) => require.cache[p]);
+  paths.forEach((p) => delete require.cache[p]);
+  try {
+    return { registry: require(paths[0]), loader: require(paths[1]) };
+  } finally {
+    paths.forEach((p, i) => {
+      if (saved[i]) require.cache[p] = saved[i];
+      else delete require.cache[p];
+    });
+  }
+}
+
+/** A directory of plugin files whose descriptions come from a key, a literal and a composition */
+function writePluginDir(t) {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "owb-desc-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const language = JSON.stringify(path.join(fakes.ROOT, "lib", "utils", "language"));
+  const files = {
+    "zz-key.js": `const { getLang } = require(${language});
+module.exports = {
+  command: { pattern: "zzkey", desc: getLang("plugins.ping.desc"), type: "test" },
+  async execute() {},
+};`,
+    "zz-literal.js": `module.exports = {
+  command: { pattern: "zzliteral", desc: "A literal description", type: "test" },
+  async execute() {},
+};`,
+    "zz-composed.js": `const { getLang } = require(${language});
+module.exports = {
+  command: { pattern: "zzcomposed", desc: getLang("plugins.ping.desc") + " / " + getLang("common.error"), type: "test" },
+  async execute() {},
+};`,
+    "zz-hook-only.js": `module.exports = { async onMessage() { return false; } };`,
+  };
+  for (const [file, source] of Object.entries(files)) fs.writeFileSync(path.join(dir, file), source);
+  return dir;
+}
+
+const { languageManager } = require("../lib/utils/language");
+
+test("entry.desc is an enumerable getter returning a translated string; entry.descKey is the key or null", () => {
+  let withKey = 0;
+  const problems = [];
+  for (const entry of commands) {
+    const descriptor = Object.getOwnPropertyDescriptor(entry, "desc");
+    if (!descriptor || typeof descriptor.get !== "function" || !descriptor.enumerable) {
+      problems.push(`${entry.file}: desc is not an enumerable getter`);
+      continue;
+    }
+    if (typeof entry.desc !== "string" || entry.desc.trim() === "") problems.push(`${entry.file}: desc is not a string`);
+    if (!Object.keys(entry).includes("desc") || ({ ...entry }).desc !== entry.desc) problems.push(`${entry.file}: desc is not copied by a spread`);
+    if (entry.descKey === null) {
+      // a literal: shown as written, never a key
+      if (/^(plugins|common|extra)\.[\w.]+$/.test(entry.desc)) problems.push(`${entry.file}: a literal desc looks like a key`);
+    } else if (typeof entry.descKey !== "string" || !/^(plugins|common|extra)\.[\w.]+$/.test(entry.descKey)) {
+      problems.push(`${entry.file}: descKey is ${JSON.stringify(entry.descKey)}`);
+    } else {
+      withKey++;
+      if (entry.desc !== languageManager.getLang(entry.descKey)) problems.push(`${entry.file}: desc is not getLang(descKey)`);
+      if (entry.desc === entry.descKey) problems.push(`${entry.file}: desc is the untranslated key "${entry.descKey}"`);
+    }
+  }
+  fakes.assertNone(problems);
+  assert.ok(withKey >= commands.length - 6, `only ${withKey} of ${commands.length} commands know their description key`);
+  assert.equal(registry.getCommandByPattern("ping").descKey, "plugins.ping.desc");
+});
+
+test("entry.desc follows a text override at once, and goes back when it is cleared", () => {
+  const entry = registry.getCommandByPattern("ping");
+  const code = languageManager.activeCode();
+  const base = entry.desc;
+  try {
+    languageManager.setOverride(code, "plugins.ping.desc", "Latency probe (edited)");
+    assert.equal(entry.desc, "Latency probe (edited)");
+    assert.equal(registry.getCommandByPattern("ping").desc, "Latency probe (edited)");
+  } finally {
+    languageManager.clearOverride(code, "plugins.ping.desc");
+  }
+  assert.equal(entry.desc, base);
+});
+
+test("entry.desc follows a BOT_LANG change", () => {
+  const entry = registry.getCommandByPattern("ping");
+  const active = languageManager.activeCode();
+  const other = active === "fr" ? "en" : "fr";
+  const expected = languageManager.getBase(other, "plugins.ping.desc");
+  assert.ok(expected && expected !== entry.desc, "the two language files must differ for this test");
+
+  const saved = { currentLang: languageManager.currentLang, translations: languageManager.translations };
+  try {
+    // what reload() does, without dropping the not-yet-merged fragments that other tests rely on
+    languageManager.currentLang = other;
+    languageManager.translations = languageManager.readFile(other);
+    assert.equal(entry.desc, expected);
+  } finally {
+    Object.assign(languageManager, saved);
+  }
+  assert.notEqual(entry.desc, expected);
+});
+
+test("the loader passes the captured key (null for a literal or a composed text) to registerPlugin", async (t) => {
+  const dir = writePluginDir(t);
+  const { registry: fresh, loader: freshLoader } = isolatedRegistry();
+  const spy = mock.method(fresh, "registerPlugin");
+  t.after(() => spy.mock.restore());
+
+  const { loaded, failed } = await freshLoader.loadAll(dir);
+  assert.deepEqual(failed, []);
+  assert.deepEqual(loaded, ["zz-composed.js", "zz-hook-only.js", "zz-key.js", "zz-literal.js"]);
+
+  const optionsOf = (file) => spy.mock.calls.find((c) => c.arguments[1] === file).arguments[2];
+  assert.deepEqual(optionsOf("zz-key.js"), { descKey: "plugins.ping.desc" });
+  assert.deepEqual(optionsOf("zz-literal.js"), { descKey: null });
+  assert.deepEqual(optionsOf("zz-composed.js"), { descKey: null });
+  assert.deepEqual(optionsOf("zz-hook-only.js"), { descKey: null });
+
+  const key = fresh.getCommandByPattern("zzkey");
+  assert.equal(key.descKey, "plugins.ping.desc");
+  assert.equal(key.desc, languageManager.getLang("plugins.ping.desc"));
+  const literal = fresh.getCommandByPattern("zzliteral");
+  assert.equal(literal.descKey, null);
+  assert.equal(literal.desc, "A literal description");
+  const composed = fresh.getCommandByPattern("zzcomposed");
+  assert.equal(composed.descKey, null);
+  assert.equal(composed.desc, `${languageManager.getLang("plugins.ping.desc")} / ${languageManager.getLang("common.error")}`);
+});
+
+test("a second loadAll over the require cache keeps the description keys", async (t) => {
+  const dir = writePluginDir(t);
+  const { registry: fresh, loader: freshLoader } = isolatedRegistry();
+  await freshLoader.loadAll(dir);
+
+  fresh._reset();
+  freshLoader.loadedPlugins = [];
+  await freshLoader.loadAll(dir); // the modules are cached: no getLang() runs again
+  assert.equal(fresh.getCommandByPattern("zzkey").descKey, "plugins.ping.desc");
+  assert.equal(fresh.getCommandByPattern("zzliteral").descKey, null);
+});
+
+test("registerPlugin without options stores a literal description (previous behaviour)", () => {
+  const { registry: fresh } = isolatedRegistry();
+  fresh.registerPlugin({ command: { pattern: "zzplain", desc: "Plain text", type: "test" }, async execute() {} }, "zz-plain.js");
+  const entry = fresh.getCommandByPattern("zzplain");
+  assert.equal(entry.desc, "Plain text");
+  assert.equal(entry.descKey, null);
+  entry.desc = "Assigned";
+  assert.equal(entry.desc, "Assigned", "assigning desc must not throw");
 });

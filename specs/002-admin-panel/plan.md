@@ -136,13 +136,14 @@ lib/
 │   └── public/ index.html icons.svg css/{theme,app}.css i18n/{en,fr}.json
 │               js/{app,router,api,i18n,live,ui}.mjs js/views/*.mjs js/components/*.mjs
 │               vendor/{preact,preact-hooks,htm}.mjs LICENSE-* MANIFEST.json
-├── utils/                     # NEW settingsStore.js secretBox.js logger.js broadcaster.js alerts.js
-│                              #     updater.js runtime.js
+├── utils/                     # NEW settingsStore.js secretBox.js logger.js events.js (core bus) broadcaster.js
+│                              #     alerts.js updater.js runtime.js (environment/supervisor detection only)
 │                              # EDIT language.js (overrides, lazy desc), http.js (key-refused signal,
 │                              #      service name), antiDeleteHandler.js (cache stats/clear),
 │                              #      downloader.js (busy state), 19 modules: pino( → logger
 ├── plugins/registry.js        # EDIT command state check, lazy descriptions, notifyOwners throttle, stats
-├── core/pipeline.js           # EDIT message counters
+├── core/pipeline.js           # EDIT message counters, maintenance gate during restore
+├── core/botRuntime.js         # NEW bot state + in-process restart (works with the panel disabled)
 ├── baileys/client.js          # EDIT qr/state events, restart() single-flight, pairing code, resetSession()
 └── database/models/           # NEW 14 models (Admin*, SettingOverride, CommandState, TextOverride,
                                #     AuditLog, DailyStat, KnownChat, Broadcast*, Alert*)
@@ -158,7 +159,7 @@ Dockerfile docker-compose.yml config.env.example README.md CLAUDE.md docs/  # ED
 
 **Structure Decision**: one deployable, with the panel embedded under `lib/admin/` (research R1). Code outside `lib/admin/` is limited to two kinds:
 
-- engines that must work with the panel disabled: the store, the broadcaster, the alerts, the updater and the logger;
+- engines that must work with the panel disabled: the store, the bot runtime, the event bus, the broadcaster, the alerts, the updater and the logger;
 - hooks into existing seams: the registry, the client, the language manager and plugins.
 
 ## Execution Strategy (models and parallelism)

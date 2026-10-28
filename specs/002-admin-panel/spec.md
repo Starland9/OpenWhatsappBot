@@ -45,6 +45,12 @@ Le panel doit couvrir ces usages sans rien retirer de ce qui existe : les comman
 - Q: Clés API enregistrées par le panel ? → A: Chiffrées au repos avec une clé locale propre à l'installation.
 - Q: Relais (proxy) non déclaré ? → A: Bandeau d'avertissement et réglage explicite ; aucune confiance automatique aux en-têtes du relais.
 - Q: Durcissements ? → A: Session limitée à 7 jours au total ; chemins de programmes exécutés par le bot en lecture seule.
+- Q: Destinations en échec d'une diffusion ? → A: Pas de réessai ; le rapport propose une nouvelle diffusion pré-remplie avec les destinations en échec, à confirmer.
+- Q: Durée de conservation du média d'une diffusion ? → A: 7 jours après la fin d'une diffusion ponctuelle ; tant qu'il existe pour un message récurrent ; visible et vidable dans Stockage.
+- Q: Quels comptes l'anti-bot retire-t-il ? → A: Seulement ceux identifiés avec certitude comme bots ; les cas douteux sont journalisés sans retrait.
+- Q: L'anti-lien s'applique-t-il aux commandes contenant un lien ? → A: Oui, à tout message d'un non-administrateur, commandes comprises.
+- Q: Ancien interrupteur d'activation encore présent dans la configuration ? → A: Ignoré, avec un avertissement au démarrage expliquant comment désactiver le panel.
+- Q: Valeur par défaut affichée quand l'exemple et le code divergent ? → A: Celle qui s'applique réellement sans valeur dans le fichier (le code) ; aucun changement de comportement.
 - Q: Choix par défaut ? → A: La sauvegarde exclut l'historique du répondeur IA et l'historique d'administration ; toutes les alertes sont activées au départ ; un message récurrent « le 31 » part le dernier jour des mois plus courts.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -205,10 +211,11 @@ Le propriétaire rédige un message (texte, avec une image ou un document facult
 1. **Given** la page de diffusion, **When** le propriétaire choisit les destinations, **Then** il ne peut choisir que des groupes dont le bot est membre et des discussions privées qui ont déjà écrit au bot, jamais un numéro saisi à la main.
 2. **Given** un message et 20 destinations, **When** le propriétaire confirme l'envoi, **Then** les messages partent un par un, espacés de 5 secondes au moins par défaut, et la progression s'affiche en direct.
 3. **Given** une diffusion en cours, **When** le propriétaire l'annule, **Then** aucune nouvelle destination ne reçoit le message, et le rapport indique les destinations déjà servies.
-4. **Given** une diffusion en cours, **When** le bot redémarre, **Then** la diffusion reprend avec les destinations restantes, et aucune destination ne reçoit le message deux fois.
-5. **Given** une diffusion programmée, **When** sa date arrive, **Then** elle part, même si le bot a redémarré entre-temps.
-6. **Given** un message récurrent « chaque lundi à 8 h » vers un groupe, **When** chaque lundi 8 h arrive (fuseau horaire du bot), **Then** le groupe reçoit le message une seule fois par occurrence ; le propriétaire peut le mettre en pause, le reprendre, le modifier ou le supprimer.
-7. **Given** un message récurrent dont une occurrence tombe pendant une coupure du bot, **When** le bot revient plus d'une heure après, **Then** cette occurrence est sautée et notée dans l'historique, et la suivante part normalement.
+4. **Given** une diffusion terminée avec des destinations en échec, **When** le propriétaire ouvre le rapport, **Then** il peut créer une nouvelle diffusion pré-remplie avec ces seules destinations, qu'il confirme comme toute diffusion ; aucune destination n'est renvoyée automatiquement.
+5. **Given** une diffusion en cours, **When** le bot redémarre, **Then** la diffusion reprend avec les destinations restantes, et aucune destination ne reçoit le message deux fois.
+6. **Given** une diffusion programmée, **When** sa date arrive, **Then** elle part, même si le bot a redémarré entre-temps.
+7. **Given** un message récurrent « chaque lundi à 8 h » vers un groupe, **When** chaque lundi 8 h arrive (fuseau horaire du bot), **Then** le groupe reçoit le message une seule fois par occurrence ; le propriétaire peut le mettre en pause, le reprendre, le modifier ou le supprimer.
+8. **Given** un message récurrent dont une occurrence tombe pendant une coupure du bot, **When** le bot revient plus d'une heure après, **Then** cette occurrence est sautée et notée dans l'historique, et la suivante part normalement.
 
 ---
 
@@ -352,7 +359,7 @@ Le propriétaire reçoit sur WhatsApp un message du bot quand quelque chose dema
 - **FR-028**: Le panel MUST lister les groupes du bot avec leur nom, leur nombre de membres et le statut d'administrateur du bot, avec pagination et filtre par nom.
 - **FR-029**: Pour chaque groupe, l'administrateur MUST pouvoir régler la bienvenue et le départ (activation, message avec aperçu des variables), l'anti-lien, l'anti-bot, les filtres (ajout, modification, suppression), les rôles des membres, les avertissements (consultation, remise à zéro) et la désactivation du bot dans le groupe.
 - **FR-030**: Les changements de réglages de groupe MUST s'appliquer dès le message ou l'événement suivant, sans redémarrage, et MUST rester cohérents avec les commandes WhatsApp équivalentes (une modification faite par l'une est visible par l'autre).
-- **FR-031**: Le bot MUST appliquer, dans un groupe où il est administrateur et où le réglage est actif : l'anti-lien (supprimer un message contenant un lien envoyé par un non-administrateur, avertir son auteur, le retirer au-delà de la limite d'avertissements) ; l'anti-bot (retirer un compte identifié comme bot) ; le mode muet (activer ou désactiver le réglage WhatsApp « seuls les administrateurs peuvent envoyer des messages »). Les administrateurs du groupe et les propriétaires sont exemptés.
+- **FR-031**: Le bot MUST appliquer, dans un groupe où il est administrateur et où le réglage est actif : l'anti-lien (supprimer un message contenant un lien envoyé par un non-administrateur, avertir son auteur, le retirer au-delà de la limite d'avertissements) ; l'anti-bot (retirer un compte identifié avec certitude comme bot ; un compte seulement suspect est journalisé, jamais retiré) ; le mode muet (activer ou désactiver le réglage WhatsApp « seuls les administrateurs peuvent envoyer des messages »). Les administrateurs du groupe et les propriétaires sont exemptés.
 - **FR-032**: Le panel MUST prévenir quand un réglage de groupe exige que le bot soit administrateur et qu'il ne l'est pas.
 - **FR-033**: Le panel MUST lister les discussions privées où le bot est désactivé et permettre de le réactiver.
 
@@ -395,7 +402,7 @@ Le propriétaire reçoit sur WhatsApp un message du bot quand quelque chose dema
 
 - **FR-054**: Le panel MUST afficher la version installée et, quand l'installation peut se mettre à jour elle-même, indiquer si une version plus récente existe avec la liste des changements, puis l'appliquer après confirmation et redémarrer ; sinon, il MUST expliquer comment mettre à jour. Un échec de mise à jour MUST laisser le bot sur la version actuelle.
 - **FR-055**: Le panel MUST permettre de mettre à jour les outils de téléchargement du bot.
-- **FR-056**: Le panel MUST afficher l'espace occupé par les médias temporaires, le cache anti-suppression en mémoire, les sauvegardes du panel, les journaux et la base de données, et permettre de vider chaque catégorie après confirmation, sauf la base de données (taille seulement).
+- **FR-056**: Le panel MUST afficher l'espace occupé par les médias temporaires, les médias de diffusion, le cache anti-suppression en mémoire, les sauvegardes du panel, les journaux et la base de données, et permettre de vider chaque catégorie après confirmation, sauf la base de données (taille seulement).
 
 #### Textes du bot
 

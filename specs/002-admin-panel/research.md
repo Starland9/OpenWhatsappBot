@@ -3,7 +3,7 @@
 Inputs: four parallel research streams (Sonnet, read-only, 2026-10-28), each with file:line evidence and throwaway spikes outside the repo:
 
 | Stream | File | Scope |
-|---|---|---|
+| --- | --- | --- |
 | A | [research/a-runtime.md](research/a-runtime.md) | config overrides applied live, settings catalog (Appendix A), text overrides, command disable, in-process restart, pairing, panel in both modes, stats hooks |
 | B | [research/b-web-security.md](research/b-web-security.md) | HTTP layer, UI without build, auth/sessions, cross-site defences, throttling, SSE, logs without secrets, panel i18n/theme, testability |
 | C | [research/c-data-jobs.md](research/c-data-jobs.md) | 14 new tables, known chats, economy adjustments, broadcast + recurrence engine, backup format, alerts, stats/audit, test design |
@@ -14,7 +14,7 @@ The stream files hold the detail (Decision / Rationale / Alternatives / Evidence
 ## 1. User decisions taken during research (2026-10-28)
 
 | # | Question | Decision | Overrides |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | U1 | Default bind address | Auto: `127.0.0.1` locally; `0.0.0.0` when a container (`/.dockerenv`, cgroup) or a panel host (`PORT` env) is detected; `PANEL_HOST` always wins | B "open point 1", D7 |
 | U2 | Activation switch | New key **`ADMIN_PANEL`** (default `true`). The old `PANEL_ENABLED` (never read, shipped as `false`) is ignored and removed from `config.env.example` and the docs | D7, A8 ("PANEL_ENABLED default true") |
 | U3 | Anti-link / anti-bot / mute | **Implement** them (spec FR on group enforcement) | A8 (recommended leaving out) |
@@ -28,6 +28,17 @@ The stream files hold the detail (Decision / Rationale / Alternatives / Evidence
 | U11 | Hardening | Absolute session cap 7 days (on top of 24 h idle); executable paths (`YTDLP_PATH`) read-only in the panel | B "open point 2", A8 |
 | U12 | Defaults | Backup excludes the AI `Conversation` table and the audit log (and the `Admin*` tables); every alert type on by default; a recurring "31st" fires on the last day of shorter months | C5, C6 |
 | U13 | UI library | **Preact 10.29.8 + htm 3.1.1**, vendored ES modules, no build step (user confirmed over htmx/Alpine) | — (confirms B2) |
+
+### User decisions taken during Phase 1 design (2026-10-28)
+
+| # | Question | Decision |
+| --- | --- | --- |
+| U14 | Failed broadcast targets | No retry route and no automatic retry. The report offers "new broadcast to the failed targets", a pre-filled new broadcast that the owner confirms. An interrupted target may have received the message, so it is never re-sent implicitly |
+| U15 | Broadcast media retention | A `once` broadcast's media is deleted 7 days after its run ends. A recurring broadcast's media is kept while the broadcast exists. A "broadcast media" category appears on the Storage page and can be emptied |
+| U16 | Anti-bot id shapes | Remove only the shapes no WhatsApp client produces (`BAE5` + 12 hex, 40-char `3EB0…`). The 22-char `3EB0…` ids (Baileys 7 and probably WhatsApp Web) are only logged as suspects (audit + log), never removed. Pin the shapes with fixtures |
+| U17 | Links inside commands | Strict: anti-link applies to every message from a non-admin, commands included (`.dl <url>` is deleted and warned). Group admins and owners are exempt |
+| U18 | Legacy `PANEL_ENABLED` | Ignored. If it is present in the environment, one console line at boot says it is no longer read and how to disable the panel (`ADMIN_PANEL=false`) |
+| U19 | Example vs code defaults (`AUTO_STATUS_VIEW`, `ENABLE_MESSAGE_REACTIONS`, `AUTO_READ`, `VPS`, `STICKER_AUTHOR`) | The panel shows the code default, which is what applies without a file value. `config.env.example` keeps its suggested values. No behaviour change |
 
 ## 2. Arbitration between streams
 
@@ -67,7 +78,7 @@ Rationale: removing a human is worse than missing a bot.
 ## 3. Decisions by area (summary; detail in the stream files)
 
 | Area | Decision | Stream |
-|---|---|---|
+| --- | --- | --- |
 | HTTP | Raw `node:http`, in-house router with mandatory per-route `auth`, enumerable routes; JSON bodies capped; uploads as `application/octet-stream` streamed to disk | B1 |
 | UI | Static SPA, Preact + htm vendored under `lib/admin/public/vendor/`, no server-side HTML templating, strict CSP (`script-src 'self'`) | B2, U13 |
 | Auth | `crypto.scrypt` N=2^15 r=8 p=3, single admin, one-time setup/reset tokens hashed in DB, reset by `tools/admin-reset.js` | B3 |

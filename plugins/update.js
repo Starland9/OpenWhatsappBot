@@ -2,13 +2,12 @@ const { simpleGit } = require("simple-git");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const pino = require("pino");
 const { getLang } = require("../lib/utils/language");
 const { safeLog } = require("../lib/utils/http");
 const downloader = require("../lib/utils/downloader");
 const config = require("../config");
 
-const logger = pino({ level: config.LOG_LEVEL });
+const logger = require("../lib/utils/logger").createLogger("update");
 
 const GIT_TIMEOUT_MS = 120000; // per git process, reset on output
 const INSTALL_TIMEOUT_MS = 5 * 60 * 1000;

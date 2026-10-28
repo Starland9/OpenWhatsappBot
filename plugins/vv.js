@@ -1,5 +1,4 @@
 const { extractMessageContent, getContentType } = require("baileys");
-const pino = require("pino");
 const { getLang } = require("../lib/utils/language");
 const { ViewOnce } = require("../lib/database");
 const settingsCache = require("../lib/utils/settingsCache");
@@ -8,7 +7,7 @@ const { getOwnerJids } = require("../lib/utils/permissions");
 const { safeLog } = require("../lib/utils/http");
 const config = require("../config");
 
-const logger = pino({ level: config.LOG_LEVEL });
+const logger = require("../lib/utils/logger").createLogger("vv");
 
 const KINDS = {
   imageMessage: "image",

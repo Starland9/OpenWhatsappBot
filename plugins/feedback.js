@@ -1,11 +1,10 @@
-const pino = require("pino");
 const { getLang } = require("../lib/utils/language");
 const { getOwnerJids, jidUser } = require("../lib/utils/permissions");
 const { safeLog } = require("../lib/utils/http");
 const cooldown = require("../lib/utils/cooldown");
 const config = require("../config");
 
-const logger = pino({ level: config.LOG_LEVEL });
+const logger = require("../lib/utils/logger").createLogger("feedback");
 
 const COOLDOWN_MS = 60 * 1000;
 const MAX_LENGTH = 1000;

@@ -61,7 +61,8 @@ afterEach(() => settingsStore.clearRuntime());
 
 describe("environment reads match the catalog", () => {
   test("config.js reads process.env directly only for what builds the Sequelize instance", () => {
-    const direct = envReads("config.js");
+    // OWB_NO_CONFIG_ENV is a loader switch (skip config.env), not a setting
+    const direct = envReads("config.js").filter((name) => name !== "OWB_NO_CONFIG_ENV");
     assert.deepEqual(direct, ["DATABASE_SSL", "DATABASE_URL"]);
     for (const name of direct) assert.ok(catalogEnvNames.has(name), `${name} is a catalog name`);
   });

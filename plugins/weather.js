@@ -222,7 +222,7 @@ module.exports = {
       }
       console.error("Weather error:", safeLog(error));
       await message.reply(
-        getLang(replyKeyFor(classifyError(error, { hasKey: !!config.WEATHER_API_KEY }))),
+        getLang(replyKeyFor(classifyError(error, { hasKey: !!config.WEATHER_API_KEY, service: "weather" }))),
       );
     }
   },

@@ -20,8 +20,8 @@ function maxTextLength() {
 }
 
 // Lang key of the reply for an audio that could not be processed
-function failureKey(error, fallbackKey) {
-  const kind = classifyError(error, { hasKey: true });
+function failureKey(error, fallbackKey, service) {
+  const kind = classifyError(error, { hasKey: true, service });
   return kind === "error" ? fallbackKey : replyKeyFor(kind);
 }
 
@@ -135,7 +135,7 @@ async function handleTranscription(message) {
     // Never reply with error.message: OpenAI errors can contain a key fragment
     console.error("Voice transcription error:", safeLog(error));
     await message.react("❌");
-    await message.reply(getLang(failureKey(error, "plugins.voice.error")));
+    await message.reply(getLang(failureKey(error, "plugins.voice.error", "openai")));
   }
 }
 

@@ -154,7 +154,7 @@ module.exports = {
         return await message.reply(getLang("plugins.imagen.model_not_found"));
       }
       await message.reply(
-        getLang(replyKeyFor(classifyError(error, { hasKey: true }))),
+        getLang(replyKeyFor(classifyError(error, { hasKey: true, service: "gemini" }))),
       );
     }
   },

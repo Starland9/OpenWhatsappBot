@@ -1,0 +1,18 @@
+{
+  "en": {
+    "alerts.reconnected": "🔌 The bot is back online after {0} without a connection.",
+    "alerts.errors_series": "⚠️ {0} command errors in {1} minutes. Most affected: {2}.",
+    "alerts.key_refused": "🔑 The {0} service refused the configured API key. Check the key in the panel (API keys).",
+    "alerts.login_blocked": "🚫 Too many failed panel logins from {0}. This origin is blocked for {1} minutes.",
+    "alerts.new_origin": "🆕 First panel login from {0}. If this was not you, change the panel password.",
+    "alerts.update_available": "⬆️ Version {0} of the bot is available. Install it from the panel or with the update command."
+  },
+  "fr": {
+    "alerts.reconnected": "🔌 Le bot est de nouveau en ligne après {0} sans connexion.",
+    "alerts.errors_series": "⚠️ {0} erreurs de commandes en {1} minutes. Les plus touchées : {2}.",
+    "alerts.key_refused": "🔑 Le service {0} a refusé la clé d'API configurée. Vérifiez la clé dans le panel (Clés d'API).",
+    "alerts.login_blocked": "🚫 Trop de connexions échouées au panel depuis {0}. Cette origine est bloquée pendant {1} minutes.",
+    "alerts.new_origin": "🆕 Première connexion au panel depuis {0}. Si ce n'était pas vous, changez le mot de passe du panel.",
+    "alerts.update_available": "⬆️ La version {0} du bot est disponible. Installez-la depuis le panel ou avec la commande de mise à jour."
+  }
+}

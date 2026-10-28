@@ -117,7 +117,7 @@ module.exports = {
       await message.react("❌");
       console.error("ChatGPT error:", safeLog(error));
       await message.reply(
-        getLang(replyKeyFor(classifyError(error, { hasKey: !!config.OPENAI_API_KEY }))),
+        getLang(replyKeyFor(classifyError(error, { hasKey: !!config.OPENAI_API_KEY, service: "openai" }))),
       );
     }
   },

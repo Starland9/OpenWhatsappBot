@@ -252,7 +252,11 @@ module.exports = {
             ? !!config.NEWS_API_KEY
             : undefined;
       const kind =
-        (command === "news" && newsApiKind(error)) || classifyError(error, { hasKey });
+        (command === "news" && newsApiKind(error)) ||
+        classifyError(error, {
+          hasKey,
+          service: command === "stock" ? "alphavantage" : command === "news" ? "news" : undefined,
+        });
       await message.reply(getLang(replyKeyFor(kind)));
     }
   },

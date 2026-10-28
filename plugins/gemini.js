@@ -143,7 +143,7 @@ module.exports = {
         return await message.reply(getLang("plugins.gemini.model_not_found"));
       }
       await message.reply(
-        getLang(replyKeyFor(classifyError(error, { hasKey: !!config.GEMINI_API_KEY }))),
+        getLang(replyKeyFor(classifyError(error, { hasKey: !!config.GEMINI_API_KEY, service: "gemini" }))),
       );
     }
   },

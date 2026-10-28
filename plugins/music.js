@@ -193,6 +193,7 @@ module.exports = {
 
       const kind = classifyError(err, {
         hasKey: command === "spotify" ? hasSpotifyKeys() : undefined,
+        service: command === "spotify" ? "spotify" : undefined,
       });
       if (kind === "error") throw err;
 

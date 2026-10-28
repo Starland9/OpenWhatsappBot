@@ -150,7 +150,7 @@ module.exports = {
     } catch (err) {
       await message.react("❌");
 
-      let kind = classifyError(err, { hasKey });
+      let kind = classifyError(err, { hasKey, service: isGif ? "giphy" : "unsplash" });
       // Unsplash answers 403 "Rate Limit Exceeded" once the hourly quota is used
       if (kind === "service_unavailable" && /rate limit/i.test(String(err?.response?.data))) {
         kind = "rate_limited";

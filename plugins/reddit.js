@@ -264,7 +264,7 @@ module.exports = {
         return await message.reply(getLang("common.not_configured"));
       }
 
-      const kind = classifyError(err, { hasKey: true });
+      const kind = classifyError(err, { hasKey: true, service: "reddit" });
       if (kind === "error") throw err;
 
       console.error("Reddit error:", safeLog(err));

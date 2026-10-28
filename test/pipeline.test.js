@@ -483,7 +483,8 @@ test("counters: the count happens before the hooks and the command", async (t) =
   t.after(() => spy.mock.restore());
 
   await client.dispatch("messages", [fakes.rawMessage({ body: ".zzcmd" })], "notify");
-  assert.deepEqual(order, ["count:messages", "onMessage", "execute"]);
+  // the registry counts the successful command after it ran (W-CMD)
+  assert.deepEqual(order, ["count:messages", "onMessage", "execute", "count:cmd_ok"]);
 });
 
 test("maintenance gate: messages are dropped while active (nothing runs, nothing counts) and flow again after", async (t) => {
@@ -501,7 +502,7 @@ test("maintenance gate: messages are dropped while active (nothing runs, nothing
   maintenanceMode.leave();
   await client.dispatch("messages", [fakes.rawMessage({ body: ".zzcmd after" })], "notify");
   assert.deepEqual(sendsOf(sock), [{ jid: IDS.OWNER_PN, text: "ran:zzcmd:after" }]);
-  assert.deepEqual(counted(), [["messages"]]);
+  assert.deepEqual(counted(), [["messages"], ["cmd_ok", "zzcmd"]]);
 });
 
 test("maintenance gate: processMessage brackets each message with begin()/done(), even when it fails", async () => {

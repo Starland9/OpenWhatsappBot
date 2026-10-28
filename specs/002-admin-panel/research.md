@@ -40,6 +40,15 @@ The stream files hold the detail (Decision / Rationale / Alternatives / Evidence
 | U18 | Legacy `PANEL_ENABLED` | Ignored. If it is present in the environment, one console line at boot says it is no longer read and how to disable the panel (`ADMIN_PANEL=false`) |
 | U19 | Example vs code defaults (`AUTO_STATUS_VIEW`, `ENABLE_MESSAGE_REACTIONS`, `AUTO_READ`, `VPS`, `STICKER_AUTHOR`) | The panel shows the code default, which is what applies without a file value. `config.env.example` keeps its suggested values. No behaviour change |
 
+### Decisions taken by the orchestrator while the user was away (2026-10-28 night)
+
+The user delegated the remaining decisions ("je te laisse les prendre s'il y a encore des décisions"). Each one takes the safest option closest to earlier choices; review them here.
+
+| # | Question | Decision |
+| --- | --- | --- |
+| O1 | Media of a "new broadcast to the failed targets" (U14) | Copied server-side from the original broadcast (`reuseMediaOf`) while it still exists (7-day retention, U15); otherwise the owner re-uploads |
+| O2 | `LOG_LEVEL` effect | Immediate (`logger.setLevel`), as in the catalog |
+
 ## 2. Arbitration between streams
 
 ### R1. One module root: `lib/admin/`
@@ -62,7 +71,7 @@ Alternatives: plain text (rejected by the user); a key derived from the admin pa
 
 ### R3. Group guard (user decisions U3, U4)
 
-**Decision**: new hook-only plugin `plugins/groupguard.js`, `hookPriority.onMessage = 50` (after the observers role/trackmessages/afk/notify, before `addfilter` at 90). Anti-link: in a group with `antilink` on and the bot admin, a link (URL or `chat.whatsapp.com` invite) from a non-admin non-owner is deleted (`sendMessage(jid, { delete: key })`), the author gets a warning through the existing `Warn` model and `WARN_LIMIT`/`ANTILINK_MSG`, and is removed at the limit (`guardTarget` + `assertParticipantResult`). Anti-bot: a non-admin sender whose message id has a known bot-library shape (Baileys `3EB0…`/`BAE5…`, Web clients' long hex ids) is removed with `ANTIBOT_MSG`. Mute: no hook; the group service calls `groupSettingUpdate` and writes `Group.mute`. Group settings are read through `settingsCache` `group:<jid>` (existing key), so the guard costs one cached lookup per group message.
+**Decision**: new hook-only plugin `plugins/groupguard.js`, `hookPriority.onMessage = 50` (after the observers role/trackmessages/afk/notify, before `addfilter` at 90). Anti-link: in a group with `antilink` on and the bot admin, a link (URL or `chat.whatsapp.com` invite) from a non-admin non-owner is deleted (`sendMessage(jid, { delete: key })`), the author gets a warning through the existing `Warn` model and `WARN_LIMIT`/`ANTILINK_MSG`, and is removed at the limit (`guardTarget` + `assertParticipantResult`). Anti-bot: per U16, a non-admin sender is removed with `ANTIBOT_MSG` only for id shapes no WhatsApp client produces (`BAE5` + 12 hex, 40-char `3EB0…`); 22-char `3EB0…` ids are logged as suspects, never removed. Mute: no hook; the group service calls `groupSettingUpdate` and writes `Group.mute`. Group settings are read through `settingsCache` `group:<jid>` (existing key), so the guard costs one cached lookup per group message.
 Rationale: the columns and messages (`ANTILINK_MSG`, `ANTIBOT_MSG`, `WARN_*`) already exist; only enforcement is missing (C "findings" 1).
 Alternatives: flagged switches or dropping them (rejected by the user).
 

@@ -14,3 +14,22 @@ Orchestrator notes, kept across context compactions. Decisions taken while the u
 | Wave | Agent | Tasks | Status | Commit |
 | --- | --- | --- | --- | --- |
 | Setup | main | T001–T003 | done | (this commit) |
+| W0-A | F1 | T019–T025 | done | a96eedf |
+| W0-A | F7 | T038–T042 | done | 08f47a7 |
+
+## Pending requests (feed to later agents)
+
+- F5: call `logger.install()` first in `index.js` and `panel.js`, then `setLevel(config.LOG_LEVEL)` after `store.load()`; replace the `pino(` calls left in `index.js`, `panel.js`, `lib/core/pipeline.js`, `lib/utils/{conversationManager,antiDeleteHandler,memoryManager}.js` (antiDeleteHandler is F2's in W0) so `test/admin-logging.test.js` passes; pipeline tests call `maintenanceMode._reset()` between tests.
+- W1 (W-CMD, W-GRP, W-ALR): emit on the bus (`lib/utils/events.js`) and pass `service` to `classifyError` in the nine plugins.
+| W0-A | F3 | T004–T018 | done | 3ae351b |
+| W0-A | F6 | T060–T073 | done | 90f7df3 |
+
+Note for the user: F6's headless-Chrome smoke left `/tmp/owb-chrome-*` profile directories; its own cleanup was denied by the permission system, so the orchestrator left them for the user to remove (`rm -rf /tmp/owb-chrome-*`).
+| W0-A | F2 | T026–T037 | done | 4e9b3be |
+
+**Incident (F2)**: a scratch script of agent F2 loaded the real `config.env` through `config.js` and printed some values in the agent's own tool output (nothing written or committed). Mitigation: `config.js` now skips `config.env` when `OWB_NO_CONFIG_ENV=1` (commit cf7f25c); every later agent runs with it exported, and F5 sets it in `test/helpers/fakes.js#setupEnv`. To report to the user.
+
+- F2 requests (boot, F5): `settingsStore.load({ models, secretBox, redactor })` after `sync()` and before `PluginLoader.loadAll()`; `restartBot` calls `settingsStore.reload()` + `markInForce()` + `reconfigure()` on the three singletons; `BOT_LANG` change → `languageManager.reload()` (unwired: give to F5 via store change event); `TIMEZONE` change → broadcaster recompute (W-BC).
+| W0-A | F4 | T043–T059 | done | 2836534 |
+
+- F4 requests: W-DASH and W-PAIR call `hub.setSnapshot("state"|"pairing", fn)` and `hub.publishState({force:true})`; W2-A adds panel key `errors.starting`.

@@ -57,7 +57,7 @@ Expected `public` set, snapshotted by `test/admin-security.test.js`: the static 
 | Cookie | Set by | Flags | Lifetime |
 | --- | --- | --- | --- |
 | `__Host-owb_sid` over HTTPS, `owb_sid` over plain HTTP | login, setup, password change | `Path=/; HttpOnly; SameSite=Strict`, plus `Secure` over HTTPS (the `__Host-` form requires `Secure`, `Path=/` and no `Domain`) | `Max-Age = min(86400, remaining absolute lifetime)`; re-issued on touching answers at most once per 60 s (same cadence as the idle write-behind); cleared (`Max-Age=0`) at logout, expiry and rotation |
-| `owb_setup` | `GET /admin/setup` | `Path=/admin/api/setup; HttpOnly; SameSite=Strict`, plus `Secure` over HTTPS (no `__Host-` form: the path is not `/`) | remaining life of the token (at most 30 min); cleared when consumed |
+| `owb_setup` | `GET /admin/setup` | `Path=/admin/api; HttpOnly; SameSite=Strict` (AUTH-1 must see it to show the setup form; it was `/admin/api/setup`, which a browser never sends to `/admin/api/session`), plus `Secure` over HTTPS (no `__Host-` form: the path is not `/`) | remaining life of the token (at most 30 min); cleared when consumed |
 
 "HTTPS" means the socket is encrypted, or `X-Forwarded-Proto: https` arrived from a peer matched by `PANEL_TRUST_PROXY`. Both session cookie names are accepted on read (the `__Host-` one wins). The value is 32 random bytes in base64url; the database stores only its SHA-256.
 

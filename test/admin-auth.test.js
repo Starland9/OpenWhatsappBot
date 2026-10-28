@@ -148,7 +148,8 @@ describe("setup link", () => {
     const cookie = parseSetCookie(landing.setCookies[0]);
     assert.equal(cookie.name, "owb_setup");
     assert.equal(cookie.value, token);
-    assert.equal(cookie.attrs.path, "/admin/api/setup");
+    // scoped to the API, and wide enough for AUTH-1 (/admin/api/session) to see it: the SPA shows the form from there
+    assert.equal(cookie.attrs.path, "/admin/api");
     assert.ok(cookie.attrs.httponly);
     assert.equal(cookie.attrs.samesite, "Strict");
     assert.equal(cookie.attrs["max-age"], String(30 * 60));

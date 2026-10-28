@@ -16,7 +16,8 @@
  *   client.fork()                                a second client with an EMPTY jar (another browser)
  *
  * A client remembers a string `csrf` found in any JSON answer, like the SPA's api.mjs. Cookies with
- * `Max-Age=0` are removed from the jar, as a browser does.
+ * `Max-Age=0` are removed from the jar, as a browser does. Like a browser, the jar sends a cookie only to the paths
+ * its `Path` attribute covers (RFC 6265 path-match): a cookie scoped too narrowly fails here as it would in the SPA.
  */
 
 const http = require("http");
@@ -73,8 +74,16 @@ function rawRequest({ port, method = "GET", path: target = "/", headers = {}, bo
   });
 }
 
+/** RFC 6265 section 5.1.4: does the cookie path `cookiePath` cover the request path? */
+function pathMatches(requestPath, cookiePath) {
+  const path = String(requestPath || "/").split("?")[0] || "/";
+  if (path === cookiePath) return true;
+  if (!path.startsWith(cookiePath)) return false;
+  return cookiePath.endsWith("/") || path[cookiePath.length] === "/";
+}
+
 function createAdminClient({ base, port }, options = {}) {
-  const jar = new Map();
+  const jar = new Map(); // name -> { value, path }
   let csrf = null;
   const baseOrigin = options.origin || base;
 
@@ -83,11 +92,15 @@ function createAdminClient({ base, port }, options = {}) {
       const cookie = parseSetCookie(line);
       if (!cookie.name) continue;
       if (cookie.attrs["max-age"] !== undefined && Number(cookie.attrs["max-age"]) <= 0) jar.delete(cookie.name);
-      else jar.set(cookie.name, cookie.value);
+      else jar.set(cookie.name, { value: cookie.value, path: cookie.attrs.path || "/" });
     }
   }
 
-  const cookieHeader = () => [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
+  const cookieHeader = (requestPath) =>
+    [...jar]
+      .filter(([, cookie]) => pathMatches(requestPath, cookie.path))
+      .map(([name, cookie]) => `${name}=${cookie.value}`)
+      .join("; ");
 
   function remember(json) {
     if (json && typeof json === "object" && typeof json.csrf === "string") csrf = json.csrf;
@@ -103,7 +116,7 @@ function createAdminClient({ base, port }, options = {}) {
       }
     }
     Object.assign(merged, headers); // an explicit header (or null, to drop one) always wins
-    const cookie = cookieHeader();
+    const cookie = cookieHeader(path);
     if (cookie && merged.Cookie === undefined) merged.Cookie = cookie;
     for (const key of Object.keys(merged)) if (merged[key] === null) delete merged[key];
 
@@ -133,9 +146,9 @@ function createAdminClient({ base, port }, options = {}) {
     set csrf(value) {
       csrf = value;
     },
-    cookie: (name) => jar.get(name) || null,
-    cookies: () => Object.fromEntries(jar),
-    setCookie: (name, value) => jar.set(name, value),
+    cookie: (name) => (jar.has(name) ? jar.get(name).value : null),
+    cookies: () => Object.fromEntries([...jar].map(([name, cookie]) => [name, cookie.value])),
+    setCookie: (name, value, path = "/") => jar.set(name, { value, path }),
     clearCookies() {
       jar.clear();
       csrf = null;
@@ -155,7 +168,7 @@ function createAdminClient({ base, port }, options = {}) {
 
     async raw({ method = "GET", path = "/", headers = {}, body, chunks, cookies = true } = {}) {
       const merged = { ...headers };
-      const cookie = cookieHeader();
+      const cookie = cookieHeader(path);
       if (cookies && cookie && merged.Cookie === undefined) merged.Cookie = cookie;
       for (const key of Object.keys(merged)) if (merged[key] === null) delete merged[key];
       if (body !== undefined && merged["Content-Length"] === undefined && !chunks) merged["Content-Length"] = Buffer.byteLength(body);

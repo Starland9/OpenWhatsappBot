@@ -1,0 +1,16 @@
+{
+  "en": {
+    "app.name": "Admin panel",
+    "banners.restart_now": "Restart now",
+    "banners.restart_started": "Restart in progress.",
+    "banners.secret_key_lost_unknown": "The key that encrypts stored secrets (data/panel.key) is missing or unreadable, so the stored secrets cannot be read. Enter them again.",
+    "errors.starting": "The bot is still starting up. Try again in a few seconds."
+  },
+  "fr": {
+    "app.name": "Panel d'administration",
+    "banners.restart_now": "Redémarrer maintenant",
+    "banners.restart_started": "Redémarrage en cours.",
+    "banners.secret_key_lost_unknown": "La clé qui chiffre les secrets enregistrés (data/panel.key) est absente ou illisible : les secrets enregistrés ne peuvent plus être lus. Ressaisissez-les.",
+    "errors.starting": "Le bot est encore en cours de démarrage. Réessayez dans quelques secondes."
+  }
+}

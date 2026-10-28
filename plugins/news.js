@@ -1,6 +1,7 @@
 const { getLang } = require("../lib/utils/language");
 const { fetchJson, classifyError, replyKeyFor, safeLog } = require("../lib/utils/http");
 const config = require("../config");
+const bus = require("../lib/utils/events");
 
 /**
  * News & Alerts Plugin - latest news, crypto prices, stock prices
@@ -60,6 +61,11 @@ function newsApiKind(error) {
   if (/^apiKey(Invalid|Missing|Disabled)$/.test(code)) return "not_configured";
   if (/^(apiKeyExhausted|rateLimited|maximumResultsReached)$/.test(code)) return "rate_limited";
   return null;
+}
+
+/** Does the NewsAPI code say the key we sent is refused (invalid or disabled), not just absent or out of quota? */
+function newsKeyRefused(error) {
+  return /^apiKey(Invalid|Disabled)$/.test(error?.response?.data?.code);
 }
 
 async function handleNews(message, rawQuery) {
@@ -251,8 +257,14 @@ module.exports = {
           : command === "news"
             ? !!config.NEWS_API_KEY
             : undefined;
+      // newsApiKind answers before classifyError, which would have announced the refused key: do it here
+      if (command === "news" && newsKeyRefused(error)) bus.emitSafe("key:refused", { service: "news", at: Date.now() });
       const kind =
-        (command === "news" && newsApiKind(error)) || classifyError(error, { hasKey });
+        (command === "news" && newsApiKind(error)) ||
+        classifyError(error, {
+          hasKey,
+          service: command === "stock" ? "alphavantage" : command === "news" ? "news" : undefined,
+        });
       await message.reply(getLang(replyKeyFor(kind)));
     }
   },

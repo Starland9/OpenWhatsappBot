@@ -1,0 +1,8 @@
+{
+  "en": {
+    "admin.panel_enabled_ignored": "PANEL_ENABLED is no longer read: the admin panel is controlled by ADMIN_PANEL (set ADMIN_PANEL=false to turn it off). Remove PANEL_ENABLED from your configuration."
+  },
+  "fr": {
+    "admin.panel_enabled_ignored": "PANEL_ENABLED n'est plus lu : le panel d'administration dépend de ADMIN_PANEL (mettez ADMIN_PANEL=false pour le désactiver). Retirez PANEL_ENABLED de votre configuration."
+  }
+}

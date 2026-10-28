@@ -1,0 +1,14 @@
+{
+  "en": {
+    "admin.setup_link": "Admin panel: open this link to create the administrator password (single use, valid {1} minutes): {0}",
+    "admin.reset_link": "Admin panel: open this link to choose a new administrator password (single use, valid {1} minutes): {0}",
+    "admin.reset_no_account": "No administrator account exists yet. Start the bot: a setup link is printed in the console.",
+    "admin.reset_failed": "The reset link could not be issued ({0}). Check DATABASE_URL and that the database is reachable."
+  },
+  "fr": {
+    "admin.setup_link": "Panel d'administration : ouvrez ce lien pour créer le mot de passe administrateur (usage unique, valable {1} minutes) : {0}",
+    "admin.reset_link": "Panel d'administration : ouvrez ce lien pour choisir un nouveau mot de passe administrateur (usage unique, valable {1} minutes) : {0}",
+    "admin.reset_no_account": "Aucun compte administrateur n'existe encore. Démarrez le bot : un lien de configuration s'affiche dans la console.",
+    "admin.reset_failed": "Le lien de réinitialisation n'a pas pu être émis ({0}). Vérifiez DATABASE_URL et que la base de données est accessible."
+  }
+}

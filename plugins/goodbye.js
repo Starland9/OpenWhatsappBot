@@ -149,4 +149,8 @@ module.exports = {
   },
 
   onGroupParticipants,
+
+  // Used by the admin panel (effective template of a group)
+  goodbyeTemplate,
+  isDefaultTemplate,
 };

@@ -20,8 +20,11 @@ const UNSPLASH_SEARCH_URL = "https://api.unsplash.com/search/photos";
 const GIF_COMMANDS = new Set(["gif", "giphy"]);
 const MAX_QUERY_LENGTH = 100;
 const MAX_GIF_QUERY_LENGTH = 50; // Giphy refuses longer queries
-// Media of the search results: never larger than this, whatever MAX_UPLOAD is
-const MEDIA_MAX_BYTES = Math.min(16, Number(config.MAX_UPLOAD) || 16) * 1024 * 1024;
+
+/** Media of the search results: never larger than 16 MB, whatever MAX_UPLOAD is (read per call, it is editable live) */
+function mediaMaxBytes() {
+  return Math.min(16, Number(config.MAX_UPLOAD) || 16) * 1024 * 1024;
+}
 
 function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)];
@@ -65,7 +68,7 @@ async function sendGif(message, query) {
   let lastError = null;
   for (const url of candidates) {
     try {
-      ({ buffer } = await fetchBuffer(url, { maxBytes: MEDIA_MAX_BYTES, timeoutMs: 30000 }));
+      ({ buffer } = await fetchBuffer(url, { maxBytes: mediaMaxBytes(), timeoutMs: 30000 }));
       break;
     } catch (err) {
       lastError = err;
@@ -103,7 +106,7 @@ async function sendPhoto(message, query) {
 
   const photo = pickRandom(results);
   const { buffer } = await fetchBuffer(trustedUrl(photo.urls.regular, "unsplash.com"), {
-    maxBytes: MEDIA_MAX_BYTES,
+    maxBytes: mediaMaxBytes(),
     timeoutMs: 30000,
   });
 
@@ -115,6 +118,8 @@ async function sendPhoto(message, query) {
 }
 
 module.exports = {
+  mediaMaxBytes,
+
   command: {
     pattern: "image|img|gif|giphy",
     desc: getLang("plugins.imagesearch.desc"),
@@ -145,7 +150,7 @@ module.exports = {
     } catch (err) {
       await message.react("❌");
 
-      let kind = classifyError(err, { hasKey });
+      let kind = classifyError(err, { hasKey, service: isGif ? "giphy" : "unsplash" });
       // Unsplash answers 403 "Rate Limit Exceeded" once the hourly quota is used
       if (kind === "service_unavailable" && /rate limit/i.test(String(err?.response?.data))) {
         kind = "rate_limited";

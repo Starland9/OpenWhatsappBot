@@ -243,4 +243,6 @@ module.exports = {
   fetchGroupInfo,
   findOrCreateGroup,
   isDefaultTemplate,
+  welcomeTemplate,
+  MAX_TEMPLATE_LENGTH,
 };

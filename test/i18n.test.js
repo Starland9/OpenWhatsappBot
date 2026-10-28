@@ -8,8 +8,12 @@
  *    (or template literal) containing letters outside ${}. Emoji / punctuation-only literals are fine.
  *    Escape hatch for a deliberate exception: a comment `// i18n-ignore` on the same or the previous line.
  *
- * Keys added by the plugin agents live in specs/001-audit-fix-commands/i18n/*.json until
- * `node tools/merge-i18n.js` is run: this test checks the merged view (lang files + fragments).
+ * Keys added by the plugin agents live in fragments until `node tools/merge-i18n.js` is run: this test
+ * checks the merged view (lang files + fragments). Two fragment sources count as "pending":
+ *   - specs/001-audit-fix-commands/i18n/*.json (every file);
+ *   - specs/002-admin-panel/i18n/bot-*.json (bot texts of the admin panel feature; its panel-*.json
+ *     fragments feed the panel catalogs, not lang/*.json, and are checked by test/admin-i18n.test.js).
+ * The source scan below covers plugins/, lib/ (so lib/admin/**), index.js and panel.js.
  */
 
 const test = require("node:test");
@@ -19,7 +23,10 @@ const { scan, lineMap, matchBracket, splitTopLevel, valueEnd } = require("./help
 const { assertNone } = require("./helpers/fakes");
 
 const ROOT = path.resolve(__dirname, "..");
-const FRAGMENT_DIR = path.join(ROOT, "specs", "001-audit-fix-commands", "i18n");
+const FRAGMENT_SOURCES = [
+  { dir: path.join(ROOT, "specs", "001-audit-fix-commands", "i18n"), accept: (file) => file.endsWith(".json") },
+  { dir: path.join(ROOT, "specs", "002-admin-panel", "i18n"), accept: (file) => /^bot-.+\.json$/.test(file) },
+];
 const LANGS = ["en", "fr"];
 
 // ---------------------------------------------------------------------------
@@ -39,19 +46,20 @@ const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const langFiles = Object.fromEntries(LANGS.map((l) => [l, flatten(readJson(path.join(ROOT, "lang", `${l}.json`)))]));
 
 function loadFragments() {
-  if (!fs.existsSync(FRAGMENT_DIR)) return [];
-  return fs
-    .readdirSync(FRAGMENT_DIR)
-    .filter((f) => f.endsWith(".json"))
-    .sort()
-    .map((file) => {
+  const out = [];
+  for (const { dir, accept } of FRAGMENT_SOURCES) {
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir).filter(accept).sort()) {
+      const file = path.relative(ROOT, path.join(dir, name));
       try {
-        const data = readJson(path.join(FRAGMENT_DIR, file));
-        return { file, data, flat: Object.fromEntries(LANGS.map((l) => [l, flatten(data[l])])) };
+        const data = readJson(path.join(dir, name));
+        out.push({ file, data, flat: Object.fromEntries(LANGS.map((l) => [l, flatten(data[l])])) });
       } catch (error) {
-        return { file, error: error.message, flat: { en: {}, fr: {} } };
+        out.push({ file, error: error.message, flat: { en: {}, fr: {} } });
       }
-    });
+    }
+  }
+  return out;
 }
 const fragments = loadFragments();
 
@@ -76,8 +84,8 @@ const fmt = (list, max = 60) =>
 test("i18n sources", (t) => {
   const note =
     `merged view = lang/{en,fr}.json (${Object.keys(langFiles.en).length} keys) + ${fragments.length} fragment file(s) ` +
-    `from specs/001-audit-fix-commands/i18n/ (${pendingKeys.size} key(s) not merged into lang/*.json yet; ` +
-    `run node tools/merge-i18n.js to merge them)`;
+    `from specs/001-audit-fix-commands/i18n/ and specs/002-admin-panel/i18n/bot-*.json ` +
+    `(${pendingKeys.size} key(s) not merged into lang/*.json yet; run node tools/merge-i18n.js to merge them)`;
   t.diagnostic(note);
   console.log(`# NOTE ${note}`);
 });
@@ -158,6 +166,12 @@ function sources() {
   });
   return scanned;
 }
+
+test("the source scan covers lib/admin/** (panel server code)", () => {
+  const scannedFiles = new Set(sources().map((f) => f.file));
+  const missing = listJs(path.join("lib", "admin")).filter((file) => !scannedFiles.has(file));
+  assertNone(missing, "lib/admin files not scanned for getLang keys and user-facing literals:");
+});
 
 test("every literal getLang(\"...\") key exists in en and fr", (t) => {
   const missing = [];

@@ -1,4 +1,9 @@
 "use strict";
+// FIRST statement of the module: config.js must never read the owner's config.env (secrets) from a test.
+// Anything that requires config.js after this file is loaded is covered; test files that load config
+// themselves first must set it too.
+process.env.OWB_NO_CONFIG_ENV = "1";
+
 /**
  * Shared helpers for the node:test suite (specs/001-audit-fix-commands, T018).
  *
@@ -110,6 +115,9 @@ function setupEnv(opts = {}) {
   for (const key of SECRET_ENV_KEYS) env[key] = "";
   for (const key of FALSE_ENV_KEYS) env[key] = "false";
   env.ENABLE_MESSAGE_REACTIONS = "true"; // so that react() calls show up in the fake socket
+  // No test binds a port or starts the update checker by accident: admin tests build the admin explicitly
+  env.ADMIN_PANEL = "false";
+  env.UPDATE_CHECK = "false";
   Object.assign(env, opts.env || {});
 
   const config = rootRequire("config");
@@ -159,15 +167,18 @@ async function loadAllPlugins() {
 }
 
 /**
- * Flat dot-keys of the i18n fragments (specs/001-audit-fix-commands/i18n/*.json) not merged into
- * lang/*.json yet, e.g. { "plugins.kick.usage": "..." } (fragment values win, like tools/merge-i18n.js).
+ * Flat dot-keys of the i18n fragments not merged into lang/*.json yet, e.g. { "plugins.kick.usage": "..." }:
+ * specs/001-audit-fix-commands/i18n/*.json and the bot texts of specs/002-admin-panel/i18n/bot-*.json
+ * (its panel-*.json files belong to the browser catalogs). Fragment values win, like tools/merge-i18n.js.
  * @param {"en"|"fr"} [lang="en"]
  */
 function pendingI18nKeys(lang = "en") {
   const fs = require("fs");
-  const dir = path.join(ROOT, "specs", "001-audit-fix-commands", "i18n");
+  const sources = [
+    { dir: path.join(ROOT, "specs", "001-audit-fix-commands", "i18n"), accept: () => true },
+    { dir: path.join(ROOT, "specs", "002-admin-panel", "i18n"), accept: (file) => /^bot-.+\.json$/.test(file) },
+  ];
   const out = {};
-  if (!fs.existsSync(dir)) return out;
   const flatten = (obj, prefix = "") => {
     for (const [k, v] of Object.entries(obj || {})) {
       const key = prefix ? `${prefix}.${k}` : k;
@@ -175,11 +186,14 @@ function pendingI18nKeys(lang = "en") {
       else out[key] = v;
     }
   };
-  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort()) {
-    try {
-      flatten(JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"))[lang]);
-    } catch (_) {
-      /* an invalid fragment is reported by i18n.test.js */
+  for (const { dir, accept } of sources) {
+    if (!fs.existsSync(dir)) continue;
+    for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".json") && accept(f)).sort()) {
+      try {
+        flatten(JSON.parse(fs.readFileSync(path.join(dir, file), "utf8"))[lang]);
+      } catch (_) {
+        /* an invalid fragment is reported by i18n.test.js */
+      }
     }
   }
   return out;
@@ -499,6 +513,13 @@ function fakeSocket(opts = {}) {
 /**
  * A WhatsAppClient look-alike (EventEmitter with getSocket()). `client.dispatch(event, ...args)`
  * emits and awaits every async listener (what attachHandlers registers).
+ *
+ * Lifecycle (contracts/runtime.md section 6): `getState()` returns the settable `client.fakeState`;
+ * `client.setState({ status, ... })` merges a change and emits `state`; `client.setQr(qr)` bumps the
+ * QR version, moves to status "qr" and emits `qr` then `state`. `restart()`, `requestPairingCode()`,
+ * `resetSession()`, `logout()` and `stop()` record their calls in `client.calls` ({ method, args });
+ * `client.restartImpl` / `pairingImpl` / `resetImpl` replace their behaviour, `client.restartStatus`
+ * is the status `restart()` settles on (default "open", `null` = stays "connecting").
  */
 function fakeClient(sock = fakeSocket()) {
   const client = new EventEmitter();
@@ -506,10 +527,60 @@ function fakeClient(sock = fakeSocket()) {
   client.isReady = true;
   client.store = { contacts: {} };
   client.reactedStatuses = new Set();
+  client.calls = [];
+  client.fakeState = {
+    status: "open",
+    since: Date.now(),
+    generation: 1,
+    registered: true,
+    me: { number: "999", name: "Bot" },
+    qrVersion: 0,
+    hasQr: false,
+    pairing: null,
+    lastClose: null,
+    reconnectAttempt: 0,
+  };
+  client.restartStatus = "open";
   client.getSocket = () => sock;
   client.ready = () => true;
-  client.initialize = async () => {};
-  client.stop = async () => {};
+  client.getState = () => ({ ...client.fakeState });
+  client.setState = (changes) => {
+    client.fakeState = { ...client.fakeState, ...changes, since: Date.now() };
+    client.emit("state", client.getState());
+  };
+  client.setQr = (qr = "fake-qr-string") => {
+    client.fakeQr = qr;
+    const qrVersion = client.fakeState.qrVersion + 1;
+    client.setState({ status: "qr", qrVersion, hasQr: true });
+    client.emit("qr", qr, qrVersion);
+  };
+  client.getPairingArtifacts = () => ({ qr: client.fakeQr || null, qrVersion: client.fakeState.qrVersion });
+  client.initialize = async () => {
+    client.calls.push({ method: "initialize", args: [] });
+  };
+  client.stop = async () => {
+    client.calls.push({ method: "stop", args: [] });
+  };
+  client.restart = async () => {
+    client.calls.push({ method: "restart", args: [] });
+    if (client.restartImpl) return client.restartImpl();
+    client.setState({ status: "connecting" });
+    if (client.restartStatus) client.setState({ status: client.restartStatus });
+    return sock;
+  };
+  client.requestPairingCode = async (phone) => {
+    client.calls.push({ method: "requestPairingCode", args: [phone] });
+    if (client.pairingImpl) return client.pairingImpl(phone);
+    return { code: "ABCD-1234", expiresAt: Date.now() + 3 * 60 * 1000 };
+  };
+  client.resetSession = async () => {
+    client.calls.push({ method: "resetSession", args: [] });
+    if (client.resetImpl) return client.resetImpl();
+    return { removed: 0 };
+  };
+  client.logout = async () => {
+    client.calls.push({ method: "logout", args: [] });
+  };
   client.dispatch = async (event, ...args) => {
     await Promise.all(client.listeners(event).map((listener) => listener(...args)));
   };

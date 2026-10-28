@@ -10,8 +10,8 @@
  *  - BannedChat: commands ignored, `unban` from the owner gets through, the ban survives a cache flush
  *    and a re-require of the pipeline (DB);
  *  - tracking: group messages counted atomically, private chats / bot messages not;
- *  - the onMessage hooks run by priority (role, tracking, afk, notify, filters), so a message that matches a
- *    filter is still counted and still clears AFK;
+ *  - the onMessage hooks run by priority (knownchats 5, role 10, tracking 20, afk 30, notify 40, groupguard 50,
+ *    filters 90), so a message that matches a filter is still counted and still clears AFK;
  *  - reminders: a reminder due in the past is delivered exactly once by scheduler.tick(), then `sent`.
  */
 
@@ -473,9 +473,18 @@ test("tracking: 3 group messages → messageCount 3 (once XP, atomic under concu
 // Hook order
 // ---------------------------------------------------------------------------
 
-test("onMessage hooks run by priority: role, tracking, afk, notify, then filters", () => {
+test("onMessage hooks run by priority: knownchats, role, tracking, afk, notify, groupguard, then filters", () => {
   const files = registry.getHooks("onMessage").map((h) => h.file);
-  const order = ["role.js", "trackmessages.js", "afk.js", "notify.js", "addfilter.js", "zz-probe.js"];
+  const order = [
+    "knownchats.js",
+    "role.js",
+    "trackmessages.js",
+    "afk.js",
+    "notify.js",
+    "groupguard.js",
+    "addfilter.js",
+    "zz-probe.js",
+  ];
   const positions = order.map((file) => files.indexOf(file));
   assert.ok(positions.every((p) => p >= 0), `missing onMessage hook(s): ${order.filter((f, i) => positions[i] < 0).join(", ")} (have ${files.join(", ")})`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, `onMessage order should be ${order.join(" -> ")}, got ${files.join(" -> ")}`);

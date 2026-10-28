@@ -4,6 +4,7 @@ const settingsCache = require("../lib/utils/settingsCache");
 const { normalizeJid } = require("../lib/utils/permissions");
 const config = require("../config");
 
+const SETTINGS_KEY = "view_once";
 const JID_RE = /^[^@\s]+@(s\.whatsapp\.net|g\.us|lid)$/;
 const NUMBER_RE = /^\+?\d{6,16}$/;
 
@@ -26,10 +27,42 @@ function parseMode(raw) {
   return { mode: jid, values: { vvMode: "jid", vvJid: jid, enabled: true } };
 }
 
+/** Settings row (id 1), created when missing. Pass `{ transaction }` to join one (admin panel). */
+async function loadSettings(options = {}) {
+  const [settings] = await ViewOnce.findOrCreate({
+    where: { id: 1 },
+    defaults: { id: 1 },
+    ...options,
+  });
+  return settings;
+}
+
+/**
+ * Write the values of `parseMode(...)` and drop the cached copy the forwarding handler reads.
+ * Inside a transaction the cache is dropped once it has committed.
+ */
+async function saveSettings(values, options = {}) {
+  const settings = await loadSettings(options);
+  await settings.update(values, options);
+  const { transaction } = options;
+  if (transaction && typeof transaction.afterCommit === "function") {
+    transaction.afterCommit(() => settingsCache.invalidate(SETTINGS_KEY));
+  } else {
+    settingsCache.invalidate(SETTINGS_KEY);
+  }
+  return settings;
+}
+
 /**
  * Set View-Once forwarding settings
  */
 module.exports = {
+  // reused by the admin panel (settings adapter `viewOnce`): same parsing, same row, same cache key
+  parseMode,
+  loadSettings,
+  saveSettings,
+  SETTINGS_KEY,
+
   command: {
     pattern: "setvv",
     desc: getLang("plugins.viewonce.setvv_desc"),
@@ -43,14 +76,8 @@ module.exports = {
       return await message.reply(getLang("plugins.viewonce.usage", config.PREFIX));
     }
 
-    // Get or create settings
-    const [settings] = await ViewOnce.findOrCreate({
-      where: { id: 1 },
-      defaults: { id: 1 },
-    });
-    await settings.update(parsed.values);
-    // The forwarding handler reads the settings through the cache
-    settingsCache.invalidate("view_once");
+    // The forwarding handler reads the settings through the cache: saveSettings drops it
+    await saveSettings(parsed.values);
 
     await message.react("✅");
 

@@ -1,0 +1,1211 @@
+/*
+ * Admin panel layout and components. Mobile first: everything works at 360 px wide with no horizontal
+ * scroll (FR-038, SC-008). Colours come from theme.css tokens only. No inline styles anywhere (CSP).
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+}
+
+h3 {
+  font-size: 1.05rem;
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+a {
+  color: var(--primary);
+}
+
+code,
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--focus);
+  border-radius: 0.5rem;
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.wrap {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.noscript {
+  padding: 1rem;
+  text-align: center;
+}
+
+/* ---- icons, spinner ------------------------------------------------------------------------ */
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  vertical-align: middle;
+}
+
+.icon-lg {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: owb-spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+.spinner-lg {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-width: 4px;
+}
+
+@keyframes owb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+.boot,
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--muted);
+}
+
+.boot {
+  min-height: 60vh;
+}
+
+/* ---- app shell ----------------------------------------------------------------------------- */
+
+.shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-spacer {
+  flex: 1 1 auto;
+}
+
+.topbar-status {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.topbar-status .badge {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* the name already sits in the drawer: keep the top bar for the menu button and the status */
+@media (max-width: 29.99rem) {
+  .brand {
+    display: none;
+  }
+}
+
+@media (min-width: 64rem) {
+  .brand {
+    display: none;
+  }
+}
+
+.nav {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(18rem, 85vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  transform: translateX(-102%);
+  visibility: hidden;
+  transition: transform 0.18s ease, visibility 0.18s;
+  overflow-y: auto;
+}
+
+.nav-open .nav {
+  transform: none;
+  visibility: visible;
+  box-shadow: var(--shadow);
+}
+
+.nav-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  background: var(--overlay);
+}
+
+.nav-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0.25rem 0.75rem 0.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.125rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--text);
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  background: var(--surface-2);
+}
+
+.nav-link[aria-current="page"] {
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+  font-weight: 600;
+}
+
+.nav-foot {
+  margin-top: auto;
+  padding: 0.5rem;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 0.125rem;
+}
+
+.main {
+  min-width: 0;
+  padding: 1rem 0.75rem 3rem;
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+.main:focus {
+  outline: none;
+}
+
+.view-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.view-header h1 {
+  margin: 0;
+}
+
+@media (min-width: 64rem) {
+  .shell {
+    display: grid;
+    grid-template-columns: 16.5rem minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "nav top"
+      "nav main";
+  }
+
+  .topbar {
+    grid-area: top;
+  }
+
+  .nav {
+    grid-area: nav;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: auto;
+    transform: none;
+    visibility: visible;
+    transition: none;
+  }
+
+  .nav-open .nav {
+    box-shadow: none;
+  }
+
+  .main {
+    grid-area: main;
+    width: 100%;
+    padding: 1.5rem 1.5rem 3rem;
+  }
+
+  .nav-toggle,
+  .nav-close,
+  .nav-backdrop {
+    display: none !important;
+  }
+}
+
+/* ---- auth screens -------------------------------------------------------------------------- */
+
+.auth {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0.75rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 26rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow);
+}
+
+.auth-banners {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.auth-card .banner,
+.auth-card .banners {
+  margin-bottom: 1rem;
+}
+
+/* ---- layout helpers ------------------------------------------------------------------------ */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.card + .card {
+  margin-top: 1rem;
+}
+
+/* a grid or a stack already spaces its children with `gap`: no extra top margin there (it would push the
+   second card of a row down, or double the gap) */
+.grid > .card + .card,
+.stack > .card + .card,
+.stack-sm > .card + .card {
+  margin-top: 0;
+}
+
+.card-title {
+  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.stack {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.stack-sm {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.row-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* label / value pairs: stacked on a narrow screen (a long label would leave the value 50 px), side by side from 480 px */
+.kv {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.125rem 1rem;
+  margin: 0;
+}
+
+.kv dt {
+  color: var(--muted);
+}
+
+.kv dd {
+  margin: 0 0 0.5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 30rem) {
+  .kv {
+    grid-template-columns: fit-content(45%) minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+  }
+
+  .kv dd {
+    margin: 0;
+  }
+}
+
+/* ---- buttons ------------------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.btn:hover {
+  background: var(--surface-2);
+}
+
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-contrast);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--danger-contrast);
+}
+
+.btn-danger:hover {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn-sm {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  flex: none;
+}
+
+.icon-btn:hover {
+  background: var(--surface-2);
+}
+
+/* ---- forms --------------------------------------------------------------------------------- */
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.field-label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.field-required {
+  color: var(--danger);
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.input,
+.select,
+.textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+  border-width: 2px;
+}
+
+.input[readonly],
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.input-group .input {
+  flex: 1 1 auto;
+}
+
+.input-unit {
+  align-self: center;
+  color: var(--muted);
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.switch input {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  accent-color: var(--primary);
+}
+
+.switch + .field-hint {
+  padding-left: 2.25rem;
+}
+
+.choice-group {
+  display: grid;
+  gap: 0.25rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.choice input {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  accent-color: var(--primary);
+}
+
+.list-control {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.list-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.list-row .input {
+  flex: 1 1 auto;
+}
+
+.secret-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ---- badges, chips, banners ---------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.5;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.badge-ok {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border-color: var(--ok);
+}
+
+.badge-warn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-color: var(--warn);
+}
+
+.badge-danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.badge-info {
+  background: var(--info-bg);
+  color: var(--info-text);
+  border-color: var(--info);
+}
+
+.dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: var(--info-bg);
+  color: var(--info-text);
+  border: 1px solid var(--info);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.banners {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  border-left-width: 6px;
+  background: var(--surface);
+}
+
+.banner-info {
+  background: var(--info-bg);
+  color: var(--info-text);
+  border-color: var(--info);
+}
+
+.banner-warn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-color: var(--warn);
+}
+
+.banner-error {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.banner-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.banner-link {
+  color: inherit;
+  font-weight: 700;
+}
+
+.banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* ---- tables (cards under 600 px) ----------------------------------------------------------- */
+
+.table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+
+.table th,
+.table td {
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.table th {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table .num {
+  text-align: right;
+}
+
+.th-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+@media (max-width: 37.5rem) {
+  .table-cards,
+  .table-cards tbody,
+  .table-cards tr,
+  .table-cards td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .table-cards tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.625rem;
+    overflow: hidden;
+  }
+
+  .table-cards td {
+    display: grid;
+    grid-template-columns: minmax(0, 7rem) minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+
+  .table-cards td:last-child {
+    border-bottom: 0;
+  }
+
+  .table-cards td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .table-cards td[data-label=""]::before {
+    content: none;
+  }
+
+  .table-cards .num {
+    text-align: left;
+  }
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ---- tabs ---------------------------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.875rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--primary);
+}
+
+/* ---- empty state --------------------------------------------------------------------------- */
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty h2,
+.empty h3 {
+  color: var(--text);
+  margin: 0;
+}
+
+/* ---- dialog -------------------------------------------------------------------------------- */
+
+.dialog {
+  width: min(28rem, calc(100vw - 1.5rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  overflow: auto;
+}
+
+.dialog::backdrop {
+  background: var(--overlay);
+}
+
+.dialog-inner {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.dialog-message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* ---- toasts -------------------------------------------------------------------------------- */
+
+.toasts {
+  position: fixed;
+  z-index: 60;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  width: min(100%, 28rem);
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}
+
+.toast-success {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border-color: var(--ok);
+}
+
+.toast-error {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.toast-info {
+  background: var(--info-bg);
+  color: var(--info-text);
+  border-color: var(--info);
+}
+
+.toast-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 40rem) {
+  .toasts {
+    left: auto;
+    right: 1rem;
+    width: min(28rem, calc(100vw - 2rem));
+    justify-items: end;
+  }
+}
+
+/* ---- misc widgets used by several views ---------------------------------------------------- */
+
+/* every <progress> (upload, backup restore, broadcast, ranked lists): a full-width bar that never overflows */
+progress,
+.progress {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 0.75rem;
+  accent-color: var(--primary);
+}
+
+.view {
+  min-width: 0;
+}
+
+/* the 7-day messages chart (an SVG with a viewBox): as wide as its container, never wider */
+.chart {
+  display: block;
+  width: 100%;
+  max-width: 40rem;
+  height: auto;
+}
+
+/* the pairing code (PAIR-3): big, monospaced, easy to read aloud and to copy */
+.pairing-code {
+  margin: 0 0 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: clamp(1.5rem, 8vw, 2.25rem);
+  letter-spacing: 0.15em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* a log message: keeps its line breaks and wraps long tokens (stack traces, JIDs, URLs) instead of widening the page */
+.log-msg {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.qr {
+  display: block;
+  width: min(100%, 18rem);
+  height: auto;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.bar-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media print {
+  .topbar,
+  .nav,
+  .toasts {
+    display: none !important;
+  }
+}

@@ -11,10 +11,35 @@ services:
     environment:
       # SQLite on a volume by default; set DATABASE_URL to a postgres:// URL to use Postgres
       DATABASE_URL: ${DATABASE_URL:-/app/db/database.db}
+      # Admin panel behind a reverse proxy (Traefik, Nginx, Caddy, Dokploy...). Uncomment and adapt, or put the
+      # same names in config.env / .env:
+      #   PANEL_PUBLIC_URL: the public address (https://bot.example.com): base of the one-time setup link, and the
+      #     only Origin besides localhost that the panel accepts
+      #   PANEL_TRUST_PROXY: the proxy's address or network (an IP, a CIDR such as 172.18.0.0/16, or the keywords
+      #     loopback / private / all). Forwarded headers (X-Forwarded-For/-Proto/-Host) are honoured only from a
+      #     matching peer, never automatically: without it the panel sees the proxy as the client, shares one login
+      #     throttle between all visitors and shows the "undeclared proxy" banner
+      # PANEL_PUBLIC_URL: https://bot.example.com
+      # PANEL_TRUST_PROXY: private
+      # ADMIN_PANEL: "false"   # turns the panel off (the bot keeps running); the health check then does nothing
+    # The panel listens on 0.0.0.0 inside the container (automatic inside a container). The port is only
+    # exposed to the other containers of this network, NOT published: nothing outside can reach it, which is the
+    # safe default. The setup link is printed in the container logs: docker compose logs bot | grep admin/setup
+    expose:
+      - "3000"
+    # To open the panel from this machine only, uncomment (the first 3000 is the host port, the second must match
+    # PANEL_PORT / PORT if you set one). To open it from the network, use a reverse proxy with HTTPS instead of
+    # publishing the plain HTTP port on 0.0.0.0
+    # ports:
+    #   - "127.0.0.1:3000:3000"
     # Named volumes survive Dokploy redeploys (relative bind mounts do not)
     volumes:
+      # WhatsApp login (sessions/main): delete it to pair again
       - bot_sessions:/app/sessions
+      # SQLite file (unused with Postgres)
       - bot_db:/app/db
+      # data/panel.key (encrypts the API keys saved from the panel), data/backups/ (panel backups and the
+      # automatic copy taken before a restore), broadcast media. Losing it costs only re-typing the saved keys
       - bot_data:/app/data
 
 volumes:

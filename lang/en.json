@@ -405,7 +405,11 @@
       "network_error": "❌ *Network error!*\n\nCould not connect to GitHub. Please check your internet connection.",
       "busy": "⏳ An update is already running.",
       "detached": "⚠️ The repository is not on a branch (detached HEAD). Update cancelled.",
-      "diverged": "❌ *Cannot fast-forward!*\n\nThe local history differs from GitHub. Please resolve it manually before updating."
+      "diverged": "❌ *Cannot fast-forward!*\n\nThe local history differs from GitHub. Please resolve it manually before updating.",
+      "no_remote_branch": "⚠️ *Nothing to update from:* the current branch has no counterpart on GitHub (no upstream and no origin/<branch>).\n\nPush the branch or switch to one that tracks GitHub, then try again.",
+      "rolled_back": "❌ *Update cancelled.* The new version did not pass the checks, so the bot went back to the version it was running. Check the server logs.",
+      "unavailable": "⚠️ This installation cannot update itself (container image, archive, missing git or read-only folder).\n\nUse the Maintenance page of the panel for the instructions that fit your installation.",
+      "restart_manual": "✅ *Update installed.*\n\nNothing restarts this bot automatically here: restart the program yourself to run the new version."
     },
     "weather": {
       "desc": "Get the current weather for a city",
@@ -1169,6 +1173,34 @@
     "cannot_target_self": "❌ You can't target yourself.",
     "not_admin": "❌ Bot must be admin to perform this action.",
     "status_enabled": "✅ Enabled",
-    "status_disabled": "❌ Disabled"
+    "status_disabled": "❌ Disabled",
+    "command_disabled": "🚫 This command is currently disabled."
+  },
+  "admin": {
+    "setup_link": "Admin panel: open this link to create the administrator password (single use, valid {1} minutes): {0}",
+    "reset_link": "Admin panel: open this link to choose a new administrator password (single use, valid {1} minutes): {0}",
+    "reset_no_account": "No administrator account exists yet. Start the bot: a setup link is printed in the console.",
+    "reset_failed": "The reset link could not be issued ({0}). Check DATABASE_URL and that the database is reachable.",
+    "panel_enabled_ignored": "PANEL_ENABLED is no longer read: the admin panel is controlled by ADMIN_PANEL (set ADMIN_PANEL=false to turn it off). Remove PANEL_ENABLED from your configuration.",
+    "panel_listening": "Admin panel available at {0}",
+    "listen_failed": "Admin panel not started: cannot listen on {0}:{1} ({2}). Change PANEL_PORT or PANEL_HOST, or set ADMIN_PANEL=false to turn the panel off. The bot keeps running.",
+    "trust_proxy_invalid": "PANEL_TRUST_PROXY is not a valid list (IP addresses, CIDR ranges, loopback, private or all): the forwarded headers are ignored."
+  },
+  "alerts": {
+    "reconnected": "🔌 The bot is back online after {0} without a connection.",
+    "errors_series": "⚠️ {0} command errors in {1} minutes. Most affected: {2}.",
+    "key_refused": "🔑 The {0} service refused the configured API key. Check the key in the panel (API keys).",
+    "login_blocked": "🚫 Too many failed panel logins from {0}. This origin is blocked for {1} minutes.",
+    "new_origin": "🆕 First panel login from {0}. If this was not you, change the panel password.",
+    "update_available": "⬆️ Version {0} of the bot is available. Install it from the panel or with the update command."
+  },
+  "broadcasts": {
+    "rule_daily": "Every day at {0}",
+    "rule_weekly": "Every {0} at {1}",
+    "rule_monthly": "On day {0} of every month at {1}",
+    "rule_monthly_last": "On day {0} of every month at {1} (the last day of shorter months)"
+  },
+  "groupguard": {
+    "reason_link": "Link posted (anti-link)"
   }
 }

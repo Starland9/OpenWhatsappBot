@@ -1,0 +1,8 @@
+{
+  "en": {
+    "common.command_disabled": "🚫 This command is currently disabled."
+  },
+  "fr": {
+    "common.command_disabled": "🚫 Cette commande est désactivée pour le moment."
+  }
+}

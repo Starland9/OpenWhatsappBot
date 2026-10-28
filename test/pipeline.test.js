@@ -11,7 +11,7 @@
  * Only test plugins are registered here (registry reset), so the result does not depend on the real plugins.
  */
 
-const { test, before } = require("node:test");
+const { test, before, afterEach, mock } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
@@ -26,11 +26,17 @@ const pipeline = require("../lib/core/pipeline");
 const buttonRegistry = require("../lib/utils/buttonRegistry");
 const settingsCache = require("../lib/utils/settingsCache");
 const { getLang } = require("../lib/utils/language");
+const maintenanceMode = require("../lib/utils/maintenanceMode");
+const stats = require("../lib/utils/stats");
+const config = require("../config");
 
 let db;
 before(async () => {
   db = await fakes.syncDb();
 });
+
+// maintenance mode is process-wide state: every test starts from a clean one
+afterEach(() => maintenanceMode._reset());
 
 /** Register exactly these plugins ({ "file.js": module }) in a clean registry. */
 function useRegistry(plugins) {
@@ -65,20 +71,30 @@ const sendsOf = (sock) => sock.replies().map((s) => ({ jid: s.jid, text: s.text 
 // Static checks
 // ---------------------------------------------------------------------------
 
+// index.js and panel.js are thin wrappers around lib/core/boot.js (feature 002): the entry files define no
+// pipeline of their own and delegate to bootstrap(); the start-up order lives in boot.js.
 for (const file of ["index.js", "panel.js"]) {
-  test(`${file}: no processMessage definition, uses the shared pipeline`, () => {
+  test(`${file}: no processMessage definition, delegates start-up to lib/core/boot.js`, () => {
     const code = scan(fs.readFileSync(path.join(ROOT, file), "utf8")).masked; // comments blanked
     assert.doesNotMatch(code, /\bfunction\s+processMessage\b/, `${file} defines processMessage()`);
     assert.doesNotMatch(code, /\b(?:const|let|var)\s+processMessage\b/, `${file} defines processMessage`);
     assert.doesNotMatch(code, /\bprocessMessage\s*(?::|=(?!=))/, `${file} assigns processMessage`);
     assert.doesNotMatch(code, /\.on\(\s*["'](?:messages|messages\.update|group-participants\.update)["']/, `${file} subscribes to client events itself instead of attachHandlers()`);
-    assert.match(code, /require\(\s*["']\.\/lib\/core\/pipeline["']\s*\)/, `${file} does not require ./lib/core/pipeline`);
-    const attach = code.search(/\battachHandlers\s*\(/);
-    assert.notEqual(attach, -1, `${file} never calls attachHandlers()`);
-    const init = code.search(/\.initialize\s*\(/);
-    assert.ok(init === -1 || attach < init, `${file}: attachHandlers() must be called before client.initialize() so that no early event is missed`);
+    assert.match(code, /require\(\s*["']\.\/lib\/core\/boot["']\s*\)/, `${file} does not require ./lib/core/boot`);
+    assert.match(code, /\bbootstrap\s*\(/, `${file} never calls bootstrap()`);
   });
 }
+
+test("boot.js: uses the shared pipeline, attachHandlers() before client.initialize()", () => {
+  const code = scan(fs.readFileSync(path.join(ROOT, "lib", "core", "boot.js"), "utf8")).masked;
+  assert.doesNotMatch(code, /\bfunction\s+processMessage\b/);
+  assert.doesNotMatch(code, /\.on\(\s*["'](?:messages|messages\.update|group-participants\.update)["']/, "boot.js subscribes to client events itself instead of attachHandlers()");
+  assert.match(code, /require\(\s*["']\.\/pipeline["']\s*\)/, "boot.js does not require ./pipeline");
+  const attach = code.search(/\battachHandlers\s*\(/);
+  assert.notEqual(attach, -1, "boot.js never calls attachHandlers()");
+  const init = code.search(/\.initialize\s*\(/);
+  assert.ok(init === -1 || attach < init, "attachHandlers() must be called before client.initialize() so that no early event is missed");
+});
 
 // ---------------------------------------------------------------------------
 // Same sequence through attachHandlers, index-style and panel-style
@@ -380,4 +396,196 @@ test("group-participants.update and ready are fanned out to every plugin, each i
     ["first", "ready"],
     ["second", "ready", true],
   ]);
+});
+
+// ---------------------------------------------------------------------------
+// Statistics counters, maintenance gate and live prefix (feature 002, runtime.md section 5 "Touch points")
+// ---------------------------------------------------------------------------
+
+/** pipeline.attachHandlers on a fresh fake client; `count` records every stats.count() call */
+function attachWithCounter(t) {
+  const sock = fakes.fakeSocket();
+  const client = fakes.fakeClient(sock);
+  pipeline.attachHandlers(client);
+  const count = mock.method(stats, "count");
+  t.after(() => count.mock.restore());
+  const counted = () => count.mock.calls.map((c) => c.arguments.slice(0, 2));
+  return { sock, client, counted };
+}
+
+test("counters: a private message counts `messages`, a group message also counts `group_msgs` for that group", async (t) => {
+  useRegistry({ "zz-probe.js": makeProbe([]) });
+  const { client, counted } = attachWithCounter(t);
+
+  await client.dispatch("messages", [fakes.rawMessage({ body: "hello", from: IDS.MEMBER_PN })], "notify");
+  assert.deepEqual(counted(), [["messages"]]);
+
+  await client.dispatch("messages", [fakes.rawMessage({ body: "hi all", from: IDS.MEMBER_PN, group: true })], "notify");
+  assert.deepEqual(counted(), [["messages"], ["messages"], ["group_msgs", IDS.GROUP]]);
+});
+
+test("counters: the bot's own messages and status broadcasts count nothing", async (t) => {
+  useRegistry({ "zz-probe.js": makeProbe([]) });
+  const { client, counted } = attachWithCounter(t);
+
+  await client.dispatch("messages", [fakes.rawMessage({ body: "echo", fromMe: true }), fakes.rawMessage({ body: "echo", fromMe: true, group: true })], "notify");
+  await client.dispatch("messages", [{
+    key: { remoteJid: "status@broadcast", fromMe: false, id: "ST9", participant: IDS.MEMBER_PN },
+    message: { conversation: "a status" },
+    pushName: "x",
+  }], "notify");
+  assert.deepEqual(counted(), []);
+});
+
+test("counters land after the disabled-chat gate: a banned chat counts nothing", async (t) => {
+  useRegistry({ "zz-probe.js": makeProbe([]) });
+  const { client, counted } = attachWithCounter(t);
+  await db.BannedChat.create({ jid: IDS.GROUP });
+  await db.BannedChat.create({ jid: IDS.MEMBER_PN });
+  settingsCache.invalidate(pipeline.BANNED_CHATS_KEY);
+  t.after(async () => {
+    await db.BannedChat.destroy({ where: {} });
+    settingsCache.invalidate(pipeline.BANNED_CHATS_KEY);
+  });
+
+  await client.dispatch("messages", [
+    fakes.rawMessage({ body: "ignored", from: IDS.MEMBER_PN, group: true }),
+    fakes.rawMessage({ body: "ignored too", from: IDS.MEMBER_PN }),
+  ], "notify");
+  assert.deepEqual(counted(), [], "a fully ignored chat is not `processed`");
+
+  // another chat still counts
+  await client.dispatch("messages", [fakes.rawMessage({ body: "hello", from: IDS.MEMBER2_PN })], "notify");
+  assert.deepEqual(counted(), [["messages"]]);
+});
+
+test("counters: the count happens before the hooks and the command", async (t) => {
+  const order = [];
+  useRegistry({
+    "zz-probe.js": {
+      command: { pattern: "zzcmd", desc: "probe", type: "test" },
+      async execute() {
+        order.push("execute");
+      },
+      async onMessage() {
+        order.push("onMessage");
+        return false;
+      },
+    },
+  });
+  const client = fakes.fakeClient(fakes.fakeSocket());
+  pipeline.attachHandlers(client);
+  const original = stats.count;
+  const spy = mock.method(stats, "count", (...args) => {
+    order.push(`count:${args[0]}`);
+    return original(...args);
+  });
+  t.after(() => spy.mock.restore());
+
+  await client.dispatch("messages", [fakes.rawMessage({ body: ".zzcmd" })], "notify");
+  // the registry counts the successful command after it ran (W-CMD)
+  assert.deepEqual(order, ["count:messages", "onMessage", "execute", "count:cmd_ok"]);
+});
+
+test("maintenance gate: messages are dropped while active (nothing runs, nothing counts) and flow again after", async (t) => {
+  const events = [];
+  useRegistry({ "zz-probe.js": makeProbe(events) });
+  const { sock, client, counted } = attachWithCounter(t);
+
+  await maintenanceMode.enter("restore");
+  assert.equal(maintenanceMode.isActive(), true);
+  await client.dispatch("messages", [fakes.rawMessage({ body: ".zzcmd during" })], "notify");
+  assert.deepEqual(events, [], "no hook and no command ran");
+  assert.deepEqual(sendsOf(sock), []);
+  assert.deepEqual(counted(), []);
+
+  maintenanceMode.leave();
+  await client.dispatch("messages", [fakes.rawMessage({ body: ".zzcmd after" })], "notify");
+  assert.deepEqual(sendsOf(sock), [{ jid: IDS.OWNER_PN, text: "ran:zzcmd:after" }]);
+  assert.deepEqual(counted(), [["messages"], ["cmd_ok", "zzcmd"]]);
+});
+
+test("maintenance gate: processMessage brackets each message with begin()/done(), even when it fails", async () => {
+  useRegistry({
+    "zz-probe.js": {
+      command: { pattern: "zzcmd|zzboom", desc: "probe", type: "test" },
+      async execute(message, args, ctx) {
+        if (ctx.command === "zzboom") throw new Error("command failed");
+      },
+    },
+  });
+  const client = fakes.fakeClient(fakes.fakeSocket());
+  const dones = [];
+  const begin = mock.method(maintenanceMode, "begin", () => () => dones.push("done"));
+  try {
+    await pipeline.processMessage(fakes.rawMessage({ body: ".zzcmd" }), client);
+    await pipeline.processMessage(fakes.rawMessage({ body: ".zzboom" }), client);
+    await pipeline.processMessage(null, client); // malformed: still bracketed
+    assert.equal(begin.mock.calls.length, 3, "one begin() per message");
+    assert.deepEqual(dones, ["done", "done", "done"], "done() ran each time, the failure included");
+  } finally {
+    begin.mock.restore();
+  }
+});
+
+test("maintenance gate: an in-flight message is counted as pending and enter() waits for it", async () => {
+  let release;
+  const gate = new Promise((resolve) => (release = resolve));
+  const pendingSeen = [];
+  useRegistry({
+    "zz-probe.js": {
+      command: { pattern: "zzcmd", desc: "probe", type: "test" },
+      async execute() {
+        pendingSeen.push(maintenanceMode.pending());
+        await gate;
+      },
+    },
+  });
+  const sock = fakes.fakeSocket();
+  const client = fakes.fakeClient(sock);
+  pipeline.attachHandlers(client);
+
+  assert.equal(maintenanceMode.pending(), 0);
+  const processing = client.dispatch("messages", [fakes.rawMessage({ body: ".zzcmd" })], "notify");
+  await fakes.waitFor(() => pendingSeen.length === 1);
+  assert.deepEqual(pendingSeen, [1]);
+
+  let entered = false;
+  const entering = maintenanceMode.enter("restore", { timeoutMs: 5000 }).then(() => {
+    entered = true;
+  });
+  await fakes.sleep(30);
+  assert.equal(entered, false, "enter() waits for the message in flight");
+
+  release();
+  await processing;
+  await entering;
+  assert.equal(entered, true);
+  assert.equal(maintenanceMode.pending(), 0);
+});
+
+test("SC-003 (prefix): after config.PREFIX = \"!\" the next !zzcmd dispatches and .zzcmd does not, with no restart", async () => {
+  const events = [];
+  useRegistry({ "zz-probe.js": makeProbe(events) });
+  const sock = fakes.fakeSocket();
+  const client = fakes.fakeClient(sock);
+  pipeline.attachHandlers(client);
+  const send = (body) => client.dispatch("messages", [fakes.rawMessage({ body })], "notify");
+  const ran = () => events.filter((e) => e[0] === "execute").length;
+
+  try {
+    await send(".zzcmd before");
+    assert.equal(ran(), 1);
+
+    config.PREFIX = "!"; // what the panel's settings save does: no restart
+    await send("!zzcmd after");
+    assert.equal(ran(), 2, "the new prefix dispatches at once");
+    await send(".zzcmd old");
+    assert.equal(ran(), 2, "the old prefix no longer does");
+    assert.deepEqual(sendsOf(sock).map((s) => s.text), ["ran:zzcmd:before", "ran:zzcmd:after"]);
+  } finally {
+    config.PREFIX = ".";
+  }
+  await send(".zzcmd back");
+  assert.equal(ran(), 3);
 });

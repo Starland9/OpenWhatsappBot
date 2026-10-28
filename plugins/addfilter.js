@@ -218,9 +218,12 @@ module.exports = {
 
   onMessage,
 
-  // Helpers shared with plugins/delfilter.js
+  // Helpers shared with plugins/delfilter.js and the admin panel
   loadFilters,
   getGroupFilters,
   invalidateFilters,
   normalizePattern,
+  MAX_FILTERS_PER_GROUP,
+  MAX_PATTERN_LENGTH,
+  MAX_RESPONSE_LENGTH,
 };

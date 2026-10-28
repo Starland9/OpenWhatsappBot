@@ -502,8 +502,10 @@ module.exports = {
   onMessage,
   onGroupParticipants,
 
-  // Used by plugins/warnuser.js (VIPs can't be warned) and plugins/addfilter.js
+  // Used by lib/utils/warnings.js (VIPs can't be warned), plugins/addfilter.js and the admin panel
   isVip,
   getRole,
+  getRoles,
   getMessageRole,
+  invalidateRoles,
 };

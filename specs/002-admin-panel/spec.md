@@ -26,7 +26,11 @@ Le panel doit couvrir ces usages sans rien retirer de ce qui existe : les comman
 
 - Q: Combien de comptes pour le panel ? → A: Un seul compte administrateur, le propriétaire ; l'historique trace chaque action.
 - Q: Quand un réglage est défini à la fois dans le fichier de configuration (ou l'environnement de l'hébergeur) et dans le panel, lequel s'applique ? → A: Le panel prime. Ses valeurs sont enregistrées par le bot et passent devant le fichier ; le panel affiche l'origine de chaque valeur et permet de revenir à celle du fichier.
-- Q: Que doit faire le panel en plus de la configuration, des commandes, des groupes, de l'appairage, de l'état et des journaux ? → A: Désactivation des commandes par groupe, sauvegarde/restauration, gestion des données, diffusion de messages, « et encore plus ». « Encore plus » est interprété comme des outils de maintenance : tester une clé API, mettre à jour le bot, voir et libérer l'espace disque (US11).
+- Q: Que doit faire le panel en plus de la configuration, des commandes, des groupes, de l'appairage, de l'état et des journaux ? → A: Désactivation des commandes par groupe, sauvegarde/restauration, gestion des données, diffusion de messages, « et encore plus ».
+- Q: Que recouvre « et encore plus » ? → A: Outils de maintenance (US11), textes du bot modifiables (US12), alertes au propriétaire (US13) et messages récurrents (US9).
+- Q: Comment livrer ce périmètre ? → A: D'un bloc, sur une seule branche et une seule PR, avec un commit par étape.
+- Q: Quelle technique pour l'interface ? → A: Sans étape de construction, légère : pages servies par le bot et petites bibliothèques embarquées (contrainte pour le plan, cohérente avec SC-009 et FR-010).
+- Q: Le panel est-il activé par défaut ? → A: Oui, dans les deux modes de lancement, désactivable par un réglage ; la sécurité initiale repose sur le lien à usage unique de la console.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -186,6 +190,8 @@ Le propriétaire rédige un message (texte, avec une image ou un document facult
 3. **Given** une diffusion en cours, **When** le propriétaire l'annule, **Then** aucune nouvelle destination ne reçoit le message, et le rapport indique les destinations déjà servies.
 4. **Given** une diffusion en cours, **When** le bot redémarre, **Then** la diffusion reprend avec les destinations restantes, et aucune destination ne reçoit le message deux fois.
 5. **Given** une diffusion programmée, **When** sa date arrive, **Then** elle part, même si le bot a redémarré entre-temps.
+6. **Given** un message récurrent « chaque lundi à 8 h » vers un groupe, **When** chaque lundi 8 h arrive (fuseau horaire du bot), **Then** le groupe reçoit le message une seule fois par occurrence ; le propriétaire peut le mettre en pause, le reprendre, le modifier ou le supprimer.
+7. **Given** un message récurrent dont une occurrence tombe pendant une coupure du bot, **When** le bot revient plus d'une heure après, **Then** cette occurrence est sautée et notée dans l'historique, et la suivante part normalement.
 
 ---
 
@@ -221,6 +227,41 @@ Le propriétaire met à jour le bot et ses outils de téléchargement depuis le 
 2. **Given** une installation qui ne peut pas se mettre à jour elle-même (image), **When** le propriétaire ouvre la page de mise à jour, **Then** le panel explique comment mettre à jour.
 3. **Given** une mise à jour qui échoue, **When** l'échec survient, **Then** le bot continue avec la version actuelle et le panel affiche la raison.
 4. **Given** la page de stockage, **When** le propriétaire vide une catégorie et confirme, **Then** l'espace occupé par cette catégorie retombe à zéro, la base n'étant jamais vidable depuis cette page.
+
+---
+
+### User Story 12 - Personnaliser les textes du bot (Priority: P3)
+
+Le propriétaire modifie les réponses du bot (menu, messages d'erreur, message de bienvenue par défaut, réponses des commandes) en français et en anglais, depuis le panel, sans toucher aux fichiers de langue. Il peut revenir au texte d'origine à tout moment.
+
+**Why this priority**: Donne au bot le ton de son propriétaire. Confortable, sans être nécessaire au fonctionnement.
+
+**Independent Test**: Modifier le texte « commande réservée au propriétaire », appeler une commande réservée depuis un autre numéro et recevoir le nouveau texte ; revenir au texte d'origine et le recevoir à nouveau.
+
+**Acceptance Scenarios**:
+
+1. **Given** la page des textes, **When** le propriétaire cherche un mot ou filtre par commande, **Then** il voit chaque texte concerné en français et en anglais, avec sa version d'origine.
+2. **Given** un texte modifié et enregistré, **When** le bot envoie ce texte, **Then** c'est la version modifiée qui part, dès le message suivant, menu et descriptions de commandes compris.
+3. **Given** un texte qui contient des emplacements variables (nom, nombre…), **When** le propriétaire enregistre une version qui en retire ou en ajoute un, **Then** l'enregistrement est refusé avec la liste des emplacements attendus.
+4. **Given** un texte modifié dont la version d'origine change lors d'une mise à jour du bot, **When** le propriétaire ouvre la page des textes, **Then** la version modifiée reste en place et le panel signale que l'original a changé.
+
+---
+
+### User Story 13 - Recevoir des alertes (Priority: P3)
+
+Le propriétaire reçoit sur WhatsApp un message du bot quand quelque chose demande son attention : le bot revient après une coupure, les erreurs s'accumulent, une clé API est refusée, une connexion au panel est bloquée ou réussit depuis une nouvelle origine, une mise à jour est disponible. Il choisit dans le panel les alertes qu'il veut recevoir.
+
+**Why this priority**: Évite de découvrir un problème des heures plus tard, mais le tableau de bord donne déjà l'information à qui le consulte.
+
+**Independent Test**: Activer l'alerte « erreurs en série », provoquer 10 erreurs de commande en quelques minutes, et recevoir une seule alerte.
+
+**Acceptance Scenarios**:
+
+1. **Given** le bot coupé pendant plus de 5 minutes, **When** il se reconnecte, **Then** les propriétaires reçoivent une alerte avec la durée de la coupure.
+2. **Given** l'alerte « erreurs en série » activée, **When** 10 erreurs de commande surviennent en 10 minutes, **Then** les propriétaires reçoivent une seule alerte résumant les commandes en cause, puis aucune autre alerte de ce type pendant une heure.
+3. **Given** une clé API refusée par son service, **When** une commande l'utilise, **Then** les propriétaires reçoivent une alerte nommant le service, au plus une fois par service et par 24 heures, sans la clé.
+4. **Given** une origine bloquée après 5 échecs de connexion au panel, ou une connexion réussie depuis une origine jamais vue, **When** l'événement survient, **Then** les propriétaires reçoivent une alerte avec l'heure et l'origine.
+5. **Given** aucun propriétaire configuré, **When** le propriétaire ouvre la page des alertes, **Then** le panel indique que les alertes ne peuvent être envoyées à personne.
 
 ---
 
@@ -308,7 +349,7 @@ Le propriétaire met à jour le bot et ses outils de téléchargement depuis le 
 - **FR-036**: Le panel MUST être disponible en français et en anglais, la langue de l'interface étant choisie par l'administrateur, indépendamment de la langue du bot.
 - **FR-037**: Toutes les fonctions du panel MUST être utilisables sur un écran de téléphone (largeur de 360 px) comme sur un ordinateur.
 - **FR-038**: Toute action destructrice ou perturbatrice (redémarrage, fermeture de session, vidage des propriétaires, suppression de réglages de groupe) MUST demander une confirmation.
-- **FR-039**: Le panel MUST être disponible quel que soit le mode de lancement du bot (normal ou « panel »).
+- **FR-039**: Le panel MUST être activé par défaut dans les deux modes de lancement du bot (normal ou « panel ») et désactivable par un réglage de démarrage ; si son adresse est indisponible, le bot MUST fonctionner sans panel et le signaler dans la console.
 - **FR-040**: Le panel MUST proposer un thème clair et un thème sombre, suivant par défaut la préférence de l'appareil.
 
 #### Données du bot
@@ -324,18 +365,32 @@ Le propriétaire met à jour le bot et ses outils de téléchargement depuis le 
 - **FR-046**: Une diffusion MUST contenir un texte et, au plus, une image ou un document dans la limite de taille des médias du bot ; le panel MUST montrer un aperçu et demander une confirmation indiquant le nombre de destinations.
 - **FR-047**: Les envois MUST être espacés d'au moins 5 secondes par défaut (réglable, jamais moins de 2 secondes), avec au plus 200 destinations par diffusion ; le panel MUST afficher la progression en direct, permettre l'annulation et produire un rapport par destination (envoyé, échec, annulé).
 - **FR-048**: Une diffusion MUST pouvoir être programmée ; diffusions programmées et en cours MUST survivre à un redémarrage, chaque destination recevant le message au plus une fois ; une diffusion en retard de plus d'une heure MUST être marquée « expirée » sans être envoyée.
+- **FR-049**: L'administrateur MUST pouvoir créer un message récurrent (chaque jour, certains jours de la semaine, ou un jour du mois, à une heure donnée dans le fuseau horaire du bot), avec les mêmes limites de destinations, d'espacement et de contenu qu'une diffusion ; il MUST pouvoir le mettre en pause, le reprendre, le modifier et le supprimer. Chaque occurrence MUST partir au plus une fois ; une occurrence en retard de plus d'une heure MUST être sautée et notée dans l'historique.
 
 #### Sauvegarde et restauration
 
-- **FR-049**: L'export MUST produire un fichier unique chiffré par une phrase de passe d'au moins 12 caractères, contenant les réglages, l'état des commandes et les données du bot ; la session WhatsApp n'y figure que sur demande explicite, après un avertissement ; le compte administrateur du panel n'y figure jamais.
-- **FR-050**: La restauration MUST vérifier la phrase de passe et l'intégrité du fichier avant toute modification, afficher un résumé (date, version du bot, nombre d'éléments par type), demander une confirmation, enregistrer automatiquement l'état actuel, puis remplacer les données et redémarrer le bot ; en cas d'échec, l'état d'avant MUST être conservé.
-- **FR-051**: Une sauvegarde d'une version antérieure du bot MUST être acceptée, une sauvegarde d'une version plus récente refusée avec explication, et une sauvegarde MUST pouvoir être restaurée quel que soit le type de base de données des deux installations.
+- **FR-050**: L'export MUST produire un fichier unique chiffré par une phrase de passe d'au moins 12 caractères, contenant les réglages, l'état des commandes et les données du bot ; la session WhatsApp n'y figure que sur demande explicite, après un avertissement ; le compte administrateur du panel n'y figure jamais.
+- **FR-051**: La restauration MUST vérifier la phrase de passe et l'intégrité du fichier avant toute modification, afficher un résumé (date, version du bot, nombre d'éléments par type), demander une confirmation, enregistrer automatiquement l'état actuel, puis remplacer les données et redémarrer le bot ; en cas d'échec, l'état d'avant MUST être conservé.
+- **FR-052**: Une sauvegarde d'une version antérieure du bot MUST être acceptée, une sauvegarde d'une version plus récente refusée avec explication, et une sauvegarde MUST pouvoir être restaurée quel que soit le type de base de données des deux installations.
 
 #### Maintenance
 
-- **FR-052**: Le panel MUST afficher la version installée et, quand l'installation peut se mettre à jour elle-même, indiquer si une version plus récente existe avec la liste des changements, puis l'appliquer après confirmation et redémarrer ; sinon, il MUST expliquer comment mettre à jour. Un échec de mise à jour MUST laisser le bot sur la version actuelle.
-- **FR-053**: Le panel MUST permettre de mettre à jour les outils de téléchargement du bot.
-- **FR-054**: Le panel MUST afficher l'espace occupé par les statuts sauvegardés, les médias temporaires, les messages conservés pour l'anti-suppression et la vue unique, la base de données et les journaux, et permettre de vider chaque catégorie après confirmation, sauf la base de données.
+- **FR-053**: Le panel MUST afficher la version installée et, quand l'installation peut se mettre à jour elle-même, indiquer si une version plus récente existe avec la liste des changements, puis l'appliquer après confirmation et redémarrer ; sinon, il MUST expliquer comment mettre à jour. Un échec de mise à jour MUST laisser le bot sur la version actuelle.
+- **FR-054**: Le panel MUST permettre de mettre à jour les outils de téléchargement du bot.
+- **FR-055**: Le panel MUST afficher l'espace occupé par les statuts sauvegardés, les médias temporaires, les messages conservés pour l'anti-suppression et la vue unique, la base de données et les journaux, et permettre de vider chaque catégorie après confirmation, sauf la base de données.
+
+#### Textes du bot
+
+- **FR-056**: Le panel MUST lister tous les textes envoyés par le bot, en français et en anglais, avec leur version d'origine, une recherche par mot et un filtre par commande.
+- **FR-057**: L'administrateur MUST pouvoir remplacer un texte dans une langue et revenir à l'original ; le texte remplacé MUST s'appliquer dès le message suivant, menu et descriptions de commandes compris.
+- **FR-058**: Un texte remplacé MUST conserver exactement les emplacements variables de l'original, sinon l'enregistrement est refusé.
+- **FR-059**: Les textes remplacés MUST survivre aux mises à jour du bot, et le panel MUST signaler ceux dont l'original a changé depuis ; ils MUST faire partie des sauvegardes.
+
+#### Alertes
+
+- **FR-060**: Le système MUST pouvoir envoyer par WhatsApp aux propriétaires une alerte pour chacun de ces événements, chaque type étant activable séparément dans le panel : reconnexion après une coupure de plus de 5 minutes (avec sa durée) ; 10 erreurs de commande en 10 minutes ; clé API refusée par son service ; origine bloquée après des échecs de connexion au panel ; connexion au panel depuis une origine jamais vue ; mise à jour disponible.
+- **FR-061**: Les alertes MUST être limitées : au plus une alerte « erreurs en série » par heure, une alerte « clé refusée » par service et par 24 heures, une alerte « mise à jour disponible » par version ; elles ne contiennent jamais de valeur secrète.
+- **FR-062**: Une alerte née pendant une coupure MUST être envoyée à la reconnexion ; sans propriétaire configuré, le panel MUST indiquer que les alertes ne peuvent être envoyées.
 
 ### Key Entities
 
@@ -344,7 +399,9 @@ Le propriétaire met à jour le bot et ses outils de téléchargement depuis le 
 - **Lien de configuration initiale / de réinitialisation** : secret à usage unique avec une date d'expiration.
 - **Réglage** : clé, thème, type, valeur par défaut, valeur actuelle, origine (défaut, fichier/environnement, panel), secret ou non, effet (immédiat ou au redémarrage), version (pour détecter les modifications concurrentes).
 - **État de commande** : commande (par son nom principal), portée (partout, ou un groupe donné), active ou désactivée, date du changement.
-- **Diffusion** : contenu (texte, média facultatif), destinations, espacement, date prévue, état (programmée, en cours, terminée, annulée, expirée), résultat par destination.
+- **Diffusion** : contenu (texte, média facultatif), destinations, espacement, date prévue ou règle de récurrence, état (programmée, en cours, en pause, terminée, annulée, expirée), résultat par destination et par occurrence.
+- **Texte personnalisé** : texte d'origine (identifiant, langue), version de remplacement, empreinte de l'original au moment du remplacement (pour signaler un original modifié).
+- **Alerte** : type, activée ou non, dernier envoi (pour la limitation), file d'attente des alertes nées pendant une coupure.
 - **Sauvegarde** : fichier chiffré ; date, version du bot, contenu (réglages, état des commandes, données, session WhatsApp facultative), nombre d'éléments par type.
 - **Réglages de groupe** : existants (bienvenue, départ, anti-lien, anti-bot, filtres, rôles, avertissements, discussion désactivée), désormais aussi modifiables depuis le panel.
 - **Entrée d'historique d'administration** : date, origine, action, cible, résultat, sans valeur secrète.
@@ -367,6 +424,9 @@ Le propriétaire met à jour le bot et ses outils de téléchargement depuis le 
 - **SC-011**: Une sauvegarde exportée puis restaurée sur une installation neuve redonne des réglages, des états de commande et des données identiques : une comparaison automatisée ne relève aucun écart.
 - **SC-012**: Une diffusion vers 50 destinations interrompue par un redémarrage n'envoie jamais deux fois le message à la même destination et sert toutes les destinations restantes.
 - **SC-013**: Une commande désactivée dans un groupe y est refusée dès le message suivant et fonctionne ailleurs, dans 100 % des cas testés.
+- **SC-014**: Un texte modifié dans le panel est celui que le bot envoie dès le message suivant, et aucun texte remplacé ne perd ou n'ajoute d'emplacement variable.
+- **SC-015**: Sur une heure de 100 erreurs de commande provoquées, les propriétaires reçoivent une seule alerte « erreurs en série ».
+- **SC-016**: Un message récurrent quotidien suivi pendant 7 occurrences simulées, dont une pendant une coupure de plus d'une heure, part exactement 6 fois.
 
 ## Assumptions
 

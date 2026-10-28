@@ -32,6 +32,6 @@
 ## Notes
 
 - Validation 2026-10-28 : les 3 clarifications (comptes, priorité fichier/panel, périmètre « et tout ») sont tranchées dans la section Clarifications de la spec.
-- « Encore plus » a été interprété (outils de maintenance, US11) : à confirmer ou corriger pendant `/speckit-clarify` ou `/speckit-plan`.
+- « Encore plus » confirmé en session interactive : maintenance (US11), textes modifiables (US12), alertes (US13), messages récurrents (US9).
 - HTTPS est cité comme exigence de sécurité côté utilisateur (avertissement), pas comme choix technique ; le chiffrement reste fourni par l'hébergeur (Assumptions).
 - Dépendance : la branche part de `001-audit-fix-commands` (PR #29 non fusionnée).

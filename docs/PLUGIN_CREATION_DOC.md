@@ -7,6 +7,145 @@ description: Createur de plugin
 
 # 🤖 Guide de Création de Plugins - OpenWhatsappBot
 
+> **Read this first (English).** The French guide further down predates the exact-matching registry. Where it differs from the reference below or from [`CLAUDE.md`](../CLAUDE.md), the reference and `CLAUDE.md` win. In short:
+>
+> - **Matching is exact.** `pattern` is a `|` list of literal, lower-case aliases, not a regex; the word after the prefix, lower-cased, must equal one of them.
+> - **The registry enforces permissions** (`fromMe`/`ownerOnly`, `onlyGroup`, `onlyPm`, `adminOnly`) before `execute`: do not re-check them in the plugin.
+> - **Never reply with `error.message`.** A thrown error already gives the user the generic `common.error` text and sends the stack to the owners, so the `catch` blocks of the examples below that reply `❌ ${e.message}` should simply let the error propagate (or reply with a `getLang` key).
+> - Node.js 24 or higher is required (`package.json` engines), not 20.
+>
+> Jump to: [Architecture](#architecture) · [Creating a plugin](#creating-a-plugin) · [Message class methods](#message-class-methods)
+
+## Architecture
+
+```text
+open-whatsapp-bot/
+├── index.js                  # Entry point (boot, then PM2/Docker run this file)
+├── panel.js                  # Same bot, plus the monitoring routes for panel hosts
+├── config.js                 # Configuration management (config.env via dotenv)
+├── ecosystem.config.js       # PM2 configuration
+├── lib/
+│   ├── baileys/client.js     # WhatsApp client (Baileys v7 wrapper, reconnection, auto status)
+│   ├── classes/Message.js    # Message abstraction
+│   ├── admin/                # Admin panel: HTTP router, auth, routes, services, static SPA (public/)
+│   ├── core/
+│   │   ├── boot.js           # Start-up shared by index.js and panel.js
+│   │   ├── botRuntime.js     # Bot state, restart and shutdown
+│   │   └── pipeline.js       # The one message pipeline (processMessage, attachHandlers)
+│   ├── plugins/
+│   │   ├── loader.js         # Plugin loader (requires plugins/*.js in sorted order)
+│   │   └── registry.js       # Command registry (exact aliases, permissions, hooks)
+│   ├── utils/                # http, ffmpeg, yt-dlp downloader, caches, scheduler, permissions...
+│   └── database/
+│       ├── index.js          # Database initialization and additive schema sync
+│       └── models/           # Sequelize models (one file each, auto-loaded)
+├── plugins/                  # One file per feature: commands and hooks
+├── lang/                     # en.json and fr.json (same keys), other locales fall back to en
+├── test/                     # node:test suite (yarn test)
+├── tools/                    # admin-reset.js, merge-i18n.js, check-unused-deps.js...
+└── docs/                     # Documentation (see the README for the index)
+```
+
+Start-up order: memory manager, `DATABASE.authenticate()`, `sync()`, `PluginLoader.loadAll()`, `attachHandlers(client)`, `client.initialize()`.
+
+For each incoming message, `lib/core/pipeline.js` (the only copy, shared by `index.js` and `panel.js`) does, in order: statuses go to the status saver; the message is wrapped in `Message` and cached for anti-delete; disabled chats stop here (except `unban` from an owner); the view-once handler runs; button replies and `handleButtonReply` hooks; `onMessage` hooks (a truthy return consumes the message); stickers bound by `setcmd`; the AI auto-responder for plain messages; and finally `registry.executeCommand`. Each hook is isolated in a try/catch. Pipeline changes go in that file only.
+
+## Creating a plugin
+
+Create a new file in the `plugins/` directory. It is picked up automatically (plugins load in sorted order); a module exporting neither `command` + `execute` nor a hook is skipped.
+
+```javascript
+const { getLang } = require('../lib/utils/language')
+
+module.exports = {
+  command: {
+    pattern: 'mycommand|mc',                // Exact names, separated by "|" (not a regex)
+    desc: getLang('plugins.mycommand.desc'), // Description (translated)
+    type: 'general',                        // Category in the menu
+    fromMe: false,                          // Sudo (owner) only (ownerOnly is a synonym)
+    onlyGroup: false,                       // Group only
+    onlyPm: false,                          // PM only
+    adminOnly: false                        // Group admins or owner only (implies group)
+  },
+
+  // args: words after the command, single-spaced
+  // ctx.command: the alias that matched; ctx.rawArgs: text after it, newlines kept
+  async execute(message, args, ctx) {
+    if (!args) return message.reply(getLang('plugins.mycommand.usage', '.'))
+    await message.reply(getLang('plugins.mycommand.hello'))
+  }
+}
+```
+
+Rules to know:
+
+- A command only runs when the word after the prefix **equals** its name or one of its aliases (case-insensitive). A duplicate alias logs a warning and the first registered keeps it.
+- Permissions (`fromMe`, `onlyGroup`, `onlyPm`, `adminOnly`) are checked before `execute`, so do not repeat them; only check `await message.isBotAdmin()` before an admin action. An empty `SUDO` refuses everybody for owner commands.
+- Every text sent to users goes through `getLang('plugins.<name>.<key>', ...args)` (`{0}`, `{1}` placeholders) with the same key in `lang/en.json` and `lang/fr.json`; shared text lives under `common.*`. Never write `getLang(k) || "fallback"`. See [LANGUAGE_SYSTEM.md](LANGUAGE_SYSTEM.md); new keys can go in a fragment `specs/001-audit-fix-commands/i18n/<plugin>.json` merged with `node tools/merge-i18n.js` (`--dry-run` first).
+- Never put `error.message` in a reply; a thrown error already gives the user a generic message and the stack goes to the owners. Never log an axios error (it holds API keys): use `safeLog` from `lib/utils/http.js`.
+- Optional hooks in the same file: `onMessage(message)` (cheap and cached; a truthy return consumes the message), `onGroupParticipants(update, client)` (add/remove/promote/demote), `onReady(client)` (idempotent: it runs on every reconnection) and `handleButtonReply(message)` (return `true` only for your own ids). `hookPriority: { onMessage: 20 }` orders hooks (lower first, default 100).
+- Button ids look like `mycommand:action:arg` (`<plugin>:<action>[:<nonce>][:<arg>]`, never with JIDs). Send interactive messages through `plugins/buttons.js` (`sendQuickReplies`, `sendList`, `sendConfirm`, `sendPaginatedList`): it adds a numbered text fallback.
+- A setter that writes a setting cached by `lib/utils/settingsCache.js` must call `settingsCache.invalidate(key)`.
+- Useful helpers in `lib/utils/`: `http.js` (`fetchJson`, `fetchBuffer`, `classifyError`, `replyKeyFor`), `ffmpeg.js`, `media.js#withTempDir`, `downloader.js` (yt-dlp), `permissions.js` (`guardTarget`, `assertParticipantResult`), `cooldown.js`, `gameStore.js`, `scheduler.js`.
+- Check your work with `yarn test`: new commands are picked up automatically (alias uniqueness, exact matching, permission refusals, a no-argument call, translations). The full contract is in [`CLAUDE.md`](../CLAUDE.md).
+
+## Message class methods
+
+Prefer the `Message` helpers (`lib/classes/Message.js`) over the raw socket.
+
+```javascript
+// Reply to message
+await message.reply('Text')
+
+// Send media
+await message.sendImage(buffer, 'caption')
+await message.sendVideo(buffer, 'caption')
+await message.sendSticker(buffer)
+await message.sendAudio(buffer)
+await message.sendAudioFile(buffer)  // audio whose type is sniffed from the content (mp3, ogg, m4a, wav...)
+await message.sendVoice(buffer)      // voice note (converted to ogg/opus)
+await message.sendDocument(buffer, { fileName, mimetype, caption })
+
+// React to message
+await message.react('✅')
+
+// Delete message
+await message.delete()
+
+// Download the media of the message
+const buffer = await message.downloadMedia()
+
+// Media and text of the message it replies to
+const quoted = await message.getQuotedMedia({ maxBytes: 20 * 1024 * 1024 }) // { buffer, type, mimetype, fileLength } or null; size checked before downloading
+const quotedText = message.getQuotedText()
+
+// Group operations
+await message.kick(['jid1', 'jid2'])
+await message.add(['jid1'])
+await message.promote(['jid1'])
+await message.demote(['jid1'])
+
+// Check permissions
+message.isSudo()
+await message.isBotAdmin()
+await message.isSenderAdmin()
+
+// Get group info
+const metadata = await message.getGroupMetadata()
+
+// Media information and other message types
+message.getMediaType()               // image, video, audio, document, sticker (or null)
+message.hasMediaType('image')
+message.getMediaExtension()
+await message.sendPoll(question, options)
+await message.sendLocation(lat, lon, caption)
+await message.sendContact(contacts)
+```
+
+Notes: `message.jid` is the chat, `message.sender` is the phone-number JID when Baileys gives one and `message.senderLid` the LID (sudo and admin checks match both). `message.quoted.key` identifies the replied message. `guardTarget(message, jid)` and `assertParticipantResult(res)` from `lib/utils/permissions.js` protect admin actions (a per-target status of `"200"` means success).
+
+---
+
 ## 📋 Table des matières
 
 1. [Introduction](#introduction)

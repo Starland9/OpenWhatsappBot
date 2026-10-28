@@ -8,7 +8,8 @@
  *  - a busy port logs the error naming PANEL_PORT, PANEL_HOST and ADMIN_PANEL=false and the bot continues;
  *  - the bind comes from lib/utils/runtime.js#resolveBind (PANEL_HOST wins);
  *  - requiring panel.js binds nothing and installs no handler;
- *  - engine requires tolerate only their own MODULE_NOT_FOUND;
+ *  - the engines and the panel collaborators (textOverrides, commandState, ytdlpUpdate) are hard requires: a missing
+ *    or broken module fails the start-up with exit(1) (W2, T219);
  *  - the setting store drives BOT_LANG and LOG_LEVEL; fatal start-up failures exit with 1.
  *
  * Every collaborator is a recorder injected through `deps`: no database, no network, no WhatsApp, no real signal
@@ -27,7 +28,7 @@ const fakes = require("./helpers/fakes");
 fakes.setupEnv();
 fakes.applyPendingI18n(); // the texts of the unmerged bot fragments (admin.panel_enabled_ignored, admin.listen_failed)
 
-const { bootstrap, optionalRequire, ENGINES } = require("../lib/core/boot");
+const { bootstrap, ENGINES } = require("../lib/core/boot");
 const { createSettingsStore } = require("../lib/utils/settingsStore");
 
 // ---------------------------------------------------------------------------
@@ -249,7 +250,7 @@ test("bootstrap: an engine that cannot start is logged and the bot keeps startin
   assert.ok(b.log.includes("client.initialize"));
 });
 
-test("bootstrap: engines absent from the repository are skipped, engines present are started with the client", async () => {
+test("bootstrap: an engine supplied as null is left out, the others start with the client", async () => {
   const b = makeBoot({ engines: { housekeeping: null, alerts: null, updater: null } });
   await b.run();
   assert.ok(!b.log.some((l) => l.startsWith("housekeeping") || l.startsWith("alerts") || l.startsWith("updater")));
@@ -521,34 +522,80 @@ test("index.js and panel.js are thin wrappers: bootstrap() and nothing else", ()
 });
 
 // ---------------------------------------------------------------------------
-// Optional engines
+// Hard requires (T219): a missing engine fails the boot
 // ---------------------------------------------------------------------------
 
-test("optionalRequire tolerates only the absence of the exact module", () => {
-  const missing = (id) => Object.assign(new Error(`Cannot find module '${id}'\nRequire stack:\n- /x/boot.js`), { code: "MODULE_NOT_FOUND" });
+const HARD_REQUIRES = [
+  "../utils/stats",
+  "../utils/housekeeping",
+  "../utils/broadcaster",
+  "../utils/alerts",
+  "../utils/updater",
+  "../utils/textOverrides",
+  "../utils/commandState",
+  "../utils/ytdlpUpdate",
+];
 
-  assert.equal(optionalRequire("../utils/housekeeping", () => { throw missing("../utils/housekeeping"); }), null);
-  // the module exists but needs a dependency that does not: a real error
-  assert.throws(() => optionalRequire("../utils/housekeeping", () => { throw missing("left-pad"); }), /left-pad/);
-  // another module of the same family is not the one we asked for
-  assert.throws(() => optionalRequire("../utils/alerts", () => { throw missing("../utils/housekeeping"); }), /housekeeping/);
-  // any other failure propagates
-  assert.throws(() => optionalRequire("../utils/alerts", () => { throw new SyntaxError("Unexpected token"); }), SyntaxError);
-  assert.throws(() => optionalRequire("../utils/alerts", () => { throw Object.assign(new Error("denied"), { code: "EACCES" }); }), /denied/);
-  // the happy path returns the module
-  const marker = {};
-  assert.equal(optionalRequire("../utils/alerts", () => marker), marker);
+/** A loader that serves recorders (no engine of the repository is started) and notes what was asked */
+function recorderLoader(asked, failing = {}) {
+  return (id) => {
+    asked.push(id);
+    if (failing[id]) throw failing[id];
+    return { start() {}, startChecker() {}, load: async () => {} };
+  };
+}
+
+test("bootstrap: the engines and the panel collaborators are required by id, none is optional", async () => {
+  const asked = [];
+  const b = makeBoot({ deps: { engines: undefined, requireModule: recorderLoader(asked) } });
+  const result = await b.run();
+  assert.ok(result);
+  assert.deepEqual([...asked].sort(), [...HARD_REQUIRES].sort());
+  assert.deepEqual(
+    ENGINES.map((e) => e.id),
+    HARD_REQUIRES.slice(0, 5),
+  );
+  const d = b.created.createAdminDeps;
+  assert.ok(d.commandState && d.ytdlpUpdate && d.textOverrides, "handed to the admin, never null");
+  assert.ok(d.stats && d.broadcaster && d.alerts && d.updater);
 });
 
-test("optionalRequire with the real loader: absent module -> null, present -> module, broken dependency -> thrown", (t) => {
-  assert.equal(optionalRequire("../utils/this-engine-does-not-exist"), null);
-  assert.equal(typeof optionalRequire("../utils/stats").count, "function");
+test("bootstrap: a missing engine module fails the boot with exit(1), nothing starts after it", async () => {
+  for (const id of HARD_REQUIRES) {
+    const missing = Object.assign(new Error(`Cannot find module '${id}'\nRequire stack:\n- /x/boot.js`), { code: "MODULE_NOT_FOUND" });
+    const b = makeBoot({ deps: { engines: undefined, requireModule: recorderLoader([], { [id]: missing }) } });
+    const result = await b.run();
+    assert.equal(result, null, id);
+    assert.deepEqual(b.exits, [1], id);
+    assert.equal(b.runtime.state.status, "error", id);
+    assert.deepEqual(b.runtime.errors.map((e) => e[0]), ["startup"], id);
+    for (const step of ["createAdmin", "db.sync", "plugins.loadAll", "admin.start", "client.initialize"]) {
+      assert.ok(!b.log.includes(step), `${id}: ${step} must not run`);
+    }
+  }
+});
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "owb-engine-"));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const broken = path.join(dir, "broken.js");
-  fs.writeFileSync(broken, 'require("a-dependency-that-is-not-installed");\n');
-  assert.throws(() => optionalRequire(broken), (error) => error.code === "MODULE_NOT_FOUND" && /a-dependency-that-is-not-installed/.test(error.message));
+test("bootstrap: a broken engine (syntax error, missing dependency) fails the boot as well", async () => {
+  for (const error of [new SyntaxError("Unexpected token"), Object.assign(new Error("Cannot find module 'left-pad'"), { code: "MODULE_NOT_FOUND" })]) {
+    const b = makeBoot({ deps: { engines: undefined, requireModule: recorderLoader([], { "../utils/alerts": error }) } });
+    assert.equal(await b.run(), null);
+    assert.deepEqual(b.exits, [1]);
+  }
+});
+
+test("every hard-required module exists on disk and loads without side effect", () => {
+  const libCore = path.join(fakes.ROOT, "lib", "core");
+  for (const id of HARD_REQUIRES) {
+    const file = require.resolve(path.resolve(libCore, id));
+    assert.ok(fs.existsSync(file), id);
+    assert.equal(typeof require(file), "object", id);
+  }
+});
+
+test("boot.js has no guarded require left: no optionalRequire, no try/catch around a require of an engine", () => {
+  const source = fs.readFileSync(path.join(fakes.ROOT, "lib", "core", "boot.js"), "utf8");
+  assert.ok(!/optionalRequire|optional\(/.test(source));
+  assert.ok(!/MODULE_NOT_FOUND/.test(source));
 });
 
 // ---------------------------------------------------------------------------

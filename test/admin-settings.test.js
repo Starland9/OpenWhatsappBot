@@ -862,6 +862,52 @@ describe("a batch across stores", () => {
     assert.ok(!answer.text.includes("disk full"), "no internal message reaches the client");
   });
 
+  test("override rows and database adapters share ONE transaction: an adapter failure leaves no override applied", async () => {
+    const failing = { ...viewonce, saveSettings: async () => { throw new Error("disk full"); } };
+    await t.close();
+    await boot({ deps: { plugins: { viewonce: failing } } });
+    const events = [];
+    const off = settingsStore.onChange(null, (event) => events.push(event.keys));
+    try {
+      const answer = await patch([set("PREFIX", "!"), set("MAX_UPLOAD", 7), set("VIEWONCE_MODE", "g")]);
+      assert.equal(answer.status, 500);
+      assert.equal(await db.SettingOverride.count(), 0, "the override rows were rolled back with the adapter");
+      assert.equal(await db.ViewOnce.count(), 0);
+      assert.equal(settingsStore.get("PREFIX"), ".", "the store's memory still serves the old value");
+      assert.equal(settingsStore.get("MAX_UPLOAD"), 230);
+      assert.equal(settingsStore.version("PREFIX"), 0);
+      assert.deepEqual(events, [], "no change event for a batch that did not commit");
+      const listing = await get();
+      assert.notEqual(byKey(listing, "PREFIX").origin, "override");
+      assert.equal(byKey(listing, "PREFIX").version, 0);
+      assert.equal((await auditRows({ action: "setting.update" })).length, 0, "nothing audited");
+      assert.ok(!answer.text.includes("disk full"));
+    } finally {
+      if (typeof off === "function") off();
+    }
+  });
+
+  test("a revert and a set in the same batch commit together with the adapters, then the memory follows", async () => {
+    await patch([set("MAX_UPLOAD", 7)]);
+    const events = [];
+    const off = settingsStore.onChange(null, (event) => events.push([event.source, ...event.keys]));
+    try {
+      const version = (await get()).settings.find((s) => s.key === "MAX_UPLOAD").version;
+      const answer = await patch([
+        set("PREFIX", "!"),
+        { key: "MAX_UPLOAD", op: "revert", version },
+        set("AUTO_RESPONDER_ENABLED", true),
+      ]);
+      assert.equal(answer.status, 200, JSON.stringify(answer.json));
+      assert.equal(settingsStore.get("PREFIX"), "!");
+      assert.equal(settingsStore.get("MAX_UPLOAD"), 230);
+      assert.equal(await db.AutoResponder.count(), 1);
+      assert.deepEqual(events, [["panel", "PREFIX"], ["unset", "MAX_UPLOAD"]]);
+    } finally {
+      if (typeof off === "function") off();
+    }
+  });
+
   test("a validation error in the file adapter's keys stops the database adapters too", async () => {
     const answer = await patch([set("AUTO_RESPONDER_ENABLED", true), set("STATUS_SAVE_LIST", ["nope"])]);
     assert.equal(answer.status, 422);

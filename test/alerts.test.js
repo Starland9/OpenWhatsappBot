@@ -609,6 +609,19 @@ describe("the outbox: disconnection, restart, attempts, retention", () => {
     assert.equal((await rows()).length, 0);
   });
 
+  test("a resolved row carries the resolution time of the injected clock (retention counts from it)", async () => {
+    await startEngine();
+    connected = false;
+    await alerts.raise("new_origin", { origin: "3.3.3.3" }, { now: clock.now() });
+    jump(30 * MINUTE);
+    connected = true;
+    await alerts.flush();
+    const [row] = await rows();
+    assert.equal(row.status, "sent");
+    assert.equal(row.updatedAt.getTime(), clock.now(), "updatedAt is the moment of the resolution, not the real time");
+    assert.equal(row.sentAt.getTime(), clock.now());
+  });
+
   test("login_blocked slots are pruned after 24 h, the other slots stay", async () => {
     await startEngine();
     await alerts.raise("login_blocked", { origin: "5.5.5.5", retryAfterMs: 900000 }, { now: clock.now() });

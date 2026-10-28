@@ -1,6 +1,7 @@
 const { getLang } = require("../lib/utils/language");
 const config = require("../config");
 const settingsStore = require("../lib/utils/settingsStore");
+const bus = require("../lib/utils/events");
 const {
   fetchJson,
   fetchBuffer,
@@ -261,6 +262,8 @@ module.exports = {
       }
       if (err?.code === "REDDIT_BAD_CREDENTIALS") {
         console.error("Reddit credentials rejected:", safeLog(err));
+        // this answer never reaches classifyError: announce the refused credentials for the alerts engine
+        bus.emitSafe("key:refused", { service: "reddit", at: Date.now() });
         return await message.reply(getLang("common.not_configured"));
       }
 

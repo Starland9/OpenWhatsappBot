@@ -39,7 +39,7 @@ const GUARD_CODES = new Set(["unauthenticated", "session_expired", "token_invali
  * right sample of each path is found by probing: the router answers 404 before it authenticates when a value does
  * not match, and 401 when it does.
  */
-const SAMPLES = ["120363000000000001@g.us", "1", "ping", "en", "111@s.whatsapp.net", "abc", "openai", "database", "0123456789abcdef0123456789abcdef"];
+const SAMPLES = ["120363000000000001@g.us", "1", "ping", "en", "237600000001@s.whatsapp.net", "abc", "openai", "database", "0123456789abcdef0123456789abcdef"];
 
 /** path pattern -> a concrete path the router accepts (filled in by `resolveSamples`). */
 const resolved = new Map();
@@ -196,6 +196,27 @@ describe("the route table", () => {
         assert.equal(route.mutates, true, keyOf(route));
         assert.equal(route.csrf, route.auth === "session" ? true : "origin", keyOf(route));
       }
+    }
+  });
+
+  test("one :userJid pattern for every route: a number of at least 5 digits, bare or with its server", async () => {
+    const pattern = PARAM_PATTERNS.userJid;
+    for (const good of ["12345", "237600000001", "237600000001@s.whatsapp.net", "237600000001:12@s.whatsapp.net", "123456789012345@lid"]) {
+      assert.ok(pattern.test(good), good);
+    }
+    for (const bad of ["1234", "111", "12", "abc", "237600000001@g.us", "status@broadcast", "12345@", "../12345"]) {
+      assert.ok(!pattern.test(bad), bad);
+    }
+    // the routes use the router's default (a local pattern would drift): their sample is found by the same pattern
+    const withUser = routes.filter((r) => r.path.includes(":userJid"));
+    assert.ok(withUser.length >= 2, "the two per-member routes of W-GRP");
+    for (const route of withUser) {
+      const concrete = samplePath(route.path).split("/").pop();
+      assert.ok(pattern.test(decodeURIComponent(concrete)), `${keyOf(route)} sampled with ${concrete}`);
+      const short = await send(t, { method: route.method, path: route.path.replace(":jid", "120363000000000001@g.us").replace(":userJid", "1234"), headers: { "Content-Length": "0" } });
+      assert.equal(short.status, 404, `${keyOf(route)}: 4 digits is not a number`);
+      const ok = await send(t, { method: route.method, path: route.path.replace(":jid", "120363000000000001@g.us").replace(":userJid", "12345"), headers: { "Content-Length": "0" } });
+      assert.equal(ok.status, 401, `${keyOf(route)}: 5 digits reach the authentication`);
     }
   });
 

@@ -1173,6 +1173,110 @@ describe("maintenance and database failures", () => {
   });
 });
 
+describe("set / unset in the caller's transaction (SET-2 atomicity)", () => {
+  const inTransaction = (work) => db.DATABASE.transaction(work);
+
+  test("the rows are written in the caller's transaction, memory and listeners wait for apply()", async () => {
+    const { store } = await loaded();
+    const seen = [];
+    store.onChange(["PREFIX"], (event) => seen.push([event.source, store.get("PREFIX")]));
+
+    let pending;
+    await inTransaction(async (transaction) => {
+      pending = await store.set({ PREFIX: "!" }, { transaction });
+      assert.deepEqual(pending.changed, ["PREFIX"]);
+      assert.deepEqual(pending.versions, { PREFIX: 1 });
+      assert.equal(typeof pending.apply, "function");
+      assert.notEqual(store.describe("PREFIX").origin, "override", "memory is untouched before the commit");
+    });
+    assert.ok(await rowOf("PREFIX"), "committed with the transaction");
+    assert.notEqual(store.describe("PREFIX").origin, "override", "still not applied: the caller decides");
+    assert.deepEqual(seen, []);
+
+    pending.apply();
+    pending.apply(); // idempotent
+    assert.equal(store.get("PREFIX"), "!");
+    assert.equal(store.describe("PREFIX").origin, "override");
+    assert.equal(store.version("PREFIX"), 1);
+    assert.deepEqual(seen, [["panel", "!"]], "one event, after memory is updated");
+  });
+
+  test("a rollback leaves the database and the store's memory exactly as they were", async () => {
+    const { store } = await loaded();
+    await store.set({ PREFIX: "!" });
+    const seen = [];
+    store.onChange(null, () => seen.push(1));
+    await assert.rejects(
+      inTransaction(async (transaction) => {
+        const pending = await store.set({ PREFIX: "?", MAX_UPLOAD: 7 }, { transaction });
+        assert.equal(pending.changed.length, 2);
+        throw new Error("a later write in the same transaction failed");
+      }),
+      /later write/,
+    );
+    assert.equal((await rowOf("PREFIX")).value, "!");
+    assert.equal(await rowOf("MAX_UPLOAD"), null);
+    assert.equal(store.get("PREFIX"), "!");
+    assert.equal(store.get("MAX_UPLOAD"), 230);
+    assert.equal(store.version("PREFIX"), 1);
+    assert.deepEqual(seen, [], "no change event for a write that never committed");
+  });
+
+  test("unset in the caller's transaction: rows deleted with it, memory back only at apply()", async () => {
+    const { store } = await loaded();
+    await store.set({ PREFIX: "!", MAX_UPLOAD: 7 });
+    let pending;
+    await inTransaction(async (transaction) => {
+      pending = await store.unset(["PREFIX"], { transaction });
+    });
+    assert.deepEqual(pending.changed, ["PREFIX"]);
+    assert.equal(await rowOf("PREFIX"), null);
+    assert.equal(store.get("PREFIX"), "!", "memory waits");
+    pending.apply();
+    assert.notEqual(store.get("PREFIX"), "!");
+    assert.equal(store.get("MAX_UPLOAD"), 7);
+
+    // versions keep counting after a reset
+    await store.set({ PREFIX: "?" });
+    assert.equal(store.version("PREFIX"), 2);
+
+    // a rolled-back unset leaves the override in force
+    await assert.rejects(
+      inTransaction(async (transaction) => {
+        await store.unset(["MAX_UPLOAD"], { transaction });
+        throw new Error("boom");
+      }),
+    );
+    assert.equal(store.get("MAX_UPLOAD"), 7);
+    assert.ok(await rowOf("MAX_UPLOAD"));
+  });
+
+  test("validation and version conflicts still refuse the batch before anything is written", async () => {
+    const { store } = await loaded();
+    await store.set({ PREFIX: "!" });
+    await assert.rejects(
+      inTransaction((transaction) => store.set({ PREFIX: "ab cd" }, { transaction })),
+      (error) => error instanceof SettingsValidationError,
+    );
+    await assert.rejects(
+      inTransaction((transaction) => store.set({ PREFIX: "?" }, { transaction, expectedVersions: { PREFIX: 0 } })),
+      (error) => error instanceof SettingsConflictError,
+    );
+    assert.equal((await rowOf("PREFIX")).value, "!");
+    assert.equal(store.get("PREFIX"), "!");
+  });
+
+  test("without a transaction the behaviour is unchanged: applied before set() returns, no apply()", async () => {
+    const { store } = await loaded();
+    const result = await store.set({ PREFIX: "!" });
+    assert.equal(result.apply, undefined);
+    assert.equal(store.get("PREFIX"), "!");
+    const reset = await store.unset(["PREFIX"]);
+    assert.equal(reset.apply, undefined);
+    assert.notEqual(store.get("PREFIX"), "!");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Backup and restore
 // ---------------------------------------------------------------------------

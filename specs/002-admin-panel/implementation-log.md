@@ -80,3 +80,9 @@ Note for the user: W-MNT's killed first test run left 3 `/tmp/owb-updater-*` dir
 | W2 | W2-B | T211–T216 | done | 57a6d8f |
 | W2 | W2-A | T206–T210 | done | 5bc858e |
 | W2 | W2-C | T217–T220 + 5 fixes | done | 8268f65 |
+
+### Final verification (main)
+
+- T221: `check-unused-deps` 0; `git diff --stat BASE -- package.json yarn.lock` empty (no npm dependency added; preact/htm vendored).
+- T223 (isolated worktree, fresh databases, no config.env): `Loaded 81 plugins`, no load failure, no duplicate alias, setup link printed once; default bind `127.0.0.1:3000`, with `PORT=3101` bind `0.0.0.0:3101`; `ADMIN_PANEL=false` opens no port (index mode); `PANEL_ENABLED=false` logs one French warning and the panel starts; busy port keeps the bot running (W0 checkpoint). Legacy: `/ /health /healthz` 503 `initializing` (no WhatsApp), `/status /ping /metrics /api/info` 200 with the frozen shapes (no number, token or path), `POST /api/restart` 403 without `PANEL_TOKEN`; `/admin/` 200; `/admin/api/settings` without session 401.
+- T224: memory, median of 3 runs with 20 s idle: baseline RSS 171.1 MB, panel 204.1 MB, delta 33.0 MB (< 50 MB, SC-009 OK); heap+external delta 6.8 MB. Checklist `requirements.md` untouched since BASE.

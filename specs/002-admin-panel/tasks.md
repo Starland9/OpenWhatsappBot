@@ -214,7 +214,7 @@ Counting note: `pino(` appears in 19 files (20 calls). The two Baileys calls in 
 
 **Checkpoint (W0)**: `node .yarn/releases/yarn-4.17.0.cjs test` is green (including the untouched `test/panel.test.js`, `test/panel-legacy.test.js`, `test/admin-logging.test.js`), `node tools/check-unused-deps.js` prints `0 unused dependencies`, `git diff --stat package.json yarn.lock` is empty, and a throwaway boot (`ADMIN_PANEL` on, scratch copy, fresh database) prints the setup link. W1 starts only now.
 
-- [ ] T097 Run the W0 checkpoint above in an isolated scratch copy (`git worktree add` of the branch, `node .yarn/releases/yarn-4.17.0.cjs install`, `LOG_LEVEL=info timeout 25 node index.js`): the plugin banner appears, the line `…/admin/setup?token=…` is printed once and contains no pino prefix, `curl -s http://127.0.0.1:3000/health` still answers, and no `Failed to load plugin` appears. Commit the W0 agents' work separately beforehand (one commit per agent). — main
+- [X] T097 Run the W0 checkpoint above in an isolated scratch copy (`git worktree add` of the branch, `node .yarn/releases/yarn-4.17.0.cjs install`, `LOG_LEVEL=info timeout 25 node index.js`): the plugin banner appears, the line `…/admin/setup?token=…` is printed once and contains no pino prefix, `curl -s http://127.0.0.1:3000/health` still answers, and no `Failed to load plugin` appears. Commit the W0 agents' work separately beforehand (one commit per agent). — main
 
 ---
 
@@ -226,7 +226,7 @@ Counting note: `pino(` appears in 19 files (20 calls). The two Baileys calls in 
 
 Most of US1 is delivered in W0 by F4 (router, guard, headers, static, trust proxy), F6 (setup, login, account views, `no_https` banner) and F8 (passwords, sessions, tokens, rate limit, routes, CLI, tests); those tasks carry the `[US1]` tag above. The server side of the `undeclared_proxy` banner is composed by W-DASH in Phase 4. What remains is the acceptance run:
 
-- [ ] T098 [US1] Run the US1 scenarios of quickstart §3 against the W0 build in the scratch copy: steps 1-4 and 6 by hand (private window shows only the invitation; `curl -si http://127.0.0.1:3000/admin/api/settings | head -1` is `401`; 11-character password refused; link single use; six wrong logins from one origin give five `401` then `429` with `Retry-After`, and the right password is still refused; `node tools/admin-reset.js` prints a new link and the old session is invalid), step 5 is covered by `test/admin-auth.test.js`. Record any gap as a Request for W2-A/W2-C. — main
+- [X] T098 [US1] Run the US1 scenarios of quickstart §3 against the W0 build in the scratch copy: steps 1-4 and 6 by hand (private window shows only the invitation; `curl -si http://127.0.0.1:3000/admin/api/settings | head -1` is `401`; 11-character password refused; link single use; six wrong logins from one origin give five `401` then `429` with `Retry-After`, and the right password is still refused; `node tools/admin-reset.js` prints a new link and the old session is invalid), step 5 is covered by `test/admin-auth.test.js`. Record any gap as a Request for W2-A/W2-C. — main
 
 **Checkpoint**: US1 is complete and independently testable.
 

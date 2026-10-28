@@ -37,3 +37,12 @@ Note for the user: F6's headless-Chrome smoke left `/tmp/owb-chrome-*` profile d
 
 - F5 requests: W2-A merges `bot-*` fragments (until then `admin.panel_listening`, `admin.setup_link` print raw keys); W2-C turns guarded requires in `lib/core/boot.js` into hard requires (ENGINES, textOverrides, commandState, ytdlpUpdate).
 | W0-B | F8 | T085–T096 | done | e2440fc |
+| W0 | main | T097–T098 | checkpoint passed | (this commit) |
+
+### W0 checkpoint (isolated worktree, fresh SQLite, no config.env)
+
+- Boot: 79 plugins, no load failure, setup link printed once in French without a pino prefix; `/health` 503 `initializing` (no WhatsApp), `/admin/` 200, `/admin/api/session` 200.
+- US1: setup with 11 chars → 422 `validation_failed`; 12+ → 200 + session; reused link → 303 `/admin/#/setup/invalid`; 6 wrong logins → 401×5 then 429 (`Retry-After: 900`); right password while blocked → 429; `tools/admin-reset.js` prints a link; consuming a reset link revokes the older sessions (per contract, issuing alone does not).
+- Port already in use → logged error, bot keeps running without the panel.
+- `/admin/api/settings` answers 404 until W-SET registers it (route-level 401 is covered by `test/admin-security.test.js` for registered routes).
+- Polish for W2-A: French wording mixes "Panel d'administration" (setup link) and "Panneau d'administration" (listen error); use one term ("panel d'administration").

@@ -5,8 +5,9 @@ const path = require("path");
 // Load environment variables
 const configPath = path.join(__dirname, "./config.env");
 const databasePath = path.join(__dirname, "./database.db");
-// quiet: dotenv >= 17 prints an "injected env" line on every load
-if (existsSync(configPath))
+// quiet: dotenv >= 17 prints an "injected env" line on every load.
+// OWB_NO_CONFIG_ENV=1 skips the file (tests and tooling must never read the owner's secrets)
+if (existsSync(configPath) && process.env.OWB_NO_CONFIG_ENV !== "1")
   require("dotenv").config({ path: configPath, quiet: true });
 
 const DATABASE_URL = process.env.DATABASE_URL || databasePath;

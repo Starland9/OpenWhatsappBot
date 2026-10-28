@@ -1,0 +1,47 @@
+{
+  "note": "Vendored ES modules, no CDN (FR-010). Obtained with `npm pack preact@10.29.8 htm@3.1.1` and copied from the tarballs; `sha256` is the hash of the committed file (checked by test/admin-frontend.test.js), `upstreamSha256` the hash of the file as published in the tarball. Not an npm dependency.",
+  "files": [
+    {
+      "name": "preact",
+      "version": "10.29.8",
+      "license": "MIT",
+      "file": "preact.mjs",
+      "sha256": "25a5df7e9f628a587743c4641a368737a3b218f28ef738ba0376a2d5bdfc948c",
+      "source": "package/dist/preact.module.js",
+      "tarball": "preact-10.29.8.tgz",
+      "tarballSha256": "b18cb0a457f3d43c7bb30391a74ade7d13e03bc6e77915e061c70c0fe1123299",
+      "upstreamSha256": "c30e721ebfdc6e2ad4c18c14d2dfb82667829c8aec27de1207774e3fc16858a8",
+      "licenseFile": "LICENSE-preact",
+      "licenseSha256": "1fe6958409c8c257a70c587a18b6f7f412b179b456630790d30b2ec9a8e4b7d4",
+      "modification": "trailing sourceMappingURL comment removed (the .map files are not vendored)"
+    },
+    {
+      "name": "preact/hooks",
+      "version": "10.29.8",
+      "license": "MIT",
+      "file": "preact-hooks.mjs",
+      "sha256": "41391bb2f3153900ffbec61cd06d4ba5a62bb7458d63d83a4cded54245062bc1",
+      "source": "package/hooks/dist/hooks.module.js",
+      "tarball": "preact-10.29.8.tgz",
+      "tarballSha256": "b18cb0a457f3d43c7bb30391a74ade7d13e03bc6e77915e061c70c0fe1123299",
+      "upstreamSha256": "a6ee626f2d01570592dd569a792e3f050154aa02890eead8c223fa3ed5aa3d5a",
+      "licenseFile": "LICENSE-preact",
+      "licenseSha256": "1fe6958409c8c257a70c587a18b6f7f412b179b456630790d30b2ec9a8e4b7d4",
+      "modification": "bare import from\"preact\" rewritten to from\"./preact.mjs\" (an import map would need an inline script); trailing sourceMappingURL comment removed"
+    },
+    {
+      "name": "htm",
+      "version": "3.1.1",
+      "license": "Apache-2.0",
+      "file": "htm.mjs",
+      "sha256": "ab33dd3f38059b9be4d5f5350128eefb2356639c4e0bbe9d9e8b3ba75847e9e4",
+      "source": "package/dist/htm.module.js",
+      "tarball": "htm-3.1.1.tgz",
+      "tarballSha256": "2425b9bee11409177bcabc7f32e319926fc6690c1701c0b257c88bdff2d5ba90",
+      "upstreamSha256": "ab33dd3f38059b9be4d5f5350128eefb2356639c4e0bbe9d9e8b3ba75847e9e4",
+      "licenseFile": "LICENSE-htm",
+      "licenseSha256": "740725f7252e750af735d0028cc534970772f513331e9f68150fede8fb3ce00f",
+      "modification": null
+    }
+  ]
+}

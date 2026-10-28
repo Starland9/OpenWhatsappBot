@@ -8,10 +8,14 @@
  *
  * Usage:
  *   node tools/merge-i18n.js [--dry-run] [--verbose]
- *                            [--lang-dir <dir>] [--frag-dir <dir>]
+ *                            [--lang-dir <dir>] [--frag-dir <dir>] [--pattern <glob>]
  *
  * --lang-dir / --frag-dir (or the I18N_LANG_DIR / I18N_FRAG_DIR environment variables)
  * point the tool at other directories, e.g. copies for a dry run.
+ *
+ * --pattern (or I18N_FRAG_PATTERN) restricts the fragment files to a glob on the file name
+ * (`*` and `?` only; default "*.json", so the 001 behaviour is unchanged). Feature 002 merges its
+ * bot texts with: --frag-dir specs/002-admin-panel/i18n --pattern "bot-*.json"
  *
  * Rules:
  *   - a fragment must have the same key set in "en" and "fr"
@@ -41,6 +45,7 @@ function parseArgs(argv) {
     help: false,
     langDir: process.env.I18N_LANG_DIR || path.join(ROOT, "lang"),
     fragDir: process.env.I18N_FRAG_DIR || path.join(ROOT, "specs", "001-audit-fix-commands", "i18n"),
+    pattern: process.env.I18N_FRAG_PATTERN || "*.json",
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -51,9 +56,24 @@ function parseArgs(argv) {
     else if (flag === "--help" || flag === "-h") opts.help = true;
     else if (flag === "--lang-dir") opts.langDir = path.resolve(value() || "");
     else if (flag === "--frag-dir") opts.fragDir = path.resolve(value() || "");
+    else if (flag === "--pattern") opts.pattern = value() || "";
     else throw new Error(`Unknown argument: ${arg}`);
   }
   return opts;
+}
+
+/**
+ * RegExp for a file-name glob: `*` matches any run of characters, `?` one character, everything else
+ * is literal. A glob with a path separator is refused (patterns select files of one directory).
+ */
+function globToRegExp(glob) {
+  if (typeof glob !== "string" || !glob) throw new Error("--pattern needs a glob such as \"bot-*.json\"");
+  if (/[\\/]/.test(glob)) throw new Error(`--pattern "${glob}" must be a file name glob, not a path`);
+  const source = glob
+    .split("")
+    .map((c) => (c === "*" ? ".*" : c === "?" ? "." : c.replace(/[.+^${}()|[\]\\]/g, "\\$&")))
+    .join("");
+  return new RegExp(`^${source}$`);
 }
 
 /** Why a flat key is not acceptable, or null */
@@ -73,15 +93,19 @@ function placeholders(text) {
 
 /**
  * Read and check every fragment. Returns [{ file, data }] in file name order.
+ * options.pattern: glob on the file name (default "*.json"); options.placeholders: function giving the
+ * comparable placeholder signature of a text (default: numeric `{0}`, `{1}`).
  */
-function loadFragments(fragDir, errors, warnings) {
+function loadFragments(fragDir, errors, warnings, options = {}) {
+  const matcher = globToRegExp(options.pattern || "*.json");
+  const signature = options.placeholders || placeholders;
   if (!fs.existsSync(fragDir)) {
     errors.push(`Fragment directory not found: ${fragDir}`);
     return [];
   }
   const files = fs
     .readdirSync(fragDir)
-    .filter((f) => f.endsWith(".json"))
+    .filter((f) => f.endsWith(".json") && matcher.test(f))
     .sort();
 
   const fragments = [];
@@ -144,7 +168,7 @@ function loadFragments(fragDir, errors, warnings) {
       }
     }
     for (const key of Object.keys(data[a])) {
-      if (has(data[b], key) && placeholders(data[a][key]) !== placeholders(data[b][key])) {
+      if (has(data[b], key) && signature(data[a][key]) !== signature(data[b][key])) {
         warnings.push(`${file}: ${key} uses different placeholders in en and fr`);
       }
     }
@@ -265,7 +289,7 @@ function main(argv) {
   }
   if (opts.help) {
     console.log(
-      "Usage: node tools/merge-i18n.js [--dry-run] [--verbose] [--lang-dir <dir>] [--frag-dir <dir>]"
+      "Usage: node tools/merge-i18n.js [--dry-run] [--verbose] [--lang-dir <dir>] [--frag-dir <dir>] [--pattern <glob>]"
     );
     return 0;
   }
@@ -273,7 +297,12 @@ function main(argv) {
   const errors = [];
   const warnings = [];
 
-  const fragments = loadFragments(opts.fragDir, errors, warnings);
+  let fragments = [];
+  try {
+    fragments = loadFragments(opts.fragDir, errors, warnings, { pattern: opts.pattern });
+  } catch (e) {
+    errors.push(e.message);
+  }
   const merged = combine(fragments, errors);
 
   const langs = {};
@@ -348,4 +377,4 @@ if (require.main === module) {
   process.exitCode = main(process.argv.slice(2));
 }
 
-module.exports = { main, deepSet, flatten, keyProblem };
+module.exports = { main, deepSet, flatten, keyProblem, loadFragments, combine, globToRegExp, placeholders, serialize, writeAtomic };

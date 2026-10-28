@@ -1,0 +1,137 @@
+/*
+ * Colour tokens (FR-041). Light by default, dark when the device prefers it, unless the account
+ * forces a theme: js/ui.mjs sets data-theme="light" or "dark" on <html> (no attribute = follow the device).
+ * The dark values appear twice on purpose: once for the device preference (guarded so that an explicit
+ * "light" wins) and once for an explicit "dark". Keep both blocks identical.
+ * Text pairs are checked for a 4.5:1 contrast ratio by test/admin-frontend.test.js.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #eaeef2;
+  --text: #1a2128;
+  --muted: #4f5b67;
+  --border: #ccd4db;
+  --overlay: rgba(12, 18, 24, 0.55);
+  --shadow: 0 1px 2px rgba(12, 18, 24, 0.08), 0 4px 14px rgba(12, 18, 24, 0.06);
+
+  --primary: #0b6e5f;
+  --primary-hover: #085548;
+  --primary-contrast: #ffffff;
+  --primary-soft: #d9efe9;
+  --primary-soft-text: #07473d;
+
+  --danger: #b3261e;
+  --danger-hover: #8c1d17;
+  --danger-contrast: #ffffff;
+  --danger-bg: #fde9e7;
+  --danger-text: #7a1712;
+
+  --warn: #8a5300;
+  --warn-bg: #fff2cf;
+  --warn-text: #664000;
+
+  --ok: #1b6e3a;
+  --ok-bg: #dcf3e4;
+  --ok-text: #0f4d27;
+
+  --info: #1b5e9e;
+  --info-bg: #e1eefb;
+  --info-text: #0f4577;
+
+  --focus: #1a5fd0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1419;
+    --surface: #171e25;
+    --surface-2: #202a33;
+    --text: #e6ebef;
+    --muted: #a0acb7;
+    --border: #33404c;
+    --overlay: rgba(0, 0, 0, 0.65);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+
+    --primary: #46bba6;
+    --primary-hover: #63cdba;
+    --primary-contrast: #04211c;
+    --primary-soft: #14362f;
+    --primary-soft-text: #a8e6d9;
+
+    --danger: #ff8a80;
+    --danger-hover: #ffa8a0;
+    --danger-contrast: #2b0a07;
+    --danger-bg: #3d1a18;
+    --danger-text: #ffc2bc;
+
+    --warn: #f5c25a;
+    --warn-bg: #3a2e10;
+    --warn-text: #ffd98a;
+
+    --ok: #6fd48f;
+    --ok-bg: #153a24;
+    --ok-text: #a6ebbd;
+
+    --info: #7db8f0;
+    --info-bg: #14304a;
+    --info-text: #b4d7f7;
+
+    --focus: #8ab4f8;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0f1419;
+  --surface: #171e25;
+  --surface-2: #202a33;
+  --text: #e6ebef;
+  --muted: #a0acb7;
+  --border: #33404c;
+  --overlay: rgba(0, 0, 0, 0.65);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+
+  --primary: #46bba6;
+  --primary-hover: #63cdba;
+  --primary-contrast: #04211c;
+  --primary-soft: #14362f;
+  --primary-soft-text: #a8e6d9;
+
+  --danger: #ff8a80;
+  --danger-hover: #ffa8a0;
+  --danger-contrast: #2b0a07;
+  --danger-bg: #3d1a18;
+  --danger-text: #ffc2bc;
+
+  --warn: #f5c25a;
+  --warn-bg: #3a2e10;
+  --warn-text: #ffd98a;
+
+  --ok: #6fd48f;
+  --ok-bg: #153a24;
+  --ok-text: #a6ebbd;
+
+  --info: #7db8f0;
+  --info-bg: #14304a;
+  --info-text: #b4d7f7;
+
+  --focus: #8ab4f8;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}

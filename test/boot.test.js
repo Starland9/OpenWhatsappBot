@@ -189,7 +189,8 @@ test("bootstrap: the ten steps in order, the server before the database, the pip
     "startAdminServer:admin=yes",
     "db.authenticate:3",
     "db.sync",
-    "store.load@dbReady=true",
+    // database-gated routes open only after the overrides and texts are loaded
+    "store.load@dbReady=false",
     "logger.setLevel:debug",
     "lang.reload",
     "texts.load",

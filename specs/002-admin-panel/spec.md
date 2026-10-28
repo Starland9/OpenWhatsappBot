@@ -32,6 +32,21 @@ Le panel doit couvrir ces usages sans rien retirer de ce qui existe : les comman
 - Q: Quelle technique pour l'interface ? → A: Sans étape de construction, légère : pages servies par le bot et petites bibliothèques embarquées (contrainte pour le plan, cohérente avec SC-009 et FR-010).
 - Q: Le panel est-il activé par défaut ? → A: Oui, dans les deux modes de lancement, désactivable par un réglage ; la sécurité initiale repose sur le lien à usage unique de la console.
 
+### Session 2026-10-28 (après la recherche du plan)
+
+- Q: Sur quelle adresse le panel écoute-t-il par défaut ? → A: Automatique : seulement la machine locale en local ; accessible du réseau quand un conteneur ou un hébergeur est détecté ; un réglage de démarrage force la valeur.
+- Q: Comment activer le panel par défaut alors que l'exemple de configuration contient un ancien interrupteur à « false » jamais lu ? → A: Nouveau réglage d'activation (activé par défaut) ; l'ancien est ignoré et retiré de l'exemple.
+- Q: L'anti-lien, l'anti-bot et le mode muet sont stockés mais jamais appliqués : que faire ? → A: Les implémenter (FR-031).
+- Q: Que fait le mode muet ? → A: Il bascule le réglage WhatsApp du groupe « seuls les administrateurs peuvent envoyer des messages ».
+- Q: Que montre la page Stockage, sachant qu'aucune archive anti-suppression ni vue unique n'existe et que les statuts sont transférés sans être enregistrés ? → A: Les catégories réelles : médias temporaires, cache anti-suppression en mémoire, sauvegardes du panel, journaux, base de données (taille seulement).
+- Q: Mise à jour sans superviseur détecté ? → A: Appliquer (avec retour arrière si le démarrage d'essai échoue) et afficher « redémarre le programme pour terminer » jusqu'au redémarrage.
+- Q: Les traces d'erreur envoyées en privé aux propriétaires à chaque erreur ? → A: Limitées à une par commande toutes les 10 minutes, en plus de l'alerte « erreurs en série ».
+- Q: Réglages qu'aucun code ne lit ? → A: Affichés en lecture seule dans un groupe « sans effet aujourd'hui » ; suppression plus tard.
+- Q: Clés API enregistrées par le panel ? → A: Chiffrées au repos avec une clé locale propre à l'installation.
+- Q: Relais (proxy) non déclaré ? → A: Bandeau d'avertissement et réglage explicite ; aucune confiance automatique aux en-têtes du relais.
+- Q: Durcissements ? → A: Session limitée à 7 jours au total ; chemins de programmes exécutés par le bot en lecture seule.
+- Q: Choix par défaut ? → A: La sauvegarde exclut l'historique du répondeur IA et l'historique d'administration ; toutes les alertes sont activées au départ ; un message récurrent « le 31 » part le dernier jour des mois plus courts.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Accès sécurisé et premier démarrage (Priority: P1)
@@ -138,7 +153,9 @@ Le propriétaire voit la liste des groupes du bot (nom, nombre de membres, bot a
 2. **Given** un groupe, **When** le propriétaire active la bienvenue avec un message utilisant les variables disponibles (nom du membre, nom du groupe), **Then** un aperçu montre le rendu, et le prochain membre ajouté reçoit ce message.
 3. **Given** un groupe, **When** le propriétaire ajoute, modifie ou supprime un filtre, **Then** le changement s'applique au message suivant du groupe, sans redémarrage.
 4. **Given** un groupe où le bot n'est pas administrateur, **When** le propriétaire active l'anti-lien, **Then** le panel prévient que le bot ne pourra pas retirer les membres tant qu'il n'est pas administrateur.
-5. **Given** un groupe que le bot a quitté, **When** le propriétaire ouvre la liste, **Then** le groupe apparaît comme « ancien groupe », ses réglages sont conservés, et le propriétaire peut les supprimer.
+5. **Given** l'anti-lien actif dans un groupe où le bot est administrateur, **When** un membre non administrateur envoie un lien, **Then** le message est supprimé et son auteur averti ; au-delà de la limite d'avertissements, il est retiré du groupe.
+6. **Given** un groupe où le bot est administrateur, **When** le propriétaire active le mode muet, **Then** seuls les administrateurs du groupe peuvent encore écrire, et le désactiver rouvre le groupe.
+7. **Given** un groupe que le bot a quitté, **When** le propriétaire ouvre la liste, **Then** le groupe apparaît comme « ancien groupe », ses réglages sont conservés, et le propriétaire peut les supprimer.
 
 ---
 
@@ -215,7 +232,7 @@ Le propriétaire exporte d'un clic une sauvegarde chiffrée de la configuration 
 
 ### User Story 11 - Outils de maintenance (Priority: P3)
 
-Le propriétaire met à jour le bot et ses outils de téléchargement depuis le panel, et voit l'espace disque occupé par les statuts sauvegardés, les médias temporaires, les messages conservés pour l'anti-suppression et la vue unique, la base et les journaux, avec la possibilité de libérer chaque catégorie.
+Le propriétaire met à jour le bot et ses outils de téléchargement depuis le panel, et voit l'espace occupé par les médias temporaires, le cache anti-suppression en mémoire, les sauvegardes du panel, les journaux et la base, avec la possibilité de libérer chaque catégorie.
 
 **Why this priority**: Évite de passer par la console pour l'entretien courant, sans être nécessaire au fonctionnement.
 
@@ -294,8 +311,8 @@ Le propriétaire reçoit sur WhatsApp un message du bot quand quelque chose dema
 - **FR-002**: Le panel MUST gérer un seul compte administrateur, celui du propriétaire, qui a accès à toutes les fonctions.
 - **FR-003**: À la première exécution sans compte, le système MUST afficher dans la console un lien de configuration initiale à usage unique, valable 30 minutes ; un nouveau lien est émis à chaque démarrage tant qu'aucun compte n'existe.
 - **FR-004**: Le panel MUST exiger un mot de passe d'au moins 12 caractères et ne jamais le conserver sous une forme réversible.
-- **FR-005**: Le panel MUST bloquer pendant 15 minutes une origine après 5 échecs de connexion en 15 minutes, et journaliser ces blocages.
-- **FR-006**: Une session MUST expirer après 24 heures d'inactivité et à la déconnexion explicite.
+- **FR-005**: Le panel MUST bloquer pendant 15 minutes une origine après 5 échecs de connexion en 15 minutes, et journaliser ces blocages ; quand le panel détecte un relais non déclaré qui ferait partager la même origine à tous les visiteurs, il MUST afficher un bandeau expliquant comment le déclarer, sans faire confiance automatiquement aux en-têtes du relais.
+- **FR-006**: Une session MUST expirer après 24 heures d'inactivité, au plus tard 7 jours après la connexion, et à la déconnexion explicite.
 - **FR-007**: La réinitialisation du mot de passe MUST exiger un accès au serveur (console ou fichiers) et produire un lien à usage unique.
 - **FR-008**: Le panel MUST se protéger contre les actions déclenchées à l'insu de l'administrateur depuis un autre site (toute modification exige une preuve que la requête vient du panel).
 - **FR-009**: Le panel MUST afficher un avertissement permanent quand il est consulté hors accès local sans connexion chiffrée.
@@ -309,12 +326,12 @@ Le propriétaire reçoit sur WhatsApp un message du bot quand quelque chose dema
 
 #### Réglages
 
-- **FR-014**: Le panel MUST présenter tous les réglages documentés dans l'exemple de configuration, regroupés par thème, chacun avec un libellé, une description, sa valeur par défaut, sa valeur actuelle et l'origine de cette valeur (défaut, fichier/environnement ou panel).
+- **FR-014**: Le panel MUST présenter tous les réglages documentés dans l'exemple de configuration, regroupés par thème, chacun avec un libellé, une description, sa valeur par défaut, sa valeur actuelle et l'origine de cette valeur (défaut, fichier/environnement ou panel) ; les réglages qu'aucune fonction du bot ne lit sont regroupés, en lecture seule, sous « sans effet aujourd'hui ».
 - **FR-015**: Le système MUST valider chaque réglage avant enregistrement (type, format, bornes, valeurs autorisées) et refuser tout l'enregistrement si un champ est invalide, avec un message par champ.
 - **FR-016**: Les réglages lus à chaque message (préfixe, langue, propriétaires, options de comportement, clés API, réglages du répondeur et de modération) MUST s'appliquer dès le message suivant, sans redémarrage ; les autres MUST être marqués « redémarrage nécessaire » tant que le redémarrage n'a pas eu lieu.
-- **FR-017**: Les valeurs secrètes (clés API, jetons, mots de passe) MUST être en écriture seule : le panel n'en affiche que l'état « définie / non définie » et les 4 derniers caractères, et elles n'apparaissent jamais dans les pages, les réponses, les journaux ni l'historique des modifications.
+- **FR-017**: Les valeurs secrètes (clés API, jetons, mots de passe) MUST être en écriture seule : le panel n'en affiche que l'état « définie / non définie » et les 4 derniers caractères, et elles n'apparaissent jamais dans les pages, les réponses, les journaux ni l'historique des modifications. Enregistrées par le panel, elles MUST être chiffrées au repos avec une clé propre à l'installation ; si cette clé est perdue, le panel le signale et demande de ressaisir les valeurs.
 - **FR-018**: L'administrateur MUST pouvoir rétablir la valeur par défaut d'un réglage.
-- **FR-019**: Les réglages de démarrage (adresse de la base, port et adresse du panel, dossier de session) MUST être affichés en lecture seule.
+- **FR-019**: Les réglages de démarrage (adresse de la base, activation, adresse et port du panel, relais de confiance, dossier de session) et les chemins de programmes exécutés par le bot MUST être affichés en lecture seule.
 - **FR-020**: Le système MUST détecter qu'un réglage a changé depuis l'ouverture du formulaire et refuser d'écraser ce changement.
 - **FR-021**: Une valeur enregistrée dans le panel MUST primer sur celle du fichier de configuration ou de l'environnement, pour tous les réglages modifiables ; l'administrateur MUST pouvoir supprimer la valeur du panel pour revenir à celle du fichier, ou à défaut à la valeur par défaut.
 - **FR-022**: L'administrateur MUST pouvoir tester une clé API enregistrée : le panel indique si le service l'accepte, la refuse ou est injoignable, sans afficher la clé, avec au plus un test par service toutes les 10 secondes.
@@ -335,62 +352,64 @@ Le propriétaire reçoit sur WhatsApp un message du bot quand quelque chose dema
 - **FR-028**: Le panel MUST lister les groupes du bot avec leur nom, leur nombre de membres et le statut d'administrateur du bot, avec pagination et filtre par nom.
 - **FR-029**: Pour chaque groupe, l'administrateur MUST pouvoir régler la bienvenue et le départ (activation, message avec aperçu des variables), l'anti-lien, l'anti-bot, les filtres (ajout, modification, suppression), les rôles des membres, les avertissements (consultation, remise à zéro) et la désactivation du bot dans le groupe.
 - **FR-030**: Les changements de réglages de groupe MUST s'appliquer dès le message ou l'événement suivant, sans redémarrage, et MUST rester cohérents avec les commandes WhatsApp équivalentes (une modification faite par l'une est visible par l'autre).
-- **FR-031**: Le panel MUST prévenir quand un réglage de groupe exige que le bot soit administrateur et qu'il ne l'est pas.
-- **FR-032**: Le panel MUST lister les discussions privées où le bot est désactivé et permettre de le réactiver.
+- **FR-031**: Le bot MUST appliquer, dans un groupe où il est administrateur et où le réglage est actif : l'anti-lien (supprimer un message contenant un lien envoyé par un non-administrateur, avertir son auteur, le retirer au-delà de la limite d'avertissements) ; l'anti-bot (retirer un compte identifié comme bot) ; le mode muet (activer ou désactiver le réglage WhatsApp « seuls les administrateurs peuvent envoyer des messages »). Les administrateurs du groupe et les propriétaires sont exemptés.
+- **FR-032**: Le panel MUST prévenir quand un réglage de groupe exige que le bot soit administrateur et qu'il ne l'est pas.
+- **FR-033**: Le panel MUST lister les discussions privées où le bot est désactivé et permettre de le réactiver.
 
 #### Journaux, statistiques et traçabilité
 
-- **FR-033**: Le panel MUST afficher les 1 000 dernières entrées du journal, filtrables par niveau et par texte, mises à jour en direct, sans aucune valeur secrète.
-- **FR-034**: Le panel MUST afficher les messages traités par jour sur 7 jours, les 10 commandes les plus utilisées et les commandes en échec sur la même période.
-- **FR-035**: Le système MUST conserver un historique des actions d'administration (connexions, échecs, modifications de réglages, redémarrages, appairages, déconnexions) avec la date, l'origine et le réglage concerné, sans valeur secrète, consultable dans le panel.
+- **FR-034**: Le panel MUST afficher les 1 000 dernières entrées du journal, filtrables par niveau et par texte, mises à jour en direct, sans aucune valeur secrète.
+- **FR-035**: Le panel MUST afficher les messages traités par jour sur 7 jours, les 10 commandes les plus utilisées et les commandes en échec sur la même période.
+- **FR-036**: Le système MUST conserver un historique des actions d'administration (connexions, échecs, modifications de réglages, redémarrages, appairages, déconnexions) avec la date, l'origine et le réglage concerné, sans valeur secrète, consultable dans le panel.
 
 #### Interface
 
-- **FR-036**: Le panel MUST être disponible en français et en anglais, la langue de l'interface étant choisie par l'administrateur, indépendamment de la langue du bot.
-- **FR-037**: Toutes les fonctions du panel MUST être utilisables sur un écran de téléphone (largeur de 360 px) comme sur un ordinateur.
-- **FR-038**: Toute action destructrice ou perturbatrice (redémarrage, fermeture de session, vidage des propriétaires, suppression de réglages de groupe) MUST demander une confirmation.
-- **FR-039**: Le panel MUST être activé par défaut dans les deux modes de lancement du bot (normal ou « panel ») et désactivable par un réglage de démarrage ; si son adresse est indisponible, le bot MUST fonctionner sans panel et le signaler dans la console.
-- **FR-040**: Le panel MUST proposer un thème clair et un thème sombre, suivant par défaut la préférence de l'appareil.
+- **FR-037**: Le panel MUST être disponible en français et en anglais, la langue de l'interface étant choisie par l'administrateur, indépendamment de la langue du bot.
+- **FR-038**: Toutes les fonctions du panel MUST être utilisables sur un écran de téléphone (largeur de 360 px) comme sur un ordinateur.
+- **FR-039**: Toute action destructrice ou perturbatrice (redémarrage, fermeture de session, vidage des propriétaires, suppression de réglages de groupe) MUST demander une confirmation.
+- **FR-040**: Le panel MUST être activé par défaut dans les deux modes de lancement du bot (normal ou « panel ») et désactivable par un réglage de démarrage ; si son adresse est indisponible, le bot MUST fonctionner sans panel et le signaler dans la console.
+- **FR-041**: Le panel MUST proposer un thème clair et un thème sombre, suivant par défaut la préférence de l'appareil.
 
 #### Données du bot
 
-- **FR-041**: Le panel MUST lister les rappels en attente (discussion, auteur, date d'envoi) et permettre de les annuler ; un rappel annulé n'est jamais envoyé.
-- **FR-042**: Le panel MUST afficher les soldes de l'économie par groupe et permettre de fixer ou d'ajouter un montant au solde d'un membre, avec un motif tracé dans l'historique ; l'ajustement MUST rester correct face à un gain ou une dépense simultanés et MUST être refusé s'il rend le solde négatif.
-- **FR-043**: Le panel MUST permettre de consulter et de supprimer les mots-clés d'alerte, les commandes liées à des stickers, les statuts d'absence, les tâches, les idées et les citations.
-- **FR-044**: Toute donnée modifiée depuis le panel MUST être immédiatement visible par les commandes WhatsApp correspondantes, et inversement.
+- **FR-042**: Le panel MUST lister les rappels en attente (discussion, auteur, date d'envoi) et permettre de les annuler ; un rappel annulé n'est jamais envoyé.
+- **FR-043**: Le panel MUST afficher les soldes de l'économie par groupe et permettre de fixer ou d'ajouter un montant au solde d'un membre, avec un motif tracé dans l'historique ; l'ajustement MUST rester correct face à un gain ou une dépense simultanés et MUST être refusé s'il rend le solde négatif.
+- **FR-044**: Le panel MUST permettre de consulter et de supprimer les mots-clés d'alerte, les commandes liées à des stickers, les statuts d'absence, les tâches, les idées et les citations.
+- **FR-045**: Toute donnée modifiée depuis le panel MUST être immédiatement visible par les commandes WhatsApp correspondantes, et inversement.
 
 #### Diffusion
 
-- **FR-045**: Les destinations d'une diffusion MUST se limiter aux groupes dont le bot est membre et aux discussions privées qui ont déjà écrit au bot ; la saisie d'un numéro arbitraire MUST être impossible.
-- **FR-046**: Une diffusion MUST contenir un texte et, au plus, une image ou un document dans la limite de taille des médias du bot ; le panel MUST montrer un aperçu et demander une confirmation indiquant le nombre de destinations.
-- **FR-047**: Les envois MUST être espacés d'au moins 5 secondes par défaut (réglable, jamais moins de 2 secondes), avec au plus 200 destinations par diffusion ; le panel MUST afficher la progression en direct, permettre l'annulation et produire un rapport par destination (envoyé, échec, annulé).
-- **FR-048**: Une diffusion MUST pouvoir être programmée ; diffusions programmées et en cours MUST survivre à un redémarrage, chaque destination recevant le message au plus une fois ; une diffusion en retard de plus d'une heure MUST être marquée « expirée » sans être envoyée.
-- **FR-049**: L'administrateur MUST pouvoir créer un message récurrent (chaque jour, certains jours de la semaine, ou un jour du mois, à une heure donnée dans le fuseau horaire du bot), avec les mêmes limites de destinations, d'espacement et de contenu qu'une diffusion ; il MUST pouvoir le mettre en pause, le reprendre, le modifier et le supprimer. Chaque occurrence MUST partir au plus une fois ; une occurrence en retard de plus d'une heure MUST être sautée et notée dans l'historique.
+- **FR-046**: Les destinations d'une diffusion MUST se limiter aux groupes dont le bot est membre et aux discussions privées qui ont déjà écrit au bot ; la saisie d'un numéro arbitraire MUST être impossible.
+- **FR-047**: Une diffusion MUST contenir un texte et, au plus, une image ou un document dans la limite de taille des médias du bot ; le panel MUST montrer un aperçu et demander une confirmation indiquant le nombre de destinations.
+- **FR-048**: Les envois MUST être espacés d'au moins 5 secondes par défaut (réglable, jamais moins de 2 secondes), avec au plus 200 destinations par diffusion ; le panel MUST afficher la progression en direct, permettre l'annulation et produire un rapport par destination (envoyé, échec, annulé).
+- **FR-049**: Une diffusion MUST pouvoir être programmée ; diffusions programmées et en cours MUST survivre à un redémarrage, chaque destination recevant le message au plus une fois ; une diffusion en retard de plus d'une heure MUST être marquée « expirée » sans être envoyée.
+- **FR-050**: L'administrateur MUST pouvoir créer un message récurrent (chaque jour, certains jours de la semaine, ou un jour du mois, à une heure donnée dans le fuseau horaire du bot ; un jour absent du mois, comme le 31, correspond au dernier jour de ce mois), avec les mêmes limites de destinations, d'espacement et de contenu qu'une diffusion ; il MUST pouvoir le mettre en pause, le reprendre, le modifier et le supprimer. Chaque occurrence MUST partir au plus une fois ; une occurrence en retard de plus d'une heure MUST être sautée et notée dans l'historique.
 
 #### Sauvegarde et restauration
 
-- **FR-050**: L'export MUST produire un fichier unique chiffré par une phrase de passe d'au moins 12 caractères, contenant les réglages, l'état des commandes et les données du bot ; la session WhatsApp n'y figure que sur demande explicite, après un avertissement ; le compte administrateur du panel n'y figure jamais.
-- **FR-051**: La restauration MUST vérifier la phrase de passe et l'intégrité du fichier avant toute modification, afficher un résumé (date, version du bot, nombre d'éléments par type), demander une confirmation, enregistrer automatiquement l'état actuel, puis remplacer les données et redémarrer le bot ; en cas d'échec, l'état d'avant MUST être conservé.
-- **FR-052**: Une sauvegarde d'une version antérieure du bot MUST être acceptée, une sauvegarde d'une version plus récente refusée avec explication, et une sauvegarde MUST pouvoir être restaurée quel que soit le type de base de données des deux installations.
+- **FR-051**: L'export MUST produire un fichier unique chiffré par une phrase de passe d'au moins 12 caractères, contenant les réglages, l'état des commandes, les textes personnalisés et les données du bot, hors historique du répondeur IA et historique d'administration ; la session WhatsApp n'y figure que sur demande explicite, après un avertissement ; le compte administrateur du panel n'y figure jamais.
+- **FR-052**: La restauration MUST vérifier la phrase de passe et l'intégrité du fichier avant toute modification, afficher un résumé (date, version du bot, nombre d'éléments par type), demander une confirmation, enregistrer automatiquement l'état actuel, puis remplacer les données et redémarrer le bot ; en cas d'échec, l'état d'avant MUST être conservé.
+- **FR-053**: Une sauvegarde d'une version antérieure du bot MUST être acceptée, une sauvegarde d'une version plus récente refusée avec explication, et une sauvegarde MUST pouvoir être restaurée quel que soit le type de base de données des deux installations.
 
 #### Maintenance
 
-- **FR-053**: Le panel MUST afficher la version installée et, quand l'installation peut se mettre à jour elle-même, indiquer si une version plus récente existe avec la liste des changements, puis l'appliquer après confirmation et redémarrer ; sinon, il MUST expliquer comment mettre à jour. Un échec de mise à jour MUST laisser le bot sur la version actuelle.
-- **FR-054**: Le panel MUST permettre de mettre à jour les outils de téléchargement du bot.
-- **FR-055**: Le panel MUST afficher l'espace occupé par les statuts sauvegardés, les médias temporaires, les messages conservés pour l'anti-suppression et la vue unique, la base de données et les journaux, et permettre de vider chaque catégorie après confirmation, sauf la base de données.
+- **FR-054**: Le panel MUST afficher la version installée et, quand l'installation peut se mettre à jour elle-même, indiquer si une version plus récente existe avec la liste des changements, puis l'appliquer après confirmation et redémarrer ; sinon, il MUST expliquer comment mettre à jour. Un échec de mise à jour MUST laisser le bot sur la version actuelle.
+- **FR-055**: Le panel MUST permettre de mettre à jour les outils de téléchargement du bot.
+- **FR-056**: Le panel MUST afficher l'espace occupé par les médias temporaires, le cache anti-suppression en mémoire, les sauvegardes du panel, les journaux et la base de données, et permettre de vider chaque catégorie après confirmation, sauf la base de données (taille seulement).
 
 #### Textes du bot
 
-- **FR-056**: Le panel MUST lister tous les textes envoyés par le bot, en français et en anglais, avec leur version d'origine, une recherche par mot et un filtre par commande.
-- **FR-057**: L'administrateur MUST pouvoir remplacer un texte dans une langue et revenir à l'original ; le texte remplacé MUST s'appliquer dès le message suivant, menu et descriptions de commandes compris.
-- **FR-058**: Un texte remplacé MUST conserver exactement les emplacements variables de l'original, sinon l'enregistrement est refusé.
-- **FR-059**: Les textes remplacés MUST survivre aux mises à jour du bot, et le panel MUST signaler ceux dont l'original a changé depuis ; ils MUST faire partie des sauvegardes.
+- **FR-057**: Le panel MUST lister tous les textes envoyés par le bot, en français et en anglais, avec leur version d'origine, une recherche par mot et un filtre par commande.
+- **FR-058**: L'administrateur MUST pouvoir remplacer un texte dans une langue et revenir à l'original ; le texte remplacé MUST s'appliquer dès le message suivant, menu et descriptions de commandes compris.
+- **FR-059**: Un texte remplacé MUST conserver exactement les emplacements variables de l'original, sinon l'enregistrement est refusé.
+- **FR-060**: Les textes remplacés MUST survivre aux mises à jour du bot, et le panel MUST signaler ceux dont l'original a changé depuis ; ils MUST faire partie des sauvegardes.
 
 #### Alertes
 
-- **FR-060**: Le système MUST pouvoir envoyer par WhatsApp aux propriétaires une alerte pour chacun de ces événements, chaque type étant activable séparément dans le panel : reconnexion après une coupure de plus de 5 minutes (avec sa durée) ; 10 erreurs de commande en 10 minutes ; clé API refusée par son service ; origine bloquée après des échecs de connexion au panel ; connexion au panel depuis une origine jamais vue ; mise à jour disponible.
-- **FR-061**: Les alertes MUST être limitées : au plus une alerte « erreurs en série » par heure, une alerte « clé refusée » par service et par 24 heures, une alerte « mise à jour disponible » par version ; elles ne contiennent jamais de valeur secrète.
-- **FR-062**: Une alerte née pendant une coupure MUST être envoyée à la reconnexion ; sans propriétaire configuré, le panel MUST indiquer que les alertes ne peuvent être envoyées.
+- **FR-061**: Le système MUST pouvoir envoyer par WhatsApp aux propriétaires une alerte pour chacun de ces événements, chaque type étant activable séparément dans le panel : reconnexion après une coupure de plus de 5 minutes (avec sa durée) ; 10 erreurs de commande en 10 minutes ; clé API refusée par son service ; origine bloquée après des échecs de connexion au panel ; connexion au panel depuis une origine jamais vue ; mise à jour disponible.
+- **FR-062**: Les alertes MUST être limitées : au plus une alerte « erreurs en série » par heure, une alerte « clé refusée » par service et par 24 heures, une alerte « mise à jour disponible » par version ; elles ne contiennent jamais de valeur secrète.
+- **FR-063**: Une alerte née pendant une coupure MUST être envoyée à la reconnexion ; sans propriétaire configuré, le panel MUST indiquer que les alertes ne peuvent être envoyées. Tous les types d'alertes sont activés au départ.
+- **FR-064**: Les traces d'erreur envoyées en privé aux propriétaires MUST être limitées à une par commande toutes les 10 minutes.
 
 ### Key Entities
 
@@ -436,5 +455,5 @@ Le propriétaire reçoit sur WhatsApp un message du bot quand quelque chose dema
 - Navigateurs visés : les deux dernières versions des navigateurs courants, sur ordinateur et téléphone.
 - Les commandes WhatsApp de configuration existantes restent disponibles ; le panel et les commandes partagent les mêmes données.
 - La mise à jour automatique n'est possible que pour une installation faite depuis le dépôt de sources ; une installation par image se met à jour en changeant d'image.
-- Hors périmètre : plusieurs comptes ou des rôles dans le panel ; la lecture des conversations, y compris le contenu des messages conservés pour l'anti-suppression et la vue unique (seuls leur taille et leur purge sont proposées) ; l'envoi à des numéros arbitraires ; l'exécution de code ou de commandes système depuis le panel ; la modification du code des plugins ; la gestion de plusieurs bots ou sessions ; la gestion de l'hébergeur.
+- Hors périmètre : plusieurs comptes ou des rôles dans le panel ; la lecture des conversations, y compris le contenu du cache anti-suppression (seuls sa taille et sa purge sont proposées) ; l'envoi à des numéros arbitraires ; l'exécution de code ou de commandes système depuis le panel ; la modification du code des plugins ; la gestion de plusieurs bots ou sessions ; la gestion de l'hébergeur.
 - Le panel s'appuie sur la fonctionnalité 001 (pipeline unique, registre des commandes, cache des réglages), non encore fusionnée : cette branche part de `001-audit-fix-commands`.

@@ -33,3 +33,7 @@ Note for the user: F6's headless-Chrome smoke left `/tmp/owb-chrome-*` profile d
 | W0-A | F4 | T043–T059 | done | 2836534 |
 
 - F4 requests: W-DASH and W-PAIR call `hub.setSnapshot("state"|"pairing", fn)` and `hub.publishState({force:true})`; W2-A adds panel key `errors.starting`.
+| W0-B | F5 | T074–T084 | done | 2fbf530 |
+
+- F5 requests: W2-A merges `bot-*` fragments (until then `admin.panel_listening`, `admin.setup_link` print raw keys); W2-C turns guarded requires in `lib/core/boot.js` into hard requires (ENGINES, textOverrides, commandState, ytdlpUpdate).
+| W0-B | F8 | T085–T096 | done | e2440fc |

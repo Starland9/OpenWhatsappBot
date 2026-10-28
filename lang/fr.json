@@ -1170,5 +1170,15 @@
     "not_admin": "❌ Le bot doit être administrateur pour effectuer cette action.",
     "status_enabled": "✅ Activé",
     "status_disabled": "❌ Désactivé"
+  },
+  "admin": {
+    "setup_link": "Panel d'administration : ouvrez ce lien pour créer le mot de passe administrateur (usage unique, valable {1} minutes) : {0}",
+    "reset_link": "Panel d'administration : ouvrez ce lien pour choisir un nouveau mot de passe administrateur (usage unique, valable {1} minutes) : {0}",
+    "reset_no_account": "Aucun compte administrateur n'existe encore. Démarrez le bot : un lien de configuration s'affiche dans la console.",
+    "reset_failed": "Le lien de réinitialisation n'a pas pu être émis ({0}). Vérifiez DATABASE_URL et que la base de données est accessible.",
+    "panel_enabled_ignored": "PANEL_ENABLED n'est plus lu : le panneau d'administration dépend de ADMIN_PANEL (mettez ADMIN_PANEL=false pour le désactiver). Retirez PANEL_ENABLED de votre configuration.",
+    "panel_listening": "Panneau d'administration disponible sur {0}",
+    "listen_failed": "Panneau d'administration non démarré : impossible d'écouter sur {0}:{1} ({2}). Modifiez PANEL_PORT ou PANEL_HOST, ou mettez ADMIN_PANEL=false pour désactiver le panneau. Le bot continue de fonctionner.",
+    "trust_proxy_invalid": "PANEL_TRUST_PROXY n'est pas une liste valide (adresses IP, plages CIDR, loopback, private ou all) : les en-têtes de transfert sont ignorés."
   }
 }

@@ -2,7 +2,7 @@
 /**
  * SC-011 and the backup engines (T167; contracts/runtime.md section 13, data-model.md 4.3): export, inspect, apply.
  *
- *  - round trip: export, then restore into a FRESH database; each of the 25 exported models is identical, as
+ *  - round trip: export, then restore into a FRESH database; each of the 26 exported models is identical, as
  *    canonical JSON, to its source; the 7 excluded models are never exported and a Conversation row is not restored;
  *  - secrets travel in clear inside the archive and are re-encrypted with the target key, which is created when
  *    missing; a wrong passphrase is reported before anything is decrypted; one altered byte or a cut file is
@@ -125,7 +125,7 @@ async function installation(label, models, { clock, runtime, logger, extra = {} 
   };
 }
 
-/** Everything the 25 + 7 models hold, to prove a refused restore changed nothing */
+/** Everything the 26 + 7 models hold, to prove a refused restore changed nothing */
 async function dumpAll(models) {
   const out = {};
   for (const name of [...format.MODELS, ...format.EXCLUDED_MODELS]) out[name] = await kit.canonical(models, name);
@@ -191,14 +191,57 @@ after(() => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+describe("every model is either backed up or deliberately excluded (CLAUDE.md \"Database\")", () => {
+  const MODELS_DIR = path.join(__dirname, "..", "lib", "database", "models");
+  const modelFiles = () => fs.readdirSync(MODELS_DIR).filter((name) => name.endsWith(".js")).map((name) => path.basename(name, ".js")).sort();
+
+  test("each file of lib/database/models/ is in exactly one of MODELS and EXCLUDED_MODELS", () => {
+    const files = modelFiles();
+    assert.ok(files.length >= 33, "the model files were found");
+    for (const name of files) {
+      const inModels = format.MODELS.includes(name);
+      const inExcluded = format.EXCLUDED_MODELS.includes(name);
+      assert.ok(inModels || inExcluded, `${name} is in neither MODELS nor EXCLUDED_MODELS of lib/admin/backup/format.js: its rows would silently miss every backup`);
+      assert.ok(!(inModels && inExcluded), `${name} is in both MODELS and EXCLUDED_MODELS`);
+    }
+  });
+
+  test("both lists only name models that exist, each once; together they cover every model", async () => {
+    const files = modelFiles();
+    for (const list of [format.MODELS, format.EXCLUDED_MODELS]) assert.equal(new Set(list).size, list.length, "no name twice in a list");
+    for (const name of [...format.MODELS, ...format.EXCLUDED_MODELS]) assert.ok(files.includes(name), `${name} has no file in lib/database/models/`);
+    assert.deepEqual([...format.MODELS, ...format.EXCLUDED_MODELS].sort(), files);
+    assert.equal(format.MODELS.length + format.EXCLUDED_MODELS.length, files.length);
+
+    // the loaded models: Sequelize registers each under its file name, which is what the two lists use
+    for (const name of files) {
+      assert.ok(db[name], `${name} is loaded by lib/database`);
+      assert.equal(db[name].name, name, `${name} is defined under its file name`);
+    }
+  });
+
+  test("AUTO_INCREMENT_MODELS only names exported models", () => {
+    for (const name of format.AUTO_INCREMENT_MODELS) assert.ok(format.MODELS.includes(name), `${name} is auto-increment but not exported`);
+  });
+
+  test("PermissionRule (003) is exported, right after CommandState, with a composite key and no sequence to move", () => {
+    assert.equal(format.MODELS.length, 26);
+    assert.equal(format.MODELS[format.MODELS.indexOf("CommandState") + 1], "PermissionRule");
+    assert.ok(!format.EXCLUDED_MODELS.includes("PermissionRule"));
+    assert.ok(!format.AUTO_INCREMENT_MODELS.includes("PermissionRule"));
+    assert.deepEqual(db.PermissionRule.primaryKeyAttributes, ["command", "scope"]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 describe("SC-011: export then restore on a fresh database", () => {
-  test("each of the 25 exported models comes back identical", async () => {
+  test("each of the 26 exported models comes back identical", async () => {
     const src = await filledSource();
     const target = await kit.makeDb();
     const tgt = await installation("target", target);
     const { inspected, exported } = await exportAndInspect(src, tgt);
 
-    assert.equal(format.MODELS.length, 25);
+    assert.equal(format.MODELS.length, 26);
     assert.deepEqual(Object.keys(exported.counts).sort(), [...format.MODELS].sort());
     assert.equal(inspected.summary.counts.Group, 2);
     assert.equal(inspected.summary.counts.SettingOverride, 4);
@@ -260,7 +303,7 @@ describe("SC-011: export then restore on a fresh database", () => {
     assert.equal(first.createdAt, new Date(T0).toISOString());
     assert.equal(first.dialect, "sqlite");
     assert.equal(first.includesSession, false);
-    assert.equal(Object.keys(first.counts).length, 25);
+    assert.equal(Object.keys(first.counts).length, 26);
 
     const rows = (model) => records.filter((r) => r.t === "rows" && r.model === model).flatMap((r) => r.rows);
     const secret = rows("SettingOverride").find((row) => row.key === "OPENAI_API_KEY");
@@ -323,6 +366,46 @@ describe("SC-011: export then restore on a fresh database", () => {
     await tgt.restorer.apply({ restoreToken: inspected.restoreToken, confirm: true, actor: "x", adminSessionId: "s1" });
     assert.equal(await target.Group.findByPk("old@g.us"), null);
     await sameModels(db, target);
+  });
+
+  test("PermissionRule: composite key order, people kept as arrays, timestamps kept (generic path)", async () => {
+    const src = await filledSource();
+    // a third row sharing a command with the seeded "vv" rule: ordered by (command, scope), "*" before a group JID
+    await db.PermissionRule.bulkCreate([{ command: "vv", scope: "120363000000000001@g.us", mode: "extra", people: [], createdAt: TIMES_DONE, updatedAt: TIMES_DONE }]);
+    const file = path.join(src.home, "permission-rules.owb");
+    const exported = await src.exporter.exportToFile({ file, passphrase: PASS, includeSession: false, now: T0 });
+    assert.equal(exported.counts.PermissionRule, 3);
+
+    const records = await kit.readAll(file, PASS);
+    assert.equal(records[0].counts.PermissionRule, 3);
+    const rows = records.filter((r) => r.t === "rows" && r.model === "PermissionRule").flatMap((r) => r.rows);
+    assert.deepEqual(rows.map((r) => `${r.command}|${r.scope}`), ["save|120363000000000001@g.us", "vv|*", "vv|120363000000000001@g.us"], "ordered by the composite primary key");
+    assert.ok(rows.every((r) => Array.isArray(r.people)), "people travel as a JSON array, never as a string");
+    assert.deepEqual(rows[0].people, [{ pn: "237600000002@s.whatsapp.net", lid: null }, { pn: null, lid: "987654321098765@lid" }]);
+    assert.deepEqual(rows[1].people, [{ pn: "237600000001@s.whatsapp.net", lid: "123456789012345@lid" }]);
+    assert.deepEqual(rows[2].people, []);
+    assert.deepEqual(rows.map((r) => r.mode), ["extra", "only", "extra"]);
+    assert.equal(rows[0].createdAt, "2026-03-01T08:00:00.000Z");
+    assert.equal(rows[0].updatedAt, "2026-03-02T09:30:00.000Z");
+    assert.equal(rows[2].createdAt, TIMES_DONE.toISOString());
+
+    const target = await kit.makeDb();
+    const tgt = await installation("target", target);
+    const uploadId = tgt.uploads.addFile(file);
+    const inspected = await tgt.restorer.inspect({ uploadId, passphrase: PASS, adminSessionId: "s1" });
+    assert.equal(inspected.summary.counts.PermissionRule, 3);
+    await tgt.restorer.apply({ restoreToken: inspected.restoreToken, confirm: true, actor: "x", adminSessionId: "s1" });
+
+    assert.deepEqual(await kit.canonical(target, "PermissionRule"), await kit.canonical(db, "PermissionRule"));
+    const restored = await target.PermissionRule.findAll({ order: [["command", "ASC"], ["scope", "ASC"]] });
+    assert.deepEqual(restored.map((r) => `${r.command}|${r.scope}`), ["save|120363000000000001@g.us", "vv|*", "vv|120363000000000001@g.us"]);
+    for (const row of restored) assert.ok(Array.isArray(row.people), "people read back as an array through model instances");
+    assert.deepEqual(restored[0].people, rows[0].people);
+    assert.deepEqual(restored[1].people, rows[1].people);
+    assert.deepEqual(restored[2].people, []);
+    assert.equal(restored[0].createdAt.toISOString(), "2026-03-01T08:00:00.000Z");
+    assert.equal(restored[0].updatedAt.toISOString(), "2026-03-02T09:30:00.000Z");
+    assert.equal(restored[2].updatedAt.toISOString(), TIMES_DONE.toISOString());
   });
 });
 
@@ -542,6 +625,85 @@ describe("versions and validation", () => {
       { models: target },
     );
     await assert.rejects(enumProblem.run, (error) => error.code === "invalid_row" && error.params.model === "GroupRole" && error.params.field === "role");
+  });
+
+  test("PermissionRule: a bad mode, 101 persons or a person with both forms null is refused as invalid_row (backup_invalid_row over HTTP); nothing is changed", async () => {
+    const target = await kit.makeDb();
+    await target.PermissionRule.create({ command: "vv", scope: "*", mode: "only", people: [{ pn: "237690000001@s.whatsapp.net", lid: null }] });
+    const before = await dumpAll(target);
+    const good = { command: "save", scope: "*", mode: "extra", people: [{ pn: "237690000002@s.whatsapp.net", lid: null }] };
+    const person = (i) => ({ pn: `2376900${String(i).padStart(5, "0")}@s.whatsapp.net`, lid: null });
+    const cases = [
+      ["mode: all", { ...good, command: "kick", mode: "all" }, "mode"],
+      ["101 persons", { ...good, command: "kick", people: Array.from({ length: 101 }, (_, i) => person(i)) }, "people"],
+      ["both forms null", { ...good, command: "kick", people: [{ pn: null, lid: null }] }, "people"],
+      ["a device suffix", { ...good, command: "kick", people: [{ pn: "237690000001:7@s.whatsapp.net", lid: null }] }, "people"],
+      ["people stored as a string", { ...good, command: "kick", people: "[]" }, "people"],
+      ["no mode at all", { command: "kick", scope: "*", people: [] }, "mode"],
+    ];
+    for (const [label, bad, field] of cases) {
+      const { run } = await inspectArchive(
+        [kit.manifest({ counts: { PermissionRule: 2 } }), { t: "rows", model: "PermissionRule", rows: [good, bad] }],
+        { models: target },
+      );
+      await assert.rejects(
+        run,
+        (error) => error.code === "invalid_row" && error.params.model === "PermissionRule" && error.params.index === 1 && error.params.field === field,
+        label,
+      );
+      assert.deepEqual(await dumpAll(target), before, `${label}: nothing changed`);
+    }
+    // the same rows, valid, are accepted (the refusals above come from the validators, not from the shape of the archive)
+    const fine = await inspectArchive(
+      [kit.manifest({ counts: { PermissionRule: 2 } }), { t: "rows", model: "PermissionRule", rows: [good, { ...good, command: "kick", mode: "only", people: [] }] }],
+      { models: target },
+    );
+    assert.equal((await fine.run()).summary.counts.PermissionRule, 2);
+  });
+
+  test("PermissionRule: a backup whose manifest has no PermissionRule count (made before 003) empties the table", async () => {
+    const target = await kit.makeDb();
+    await target.PermissionRule.bulkCreate([
+      { command: "vv", scope: "*", mode: "only", people: [{ pn: "237690000001@s.whatsapp.net", lid: null }] },
+      { command: "save", scope: "120363@g.us", mode: "extra", people: [] },
+    ]);
+    await target.Group.create({ jid: "old@g.us", name: "old" });
+    const { tgt, run } = await inspectArchive(
+      [
+        kit.manifest({ botVersion: "0.5.0", counts: { Group: 1 } }),
+        { t: "rows", model: "Group", rows: [{ jid: "a@g.us", name: "A" }] },
+      ],
+      { models: target },
+    );
+    const inspected = await run();
+    assert.equal(inspected.summary.counts.PermissionRule, undefined, "no count for a model the file does not carry");
+    assert.deepEqual(inspected.summary.ignoredModels, []);
+    await tgt.restorer.apply({ restoreToken: inspected.restoreToken, confirm: true, actor: "x", adminSessionId: "s1" });
+    assert.equal(await target.PermissionRule.count(), 0, "a full restore replaces the rules: a file without any leaves none");
+    assert.equal(await target.Group.count(), 1);
+  });
+
+  test("PermissionRule: a rule on a non-delegable command (eval) is restored untouched, never filtered by the backup", async () => {
+    const target = await kit.makeDb();
+    const people = [{ pn: "237690000001@s.whatsapp.net", lid: "123456789012345@lid" }];
+    const rows = [
+      { command: "eval", scope: "*", mode: "only", people, createdAt: "2026-03-01T08:00:00.000Z", updatedAt: "2026-03-02T09:30:00.000Z" },
+      { command: "eval", scope: "120363@g.us", mode: "extra", people, createdAt: "2026-03-01T08:00:00.000Z", updatedAt: "2026-03-02T09:30:00.000Z" },
+      { command: "ghostcommand", scope: "*", mode: "extra", people, createdAt: "2026-03-01T08:00:00.000Z", updatedAt: "2026-03-02T09:30:00.000Z" },
+    ];
+    const { tgt, run } = await inspectArchive(
+      [kit.manifest({ counts: { PermissionRule: 3 } }), { t: "rows", model: "PermissionRule", rows }],
+      { models: target },
+    );
+    const inspected = await run();
+    assert.equal(inspected.summary.counts.PermissionRule, 3);
+    await tgt.restorer.apply({ restoreToken: inspected.restoreToken, confirm: true, actor: "x", adminSessionId: "s1" });
+
+    const restored = await target.PermissionRule.findAll({ order: [["command", "ASC"], ["scope", "ASC"]] });
+    assert.deepEqual(restored.map((r) => `${r.command}|${r.scope}|${r.mode}`), ["eval|*|only", "eval|120363@g.us|extra", "ghostcommand|*|extra"]);
+    for (const row of restored) assert.deepEqual(row.people, people);
+    assert.equal(restored[0].createdAt.toISOString(), "2026-03-01T08:00:00.000Z");
+    assert.equal(restored[0].updatedAt.toISOString(), "2026-03-02T09:30:00.000Z");
   });
 
   test("STRING length is enforced for a Postgres target (a SQLite target accepts the long value)", async () => {

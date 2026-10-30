@@ -100,7 +100,7 @@ describe("the summary table", () => {
     ignoredTexts: 0,
   };
 
-  test("the 25 models of the page are the 25 the engine exports, in the same order", () => {
+  test("the 26 models of the page are the 26 the engine exports, in the same order", () => {
     assert.deepEqual(logic.ALL_MODELS, [...format.MODELS]);
   });
 
@@ -123,7 +123,7 @@ describe("the summary table", () => {
 
   test("a data type the file does not hold is listed as absent: a restore empties it", () => {
     const model = logic.shapeSummary(SUMMARY);
-    assert.equal(model.absent.length, 25 - 5);
+    assert.equal(model.absent.length, 26 - 5);
     assert.ok(model.absent.includes("Warn") && !model.absent.includes("Group"));
     assert.deepEqual(logic.shapeSummary({ ...SUMMARY, counts: {} }).groups, []);
   });
@@ -285,7 +285,10 @@ describe("panel-backup.json", () => {
       ...logic.REFUSAL_CODES.map((c) => `backup.refusal_${c}`),
     ];
     const catalog = readJson(path.join(ROOT, "lib", "admin", "public", "i18n", "en.json"));
-    for (const key of wanted) assert.ok(key in fragment.en && key in fragment.fr, key);
+    const catalogFr = readJson(path.join(ROOT, "lib", "admin", "public", "i18n", "fr.json"));
+    // A key is there when the 002 fragment or the merged catalogs carry it: `backup.model_PermissionRule` (003) lives in
+    // the 003 fragment and reaches the catalogs only through tools/merge-panel-i18n.js, never in panel-backup.json
+    for (const key of wanted) assert.ok((key in fragment.en || key in catalog) && (key in fragment.fr || key in catalogFr), key);
     for (const phase of logic.RESTORE_PHASES) assert.ok(catalog[`jobs.phase.${phase}`], `jobs.phase.${phase}`);
     for (const code of ["too_short", "too_long", "mismatch"]) assert.ok(catalog[`fields.${code}`], `fields.${code}`);
   });

@@ -1,11 +1,11 @@
 "use strict";
 /**
  * Fixtures of the backup tests (T167, T168): a second in-memory database to restore into, a row for every one of the
- * 25 exported models, the canonical JSON of a table, a writer of hand-made archives and a stand-in for the uploads
+ * 26 exported models, the canonical JSON of a table, a writer of hand-made archives and a stand-in for the uploads
  * registry.
  *
  *   const target = await makeDb();                        a fresh Sequelize instance with every model, tables created
- *   const rows = await seedAll(db, at);                   one or more rows in each of the 25 models (+ the 7 excluded)
+ *   const rows = await seedAll(db, at);                   one or more rows in each of the 26 models (+ the 7 excluded)
  *   await canonical(db, "Group")                         the table as sorted, key-ordered JSON lines
  *   await buildArchive({ file, passphrase, records })     an .owb written with the real container code (low KDF cost)
  *   const up = fakeUploads(dir); const id = up.add(buf)   peek / consume like lib/admin/http/uploads.js
@@ -116,6 +116,11 @@ async function seedAll(db) {
   await db.CommandState.bulkCreate([
     { command: "ping", scope: "*", ...stamps },
     { command: "kick", scope: G1, ...stamps },
+  ]);
+  // inserted out of key order on purpose: "vv" before "save", so an export must sort by (command, scope)
+  await db.PermissionRule.bulkCreate([
+    { command: "vv", scope: "*", mode: "only", people: [{ pn: U1, lid: "123456789012345@lid" }], ...stamps },
+    { command: "save", scope: G1, mode: "extra", people: [{ pn: U2, lid: null }, { pn: null, lid: "987654321098765@lid" }], ...stamps },
   ]);
   await db.DailyStat.bulkCreate([
     { day: "2026-03-01", metric: "messages", subject: "", count: 42 },

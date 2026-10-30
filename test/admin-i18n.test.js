@@ -27,6 +27,8 @@ const { assertNone } = require("./helpers/fakes");
 const ROOT = path.resolve(__dirname, "..");
 const CATALOG_DIR = path.join(ROOT, "lib", "admin", "public", "i18n");
 const FRAGMENT_DIR = path.join(ROOT, "specs", "002-admin-panel", "i18n");
+// panel-*.json fragments live in one directory per feature (the bot-*.json fragments stay in the 002 directory)
+const FRAGMENT_DIRS = [FRAGMENT_DIR, path.join(ROOT, "specs", "003-command-permissions", "i18n")];
 const JS_DIR = path.join(ROOT, "lib", "admin", "public", "js");
 const CONTRACT = path.join(ROOT, "specs", "002-admin-panel", "contracts", "admin-http-api.md");
 const LANG_DIR = path.join(ROOT, "lang");
@@ -81,19 +83,20 @@ function flatten(obj, prefix = "", out = {}) {
 const catalogs = Object.fromEntries(LANGS.map((l) => [l, flatten(readJson(path.join(CATALOG_DIR, `${l}.json`)))]));
 
 function loadFragments() {
-  if (!fs.existsSync(FRAGMENT_DIR)) return [];
-  return fs
-    .readdirSync(FRAGMENT_DIR)
-    .filter((f) => /^panel-.+\.json$/.test(f))
-    .sort()
-    .map((file) => {
+  const out = [];
+  for (const dir of FRAGMENT_DIRS) {
+    if (!fs.existsSync(dir)) continue;
+    const feature = path.basename(path.dirname(dir)); // e.g. "003-command-permissions"
+    for (const file of fs.readdirSync(dir).filter((f) => /^panel-.+\.json$/.test(f)).sort()) {
       try {
-        const data = readJson(path.join(FRAGMENT_DIR, file));
-        return { file, data, flat: Object.fromEntries(LANGS.map((l) => [l, flatten(data[l])])) };
+        const data = readJson(path.join(dir, file));
+        out.push({ file, dir: feature, data, flat: Object.fromEntries(LANGS.map((l) => [l, flatten(data[l])])) });
       } catch (error) {
-        return { file, error: error.message, flat: { en: {}, fr: {} } };
+        out.push({ file, dir: feature, error: error.message, flat: { en: {}, fr: {} } });
       }
-    });
+    }
+  }
+  return out;
 }
 const fragments = loadFragments();
 const defined = Object.fromEntries(LANGS.map((l) => [l, new Set(Object.keys(catalogs[l]))]));
@@ -281,7 +284,11 @@ test("panel catalogs: the texts that need parameters keep the names the code pas
 // ---------------------------------------------------------------------------
 
 test("panel fragments are valid and complete (en and fr: same keys, same placeholders) and do not conflict", (t) => {
-  t.diagnostic(`${fragments.length} panel fragment file(s) in specs/002-admin-panel/i18n/`);
+  t.diagnostic(`${fragments.length} panel fragment file(s) in ${FRAGMENT_DIRS.map((d) => path.relative(ROOT, d)).join(", ")}`);
+  assert.ok(
+    fragments.some((f) => f.dir === "003-command-permissions" && f.file === "panel-permissions.json"),
+    "specs/003-command-permissions/i18n/panel-permissions.json is among the loaded fragments",
+  );
   const problems = [];
   const seen = new Map();
   for (const fragment of fragments) {
@@ -316,7 +323,7 @@ test("every panel fragment is merged: its keys and texts are in lib/admin/public
     if (fragment.error) continue; // reported by the test above
     for (const lang of LANGS) {
       for (const [key, value] of Object.entries(fragment.flat[lang])) {
-        if (!(key in catalogs[lang])) problems.push(`${fragment.file}: "${key}" is not in ${lang}.json (run node tools/merge-panel-i18n.js)`);
+        if (!(key in catalogs[lang])) problems.push(`${fragment.file}: "${key}" is not in ${lang}.json (run node tools/merge-panel-i18n.js --frag-dir specs/${fragment.dir}/i18n)`);
         else if (catalogs[lang][key] !== value) problems.push(`${fragment.file}: "${key}" differs from ${lang}.json (the fragment wins on the next merge)`);
       }
     }

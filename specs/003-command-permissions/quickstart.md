@@ -58,7 +58,7 @@ New and edited suites (names as in the contracts; follow the tasks if one was re
 | `test/vv-save-delegated.test.js` | owner `.vv` unchanged in every `view_once` mode; delegated `.vv` goes to the requester's DM only, whatever `.setvv` says; LID-only requester; usage and too-large notices to the DM; a failing send leaves nothing in the group; `.save` to the requester |
 | `test/help-menu-visibility.test.js` | no rule gives the legacy menu and help; granted sees the command in A and not in D; closed does not see it (`.help` answers as for an unknown command); `.help eval` from a member still shows the card (FR-029) |
 | `test/admin-permissions.test.js` | PERM-1..7: session needed, aliases, identity forms and typed numbers, `not_allowed` on a locked command, warnings, orphans, idempotence, audit rows and the 1900-character degrade rule, `present`/`admin` annotation, GRP-3 `counts.permissions`, GRP-6 `permissionRules`, cache invalidation, a backup round trip |
-| `test/admin-view-permissions.test.js`, `test/admin-view-permissions-dom.test.js` | the pure logic (numbers, draft, warnings, badges, effective mode) and the group tab and Commands page in a fake DOM |
+| `test/admin-view-permissions.test.js`, `test/admin-view-permissions-{group,commands}.test.js` | the pure logic (numbers, draft, warnings, badges, effective mode) and the group tab and Commands page in a fake DOM |
 | edited: `database.test.js`, `backup.test.js`, `admin-backup.test.js`, `admin-view-backup.test.js`, `admin-groups.test.js`, `admin-integration.test.js`, `admin-view-groups.test.js`, `admin-view-logs-stats.test.js`, `admin-i18n.test.js` | the new table (26 exported models), the `permissions` tab, the audit detail, the second fragment directory |
 
 ## 2. Work in a sandbox
@@ -97,7 +97,7 @@ Pair the sandbox bot (QR or pairing code), open the setup link, choose a passwor
 9. **Admin command warning** (US1.5): in A open a rule for `kick` (an admin command), tick B, who is not an admin of A. The warning "1 person is not known to be an admin of this group..." shows **before** Save and Save is still allowed. Save. From B, `.kick @<a disposable member>` runs (the bot is admin of A). Then make the bot a non-admin of A: B's `.kick` gives the plugin's usual "the bot must be admin" reply, not a permission refusal. Delete the `kick` rule afterwards.
 10. **History** shows one `command.permission.set` row per Save, target `vv:<A's jid>`, detail "Normal + these people: +1, -0" with B's number; Delete rows show `command.permission.delete`.
 
-Coverage: Auto `command-permissions.test.js`, `vv-save-delegated.test.js`, `help-menu-visibility.test.js`, `admin-permissions.test.js`, `admin-view-permissions-dom.test.js`. Manual: the whole list on a device (the real view-once and the real DM).
+Coverage: Auto `command-permissions.test.js`, `vv-save-delegated.test.js`, `help-menu-visibility.test.js`, `admin-permissions.test.js`, `admin-view-permissions-{group,commands}.test.js`. Manual: the whole list on a device (the real view-once and the real DM).
 
 ### US2 Reserve a command to a few people in a group (P1)
 
@@ -125,7 +125,7 @@ Coverage: Auto `command-permissions.test.js` (branches, stickers, aliases), `hel
 6. Create the same empty "Normal + these people" rule for `ping` in A (no "everywhere" rule exists for it): it reads "No effect". Delete it.
 7. Delete the `dice` rules (group first, then everywhere): `.dice` is back to everybody everywhere.
 
-Coverage: Auto `command-permissions.test.js` (precedence table), `admin-view-permissions.test.js` (`parseNumber`, `effectiveMode`), `admin-view-permissions-dom.test.js`. Manual: steps 2-3 and 5 on a device.
+Coverage: Auto `command-permissions.test.js` (precedence table), `admin-view-permissions.test.js` (`parseNumber`, `effectiveMode`), `admin-view-permissions-{group,commands}.test.js`. Manual: steps 2-3 and 5 on a device.
 
 ### US4 See and control what is in place (P2)
 
@@ -160,7 +160,7 @@ Coverage: Auto `admin-permissions.test.js` (orphans, audit, backup round trip, f
 
 | SC | Target | Auto | Manual |
 | -- | ------ | ---- | ------ |
-| SC-001 | `.vv` handed to a member from the panel in under a minute, no code, no restart | `admin-view-permissions-dom.test.js` (create flow), `admin-permissions.test.js` (cache invalidated after each write) | stopwatch on US1 steps 1-2 |
+| SC-001 | `.vv` handed to a member from the panel in under a minute, no code, no restart | `admin-view-permissions-{group,commands}.test.js` (create flow), `admin-permissions.test.js` (cache invalidated after each write) | stopwatch on US1 steps 1-2 |
 | SC-002 | a delegated `.vv` appears only in the requester's private chat | `vv-save-delegated.test.js` (every `view_once` mode, group, private, LID-only, failing send) | US1 step 3 with `.setvv p`, then again with `.setvv g` |
 | SC-003 | no non-delegable command runs for anyone but the owner, whatever the rows (also after a hand-edited restore) | `command-permissions.test.js` (rows inserted by hand on each of the 14), `command-delegable.test.js`, `admin-permissions.test.js` and `backup.test.js` (tampered backup) | US4 step 5, `getvv` row |
 | SC-004 | with no rule, every command behaves as before | `yarn test` (no change to command expectations; the 26-model and `counts.permissions` edits are structural), `help-menu-visibility.test.js` (no-rule menu equals the legacy one) | compare the baseline `.menu` of section 2 after deleting every rule |

@@ -534,7 +534,7 @@ Dropped from stream C's list: `audit.prefix_permission` (X6: no new prefix), `pe
 - Audit logic is tested in `admin-view-logs-stats.test.js` (see the table below).
 - The view modules import in plain Node and export what this contract lists (`RuleEditor`, `GroupMemberPicker`, `PersonPicker`, `PermissionsTab`, `CommandPermissions`, `PermissionOrphans`).
 
-### `test/admin-view-permissions-dom.test.js` (fake DOM; pattern of `admin-view-data.test.js`)
+### `test/admin-view-permissions-{group,commands}.test.js` (fake DOM; pattern of `admin-view-data.test.js`)
 
 `createDom`, a scripted `fetch` that throws on an unexpected request, catalogs set from the real files overlaid with the 003 fragment (so the file also runs before the merge), `ui.confirmStore` / `resolveConfirm`.
 

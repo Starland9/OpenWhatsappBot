@@ -130,7 +130,7 @@ test/
 ├── command-permissions.test.js, command-delegable.test.js,
 │   vv-save-delegated.test.js, help-menu-visibility.test.js          # NEW (bot)
 ├── admin-permissions.test.js                                        # NEW (API)
-├── admin-view-permissions.test.js, admin-view-permissions-dom.test.js   # NEW (views)
+├── admin-view-permissions.test.js, admin-view-permissions-{group,commands}.test.js   # NEW (views)
 └── database, backup, admin-backup, admin-view-backup, helpers/backupKit,
     admin-groups, admin-integration (contract parser), admin-view-groups,
     admin-i18n (second fragment dir)                                 # expectation edits only

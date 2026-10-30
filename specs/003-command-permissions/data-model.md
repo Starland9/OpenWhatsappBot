@@ -2,7 +2,7 @@
 
 Feature `003-command-permissions`. Inputs: [spec.md](spec.md) (FR-001 to FR-031, second Clarifications session), [research.md](research.md) (**authoritative**: owner decisions U1-U8 and arbitration X1-X12 override the stream files), research streams [A](research/a-runtime.md) (engine), [B](research/b-data-backend.md) (data, backend), [C](research/c-panel-ui.md) (UI), and the house style of [002's data model](../002-admin-panel/data-model.md). API shapes live in [contracts/admin-permissions-api.md](contracts/admin-permissions-api.md).
 
-Sequelize 6, SQLite (default) or Postgres (`DATABASE_URL` containing `postgres`). Nothing here is implemented yet; the tables below are the contract for the model file `lib/database/models/PermissionRule.js`.
+Sequelize 6, SQLite (default) or Postgres (`DATABASE_URL` containing `postgres`). The tables below are the contract of the model file `lib/database/models/PermissionRule.js` (implemented in feature 003).
 
 ## 0. Compliance and conventions
 

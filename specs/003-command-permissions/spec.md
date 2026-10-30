@@ -35,7 +35,7 @@ Le propriétaire a constaté que l'auto-vv (renvoi automatique des vues uniques)
 - Q: Une personne autorisée « partout » garde-t-elle la commande dans un groupe où elle est fermée à une autre liste ? → A: Oui. « Partout » est un passe-droit personnel, valable dans tous les groupes.
 - Q: Le propriétaire garde-t-il l'accès en mode « ces personnes seulement » ? → A: Oui, toujours, sauf si la commande est désactivée dans le panel (comme aujourd'hui).
 - Q: Que voit un membre refusé par le mode « ces personnes seulement » ? → A: Rien : le bot ignore la commande en silence.
-- Q: Quelles commandes ne sont jamais délégables ? → A: `.eval`/`.exec`, `.update`, `.exportcontacts`, `.ban`/`.unban`, `.setvv`/`.getvv`, `.antidel`/`.getantidel`, `.autorespond`, `.statussave`, `.setcmd`/`.delcmd`/`.getcmd`. La liste est fixée dans le code et le panel ne peut pas la modifier. Parmi les commandes réservées au propriétaire, `.vv` et `.save` sont délégables.
+- Q: Quelles commandes ne sont jamais délégables ? → A: `.eval`/`.exec`, `.update`, `.exportcontacts`, `.ban`/`.unban`, `.setvv`/`.getvv`, `.antidel`/`.getantidel`, `.ar` (réponses automatiques), `.statussave`, `.setcmd`/`.delcmd`/`.getcmd`. La liste est fixée dans le code et le panel ne peut pas la modifier. Parmi les commandes réservées au propriétaire, `.vv` et `.save` sont délégables.
 - Q: Où part le média quand quelqu'un d'autre que le propriétaire utilise `.vv` ? → A: En privé, chez la personne qui l'a demandé, jamais dans le groupe.
 - Q: Où se règlent les permissions, et qui les règle ? → A: Dans le panel uniquement, par le propriétaire uniquement. Il n'y a pas de commande WhatsApp, et les administrateurs de groupe ne peuvent rien accorder.
 - Q: Les permissions expirent-elles ? → A: Non. Elles restent jusqu'à ce que le propriétaire les retire.
@@ -182,7 +182,7 @@ Les commandes jamais délégables apparaissent grisées, avec la raison. Chaque 
 #### Commandes jamais délégables
 
 - **FR-012**: Chaque commande MUST pouvoir être déclarée « jamais délégable » dans son code, avec une raison. Cette déclaration ne se change pas depuis le panel. Par défaut, une commande réservée au propriétaire n'est pas délégable, sauf si son code la déclare délégable. Toute autre commande est délégable, sauf si son code la déclare jamais délégable.
-- **FR-013**: Sont déclarées jamais délégables : `.eval`/`.exec`, `.update`, `.exportcontacts`, `.ban`/`.unban`, `.setvv`/`.getvv`, `.antidel`/`.getantidel`, `.autorespond`, `.statussave`, `.setcmd`/`.delcmd`/`.getcmd`. Toutes les autres commandes sont délégables, y compris `.vv` et `.save`.
+- **FR-013**: Sont déclarées jamais délégables : `.eval`/`.exec`, `.update`, `.exportcontacts`, `.ban`/`.unban`, `.setvv`/`.getvv`, `.antidel`/`.getantidel`, `.ar` (réponses automatiques), `.statussave`, `.setcmd`/`.delcmd`/`.getcmd`. Toutes les autres commandes sont délégables, y compris `.vv` et `.save`.
 - **FR-014**: Le système MUST ignorer toute règle sur une commande jamais délégable, même si elle existe en base (restauration, ajout manuel). Le panel MUST refuser d'en créer une.
 
 #### `.vv` et `.save` délégués
@@ -224,7 +224,7 @@ Les commandes jamais délégables apparaissent grisées, avec la raison. Chaque 
 - **SC-001**: Le propriétaire peut confier `.vv` à un membre d'un groupe depuis le panel en moins d'une minute, sans toucher au code ni à la configuration et sans redémarrer.
 - **SC-002**: Dans 100 % des cas testés, un média révélé par `.vv` à la demande d'une personne autre que le propriétaire n'apparaît que dans la discussion privée de cette personne.
 - **SC-003**: Aucune commande jamais délégable ne peut être exécutée par une autre personne que le propriétaire, quelles que soient les règles en base, y compris après la restauration d'une sauvegarde modifiée à la main.
-- **SC-004**: Sans aucune règle, le comportement de chaque commande est identique à celui d'avant la fonctionnalité : la suite de tests existante passe sans modification de ses attentes.
+- **SC-004**: Sans aucune règle, le comportement de chaque commande, du menu et de l'aide est identique à celui d'avant la fonctionnalité. Les tests existants sur les commandes, le registre, le pipeline, le menu et l'aide passent sans modification de leurs attentes. Seuls les tests qui comptent les tables, les modèles sauvegardés ou les champs du panel sont mis à jour pour la nouvelle table.
 - **SC-005**: Un changement de règle prend effet sur le message suivant. Le traitement d'une commande ne ralentit pas de façon perceptible, y compris avec plusieurs centaines de règles.
 - **SC-006**: Le propriétaire peut répondre à « qui peut utiliser telle commande dans tel groupe ? » depuis une seule page du panel.
 

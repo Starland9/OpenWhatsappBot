@@ -42,6 +42,17 @@ Le propriétaire a constaté que l'auto-vv (renvoi automatique des vues uniques)
 - Q: Comment conduire le projet ? → A: Avec Spec Kit, dans `specs/003-command-permissions`, sur sa propre branche.
 - Q: Que montrent le menu et l'aide à une personne ? → A: Ce qu'elle peut utiliser, là où elle se trouve. Une commande qui lui a été ouverte apparaît ; une commande qui lui est fermée (« ces personnes seulement ») disparaît de son menu, ce qui va avec le refus silencieux.
 
+### Session 2026-10-30 (après la recherche du plan)
+
+- Q: Une commande est à la fois désactivée et en « ces personnes seulement » : que voit un membre non listé ? → A: Rien (silence). La commande lui est invisible. Les personnes listées et le propriétaire voient « commande désactivée ».
+- Q: Une personne déléguée lance `.vv` sans citer de message, ou sur un média trop lourd : où va la réponse ? → A: En privé chez elle. Le groupe ne voit rien.
+- Q: Comment remettre une commande à son niveau normal dans un groupe quand une règle « partout » la ferme ? → A: Avec une règle de groupe « normal + ces personnes », éventuellement sans personne. Elle signifie « niveau normal ici » et l'emporte sur la règle « partout ». Le panel l'affiche comme une exception.
+- Q: « Oublier ce groupe » dans le panel efface-t-il aussi ses permissions ? → A: Oui. Si le bot quitte simplement le groupe, ses règles restent.
+- Q: Faut-il l'indicatif du pays pour un numéro saisi ? → A: Oui. Les espaces, le « + », les tirets, les points, les parenthèses et un « 00 » en tête sont ignorés.
+- Q: Une future commande réservée au propriétaire, sans précision, est-elle délégable ? → A: Non, elle est verrouillée par défaut. Une commande du propriétaire n'est délégable que si son code le déclare (comme `.vv` et `.save`), et un test oblige à faire ce choix explicitement.
+- Q: Quelle raison afficher pour une commande jamais délégable ? → A: Cinq raisons courtes : elle exécute du code, elle met à jour le bot, elle exporte des données personnelles, elle peut exclure le propriétaire d'une discussion, elle règle le comportement du bot.
+- Q: Comment s'enregistrent les modifications d'une règle ? → A: Avec un bouton Enregistrer. Les avertissements s'affichent avant l'enregistrement, et chaque enregistrement donne une seule entrée d'audit.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Confier une commande à une personne dans un groupe (Priority: P1)
@@ -97,15 +108,16 @@ Le propriétaire veut que B puisse utiliser `.vv` dans tous les groupes et en pr
 
 1. **Given** `.vv` ouverte partout à B, **When** B l'utilise dans n'importe quel groupe ou en privé avec le bot, **Then** elle s'exécute et le média part en privé chez B.
 2. **Given** `.imagen` en « ces personnes seulement » partout avec B, et aucune règle dans le groupe A, **When** C tape `.imagen` dans le groupe A ou en privé, **Then** C est ignoré.
-3. **Given** `.imagen` en « ces personnes seulement » partout avec B, et le groupe A réglé en mode normal pour `.imagen`, **When** C tape `.imagen` dans le groupe A, **Then** la commande s'exécute : le mode du groupe l'emporte sur le mode « partout ».
+3. **Given** `.imagen` en « ces personnes seulement » partout avec B, et dans le groupe A une règle « normal + ces personnes » sans personne pour `.imagen` (« niveau normal ici »), **When** C tape `.imagen` dans le groupe A, **Then** la commande s'exécute : le mode du groupe l'emporte sur le mode « partout ».
 4. **Given** B autorisé partout à `.imagen`, et `.imagen` en « ces personnes seulement » dans le groupe A avec une liste qui ne contient pas B, **When** B tape `.imagen` dans le groupe A, **Then** la commande s'exécute : une autorisation « partout » vaut dans tous les groupes.
-5. **Given** B autorisé partout, **When** le propriétaire saisit le numéro de B avec ou sans indicatif, avec ou sans « + », **Then** le panel enregistre la même personne et la reconnaît sous son numéro comme sous son identifiant LID.
+5. **Given** B autorisé partout, **When** le propriétaire saisit le numéro de B avec l'indicatif du pays, avec ou sans « + », espaces ou tirets, **Then** le panel enregistre la même personne et la reconnaît sous son numéro comme sous son identifiant LID. **When** il saisit un numéro sans indicatif ou trop court, **Then** le panel le refuse et rappelle le format attendu.
 
 ---
 
 ### User Story 4 - Voir et contrôler les permissions en place (Priority: P2)
 
 Le propriétaire veut savoir à tout moment qui peut faire quoi. Le panel montre :
+
 - sur la page Commandes, pour chaque commande, sa règle « partout » et le nombre de groupes qui ont une règle propre ;
 - dans l'onglet « Permissions » d'un groupe, les règles de ce groupe et les personnes autorisées partout qui y ont aussi accès.
 
@@ -155,12 +167,12 @@ Les commandes jamais délégables apparaissent grisées, avec la raison. Chaque 
 #### Décision d'accès
 
 - **FR-006**: Pour une commande donnée, dans une discussion donnée, le système MUST décider dans cet ordre :
-  1. la discussion désactivée et la commande désactivée (globalement ou dans le groupe) gardent leur effet actuel ;
-  2. le propriétaire est toujours autorisé ;
-  3. une personne listée dans la règle « partout » ou, en groupe, dans la règle de ce groupe, est autorisée ;
-  4. sinon, le mode qui s'applique est celui de la règle du groupe s'il en existe une, sinon celui de la règle « partout », sinon « normal » ;
-  5. en mode « ces personnes seulement », la personne est refusée en silence ;
-  6. en mode « normal » ou « normal + ces personnes », c'est le niveau normal de la commande qui décide, avec les refus et messages d'aujourd'hui.
+  1. une discussion où le bot est désactivé ne reçoit rien, comme aujourd'hui ;
+  2. le propriétaire est toujours autorisé par les règles ;
+  3. une personne listée dans la règle « partout » ou, en groupe, dans la règle de ce groupe, est autorisée par les règles ;
+  4. sinon, le mode qui s'applique est celui de la règle du groupe s'il en existe une (même sans personne), sinon celui de la règle « partout », sinon « normal » ;
+  5. en mode « ces personnes seulement », la personne est refusée en silence, même si la commande est par ailleurs désactivée ;
+  6. sinon, les contrôles d'aujourd'hui s'appliquent dans leur ordre actuel : niveau propriétaire (sauf pour une personne autorisée par les règles), commande désactivée (pour tout le monde, propriétaire et personnes autorisées compris), contexte groupe ou privé, niveau administrateur (sauf pour une personne autorisée par les règles), avec les messages d'aujourd'hui.
 - **FR-007**: Un refus dû au mode « ces personnes seulement » MUST être silencieux : pas de réponse, pas de réaction, pas de message d'erreur. Il est seulement noté dans le journal du bot.
 - **FR-008**: Les contraintes de contexte d'une commande (réservée aux groupes, réservée au privé) MUST rester appliquées aux personnes autorisées, avec les messages d'aujourd'hui.
 - **FR-009**: Une commande d'administration de groupe ouverte à une personne qui n'est pas administrateur MUST s'exécuter pour elle. Les vérifications que le bot fait sur ses propres droits (être administrateur du groupe) restent inchangées.
@@ -169,7 +181,7 @@ Les commandes jamais délégables apparaissent grisées, avec la raison. Chaque 
 
 #### Commandes jamais délégables
 
-- **FR-012**: Chaque commande MUST pouvoir être déclarée « jamais délégable » dans son code. Cette déclaration ne se change pas depuis le panel.
+- **FR-012**: Chaque commande MUST pouvoir être déclarée « jamais délégable » dans son code, avec une raison. Cette déclaration ne se change pas depuis le panel. Par défaut, une commande réservée au propriétaire n'est pas délégable, sauf si son code la déclare délégable. Toute autre commande est délégable, sauf si son code la déclare jamais délégable.
 - **FR-013**: Sont déclarées jamais délégables : `.eval`/`.exec`, `.update`, `.exportcontacts`, `.ban`/`.unban`, `.setvv`/`.getvv`, `.antidel`/`.getantidel`, `.autorespond`, `.statussave`, `.setcmd`/`.delcmd`/`.getcmd`. Toutes les autres commandes sont délégables, y compris `.vv` et `.save`.
 - **FR-014**: Le système MUST ignorer toute règle sur une commande jamais délégable, même si elle existe en base (restauration, ajout manuel). Le panel MUST refuser d'en créer une.
 
@@ -178,19 +190,21 @@ Les commandes jamais délégables apparaissent grisées, avec la raison. Chaque 
 - **FR-015**: Quand `.vv` est utilisée par une autre personne que le propriétaire, le média révélé MUST être envoyé en privé à cette personne, jamais dans la discussion où la commande a été tapée, quel que soit le réglage de destination de l'auto-vv.
 - **FR-016**: Quand `.save` est utilisée par une autre personne que le propriétaire, le média MUST être envoyé en privé à cette personne.
 - **FR-017**: Pour le propriétaire, `.vv` et `.save` MUST garder leur comportement actuel.
-- **FR-018**: `.vv` MUST rester discrète pour une personne autorisée : aucun message dans le groupe quand la citation n'est pas une vue unique ou que le média ne peut pas être téléchargé, comme aujourd'hui pour le propriétaire.
+- **FR-018**: `.vv` MUST rester discrète pour une personne autorisée : rien dans le groupe quand la citation n'est pas une vue unique, que le média ne peut pas être téléchargé ou que l'envoi échoue. Le mode d'emploi (rien de cité) et l'avis « média trop lourd » lui sont envoyés en privé.
 
 #### Panel
 
 - **FR-019**: Les règles MUST se régler uniquement depuis le panel, par le propriétaire. Aucune commande WhatsApp ne permet de les créer, de les modifier ou de les lire, et les administrateurs de groupe ne peuvent rien accorder.
-- **FR-020**: La page de chaque groupe MUST offrir un onglet « Permissions » qui liste les règles du groupe. Elle permet d'en créer, de changer leur mode et d'ajouter ou retirer des personnes choisies parmi les membres du groupe. Elle montre aussi les personnes autorisées « partout » qui ont accès dans ce groupe.
+- **FR-020**: La page de chaque groupe MUST offrir un onglet « Permissions » qui liste les règles du groupe. Elle permet d'en créer, de changer leur mode et d'ajouter ou retirer des personnes choisies parmi les membres du groupe. Une règle « normal + ces personnes » sans personne est permise dans un groupe : elle y rétablit le niveau normal malgré une règle « partout », et le panel l'affiche comme une exception. L'onglet montre aussi les personnes autorisées « partout » qui ont accès dans ce groupe. Les modifications d'une règle s'enregistrent avec un bouton Enregistrer, après affichage des avertissements.
 - **FR-021**: La page Commandes MUST montrer pour chaque commande son niveau normal, sa règle « partout » et le nombre de groupes qui ont une règle propre. Elle permet de régler la règle « partout » en choisissant des personnes parmi les contacts connus du bot ou en saisissant un numéro.
-- **FR-022**: Le panel MUST afficher les commandes jamais délégables grisées, avec la raison.
+- **FR-022**: Le panel MUST afficher les commandes jamais délégables grisées, avec leur raison parmi cinq : elle exécute du code, elle met à jour le bot, elle exporte des données personnelles, elle peut exclure le propriétaire d'une discussion, elle règle le comportement du bot. Une raison inconnue s'affiche comme « réservée au propriétaire ».
 - **FR-023**: Le panel MUST avertir clairement quand une règle ouvre une commande d'administration à une personne qui n'est pas administrateur du groupe, quand le mode « normal + ces personnes » vise une commande déjà publique, et quand une règle « ces personnes seulement » a une liste vide.
 - **FR-024**: Le panel MUST signaler les personnes qui ne font plus partie du groupe et les règles sur des commandes qui n'existent plus, et permettre de les retirer.
 - **FR-025**: Chaque création, modification ou suppression de règle MUST être inscrite dans le journal d'audit du panel : commande, portée, mode, personnes ajoutées ou retirées.
 - **FR-026**: Les règles MUST être incluses dans les sauvegardes du panel et rétablies par une restauration.
 - **FR-027**: Tous les textes ajoutés (panel et bot) MUST exister en français et en anglais.
+- **FR-030**: L'action « Oublier ce groupe » du panel MUST aussi supprimer les règles de ce groupe. Un groupe que le bot quitte garde ses règles.
+- **FR-031**: Un numéro saisi MUST comporter l'indicatif du pays (8 à 15 chiffres). Les espaces, le « + », les tirets, les points, les parenthèses et un « 00 » en tête sont ignorés. Le panel n'exige pas que la personne soit membre du groupe au moment de l'enregistrement, puisque le bot peut être hors ligne : il la signale comme « ne fait plus partie du groupe » quand c'est le cas.
 
 #### Menu et aide
 
@@ -219,6 +233,6 @@ Les commandes jamais délégables apparaissent grisées, avec la raison. Chaque 
 - Le système s'appuie sur le panel de la fonctionnalité 002 (authentification, journal d'audit, sauvegardes, page Groupes avec la liste des membres, page Commandes, désactivation des commandes), fusionné sur `master`. Cette branche part de `master`.
 - Un seul propriétaire administre le panel. Les « propriétaires » au sens du bot sont les numéros de SUDO, qui ont toujours accès.
 - Les rôles de groupe existants (`.role` : vip, muted, banned) ne changent pas et n'interviennent pas dans les permissions. Un membre « muted » ou « banned » reste traité par `.role` comme aujourd'hui, même s'il est nommé dans une règle.
-- Le mode « normal » n'est pas stocké : supprimer une règle ramène la commande à son niveau normal.
+- Le mode « normal » n'est pas stocké. Supprimer la règle « partout » ramène la commande à son niveau normal. Supprimer la règle d'un groupe y rétablit ce que dit la règle « partout ».
 - Une personne est enregistrée sous son numéro dès qu'il est connu, comme pour les rôles de groupe. Un identifiant LID seul est accepté quand le numéro est inconnu.
 - Hors périmètre : l'auto-vv des vues uniques reçues en privé (voir Contexte) ; la gestion des permissions par commande WhatsApp ; les lots de commandes et les catégories ; les permissions temporaires ; la délégation du droit d'accorder des permissions ; l'accès au panel pour d'autres personnes que le propriétaire.

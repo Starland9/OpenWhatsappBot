@@ -1,6 +1,6 @@
 const { extractMessageContent, getContentType } = require("baileys");
 const { getLang } = require("../lib/utils/language");
-const { getOwnerJids, jidUser } = require("../lib/utils/permissions");
+const { jidUser } = require("../lib/utils/permissions");
 
 const MEDIA_KINDS = {
   imageMessage: "image",
@@ -37,8 +37,9 @@ module.exports = {
         return await message.reply(getLang("plugins.save.no_message"));
       }
 
-      // The inbox is the chat of the owner who ran the command
-      const inbox = message.sender || message.senderLid || getOwnerJids()[0];
+      // The inbox is the chat of whoever ran the command (the owner, or a person the panel delegated
+      // `.save` to). No fallback to an owner: a delegated person's media must never reach somebody else
+      const inbox = message.sender || message.senderLid;
       if (!inbox) {
         await message.react("❌");
         return await message.reply(getLang("plugins.save.no_sudo"));

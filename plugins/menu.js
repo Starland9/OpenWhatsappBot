@@ -4,7 +4,8 @@ const { getVisibleCommands, typeLabel } = require("./help");
 
 /**
  * Menu command - lists the commands by category, with their aliases.
- * Owner-only commands are only listed for the owners.
+ * Owner-only commands are only listed for the owners (and for the people a panel rule delegated them to);
+ * a command an `only` rule closes to the requester is not listed.
  */
 
 // Display order and icon of every command type in use; unknown types come last
@@ -127,10 +128,11 @@ module.exports = {
   },
 
   async execute(message) {
-    await message.reply(buildMenu(getVisibleCommands(message)));
+    await message.reply(buildMenu(await getVisibleCommands(message)));
   },
 
-  // Shared with buttonmenu.js
+  // Shared with buttonmenu.js (and the tests: the menu text of a list of entries)
+  buildMenu,
   TYPE_ICONS,
   DEFAULT_ICON,
   typeRank,

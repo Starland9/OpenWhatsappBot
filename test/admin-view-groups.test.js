@@ -239,7 +239,9 @@ test("GRP-1 query, row badges and features, tabs", () => {
   assert.deepEqual(L.rowFeatures({ welcome: true, goodbye: false, antilink: true, mute: true }), ["welcome", "antilink", "mute"]);
   assert.deepEqual(L.rowFeatures({}), []);
 
+  assert.deepEqual([...L.TABS], ["messages", "protection", "filters", "members", "commands", "permissions", "advanced"], "feature 003 adds the Permissions tab between Commands and Advanced");
   assert.equal(L.tabOf("filters"), "filters");
+  assert.equal(L.tabOf("permissions"), "permissions");
   assert.equal(L.tabOf("nope"), "messages");
   assert.equal(L.tabOf(undefined, L.LIST_TABS), "groups");
   assert.equal(L.tabOf("disabled", L.LIST_TABS), "disabled");

@@ -63,6 +63,8 @@ module.exports = {
     desc: getLang("plugins.exportcontacts.desc"),
     type: "utility",
     fromMe: true,
+    delegable: false,
+    lockReason: "data",
   },
 
   async execute(message, argsString) {

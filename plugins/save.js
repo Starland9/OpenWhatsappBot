@@ -19,6 +19,7 @@ module.exports = {
     desc: getLang("plugins.save.desc"),
     type: "media",
     fromMe: true,
+    delegable: true,
   },
 
   async execute(message) {

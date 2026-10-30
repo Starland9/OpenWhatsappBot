@@ -120,6 +120,8 @@ module.exports = {
     desc: getLang("plugins.autorespond.desc"),
     type: "ai",
     fromMe: true,
+    delegable: false,
+    lockReason: "config",
   },
 
   async execute(message, query, ctx) {

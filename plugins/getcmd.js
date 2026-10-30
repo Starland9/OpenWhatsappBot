@@ -32,6 +32,8 @@ module.exports = {
     desc: getLang("plugins.getcmd.desc"),
     type: "utility",
     fromMe: true,
+    delegable: false,
+    lockReason: "config",
   },
 
   async execute(message) {

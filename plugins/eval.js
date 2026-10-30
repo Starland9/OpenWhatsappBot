@@ -59,6 +59,8 @@ module.exports = {
     desc: getLang("plugins.eval.desc"),
     type: "owner",
     fromMe: true,
+    delegable: false,
+    lockReason: "code",
     onlyPm: true,
   },
 

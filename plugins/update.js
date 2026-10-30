@@ -62,6 +62,8 @@ module.exports = {
     desc: getLang("plugins.update.desc"),
     type: "owner",
     fromMe: true,
+    delegable: false,
+    lockReason: "update",
   },
 
   async execute(message, query) {

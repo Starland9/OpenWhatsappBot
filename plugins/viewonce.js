@@ -68,6 +68,8 @@ module.exports = {
     desc: getLang("plugins.viewonce.setvv_desc"),
     type: "whatsapp",
     fromMe: true,
+    delegable: false,
+    lockReason: "config",
   },
 
   async execute(message, query) {

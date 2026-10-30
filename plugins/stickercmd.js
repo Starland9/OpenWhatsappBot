@@ -43,6 +43,8 @@ module.exports = {
     desc: getLang("plugins.stickercmd.desc"),
     type: "utility",
     fromMe: true,
+    delegable: false,
+    lockReason: "config",
   },
 
   async execute(message, query) {

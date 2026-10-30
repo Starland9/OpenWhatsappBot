@@ -11,6 +11,8 @@ module.exports = {
     desc: getLang("plugins.antidelete.getantidel_desc"),
     type: "whatsapp",
     fromMe: true,
+    delegable: false,
+    lockReason: "config",
   },
 
   async execute(message) {

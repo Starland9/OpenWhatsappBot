@@ -40,6 +40,7 @@ module.exports = {
     desc: getLang("plugins.viewonce.desc"),
     type: "media",
     fromMe: true,
+    delegable: true,
   },
 
   async execute(message) {

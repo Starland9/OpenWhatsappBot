@@ -8,7 +8,7 @@ Plain CommonJS JavaScript: no build step, no linter. Yarn 4 is vendored (`.yarn/
 
 ```bash
 yarn install            # no postinstall anymore
-yarn test               # node --test --test-force-exit "test/**/*.test.js": ~2,350 tests, ~20 s, no network, no WhatsApp
+yarn test               # node --test --test-force-exit "test/**/*.test.js": ~2,900 tests, ~20 s, no network, no WhatsApp
 node --test --test-force-exit test/registry.test.js   # one test file (BOT_LANG=en for English; default fr)
 node tools/check-unused-deps.js   # must print "0 unused dependencies"
 yarn dev                # node index.js — prints a QR code and the admin panel setup link on first login

@@ -14,7 +14,7 @@ Contents: [0 map](#0-module-map-and-rules) / [1 engine](#1-libutilscommandpermis
 | `lib/utils/permissions.js` | export `identitiesOf` (one line in `module.exports`, `permissions.js:182-193`) | 1.5 |
 | `lib/plugins/registry.js` | entry gains `delegable` and `lockReason`; `executeCommand` calls `decide` | 2 |
 | `plugins/{eval,update,exportcontacts,banchat,unbanchat,viewonce,getvv,antidel,getantidel,autorespond,statussave,stickercmd,delcmd,getcmd}.js` | add `delegable: false, lockReason` | 3 |
-| `plugins/vv.js`, `plugins/save.js` | add `delegable: true`; `.vv` destination and notices, `.save` fallback | 3, 4, 5 |
+| `plugins/vv.js`, `plugins/save.js` | add `delegable: true`; `.vv` destination and notices, `.save` discretion and fallback | 3, 4, 5 |
 | `plugins/help.js`, `plugins/menu.js`, `plugins/buttonmenu.js` | async `getVisibleCommands`, new `findVisibleCommand` | 6 |
 | `lib/utils/settingsCache.js` | header comment lists `command_state` and `command_perms` | 9 |
 
@@ -269,7 +269,17 @@ Known limits (documented, not fixed): a delegated too-large notice returns norma
 
 ## 5. `.save` delegated
 
-Spec: FR-016, FR-017. File `plugins/save.js`: `command` gains `delegable: true`. The destination is already the requester (`save.js:40`, `message.sender || message.senderLid`), in a group and in a private chat. One hardening: drop the last fallback `|| getOwnerJids()[0]` (`save.js:40`) and the then unused `getOwnerJids` import (`save.js:3`). It is dead code for an owner (an owner always has `sender` or `senderLid`, `isSudo()` requires one) and for a delegated person it would send his media to the owner. An empty sender still answers `plugins.save.no_sudo`. The reactions and text replies of `.save` (`reply_required`, `no_message`, `download_failed`, `no_media`, the hourglass and check marks) stay in the chat exactly as today: FR-016 specifies only where the media goes, and `.save` is not made discreet.
+Spec: FR-016, FR-017. File `plugins/save.js`: `command` gains `delegable: true`. The destination is already the requester (`save.js:40`, `message.sender || message.senderLid`), in a group and in a private chat. One hardening: drop the last fallback `|| getOwnerJids()[0]` (`save.js:40`) and the then unused `getOwnerJids` import (`save.js:3`). It is dead code for an owner (an owner always has `sender` or `senderLid`, `isSudo()` requires one) and for a delegated person it would send his media to the owner. An empty sender still answers `plugins.save.no_sudo`. **Discretion (owner decision of 2026-11-02, supersedes row 7 of section 10):** a delegated `.save` is as discreet as a delegated `.vv`, with the same helpers (`requesterJid`, `notifyRequester`, duplicated in `save.js` because each plugin stays self-contained) and the same flag `delegated = !message.isSudo()`. For a delegated requester nothing ever appears in the chat where the command was typed:
+
+| Case | Owner (unchanged) | Delegated requester |
+| ---- | ----------------- | ------------------- |
+| reactions (hourglass, check, cross) | in the chat | none, anywhere (also none in a private chat) |
+| `plugins.save.reply_required`, `no_message`, `no_sudo`, `download_failed`, `no_media` | `message.reply` in the chat | `notifyRequester`: `sendMessage(requesterJid, { text })` |
+| `MEDIA_TOO_LARGE` from `getQuotedMedia` | rethrown after the cross: the registry replies `common.media_too_large` in the chat | `notifyRequester` with `common.media_too_large` ({0} = `error.maxMB` or `Math.round(Number(config.MAX_UPLOAD) \|\| 230)`), no rethrow |
+| any other error (download, `sendMessage` of the media or of the audio header) | cross, rethrow: `common.error` in the chat and the stack to the owners | `logger.warn(safeLog(error), ...)`, return: no `common.error`, no owner DM |
+| empty requester address (`requesterJid` is `""`: only possible in a group) | not reachable | return in silence, nothing downloaded |
+
+`requesterJid` is the one of `.vv`: `message.sender || message.senderLid` in a group, `message.jid` in a private chat (the requester's DM is then the chat itself). A failing DM is swallowed at `debug` (`notifyRequester`), as for `.vv`. The media destination does not change (`message.sender || message.senderLid`, also in a private chat). Existing lang keys only, no new key: the texts above and `common.media_too_large`.
 
 ## 6. Menu and help
 
@@ -331,7 +341,7 @@ Style of `test/command-state.test.js` (`registry._reset()` plus probe plugins, `
    - Every alias of a command; an orphan row (unknown command) is inert.
    - Stored values: `MODES` values and `MAX_PEOPLE` equal the `PermissionRule` validators (`rawAttributes.mode.validate.isIn`, the `people` limit), since the model cannot import them.
 2. **`test/command-delegable.test.js`**: the guard of section 3; the normalization table of 2.1 with probes (a probe without the flag is delegable; an owner-only probe without the flag is not; `lockReason` is `null` on a delegable entry even if declared).
-3. **`test/vv-save-delegated.test.js`** (stub `mediaAdapter.downloadMedia` through `getQuotedMedia`; `view_once` row in modes `p`, `jid`, `g`): owner `.vv` unchanged in each mode; delegated in a group gives one send to the requester's PN, none to the group, whatever `view_once` says; a LID-only requester gets the LID; delegated in a private chat gives `message.jid`; not a view-once or download failure sends nothing anywhere; `sendMessage` rejecting gives nothing in the group, no `common.error`, no owner DM; usage and `media_too_large` go to the DM (and a failing DM is swallowed); the owner's usage and too-large replies stay in the chat; `.save` delegated sends to the requester, never to the owner, and an empty sender gives `plugins.save.no_sudo` with no fallback to the owner.
+3. **`test/vv-save-delegated.test.js`** (stub `mediaAdapter.downloadMedia` through `getQuotedMedia`; `view_once` row in modes `p`, `jid`, `g`): owner `.vv` unchanged in each mode; delegated in a group gives one send to the requester's PN, none to the group, whatever `view_once` says; a LID-only requester gets the LID; delegated in a private chat gives `message.jid`; not a view-once or download failure sends nothing anywhere; `sendMessage` rejecting gives nothing in the group, no `common.error`, no owner DM; usage and `media_too_large` go to the DM (and a failing DM is swallowed); the owner's usage and too-large replies stay in the chat; `.save` delegated sends to the requester, never to the owner, posts nothing in the group (no reaction, every reply and the too-large notice in the requester's DM, failures swallowed), and an empty sender gets no fallback to the owner (`plugins.save.no_sudo` in a private chat, silence in a group).
 4. **`test/help-menu-visibility.test.js`**: with no rule, `buildMenu`, `help <cmd>` and `bmenu` output for owner, member and group admin (private chat and group) equals the legacy formula `getCommands().filter(c => owner || !isOwnerOnly(c))`; `.help eval` from a member still returns the card; with rules, a granted member sees `vv` in group A, not in group D nor in a private chat; a closed member does not see `imagen` in the menu, the category count drops, `.help imagen` equals `getLang("plugins.help.not_found", "imagen", ".")`, `.bmenu imagen` and `menu:cmd:imagen` give the `plugins.buttonmenu.not_found` reply; owner and listed member still see it; a failed load gives the no-rule menu.
 
 Out of this file, owned by stream B and listed there: database, backup, groups (GRP-3 / GRP-6), panel routes, integration contract tests.
@@ -346,7 +356,7 @@ Out of this file, owned by stream B and listed there: database, backup, groups (
 | `CLAUDE.md` line 75 | `settingsCache.js` bullet: add key `command_perms` (and keep `command_state`) |
 | `CLAUDE.md` line 79 | engines list: `commandPermissions.js` (read-side decision, `decide`) |
 | `CLAUDE.md` Database section | table `permission_rules`, `MODELS` 26 (stream B text) |
-| `docs/AUDIT_COMMANDES.md` rows | `.bmenu` (137) and `.menu` (140): commands closed to the person are hidden; `.help` (139): a closed command answers as unknown; `.save` (172): also usable by a person the owner delegates to, media to that person; `.vv` (175): access "Owner, delegable from the panel", media sent to the requester's DM when delegated |
+| `docs/AUDIT_COMMANDES.md` rows | `.bmenu` (137) and `.menu` (140): commands closed to the person are hidden; `.help` (139): a closed command answers as unknown; `.save` (172): also usable by a person the owner delegates to, media to that person and nothing in the group (as discreet as `.vv`); `.vv` (175): access "Owner, delegable from the panel", media sent to the requester's DM when delegated |
 | `docs/AUDIT_COMMANDES.md` section 4 "Accès" (282-288) | new bullets: delegation from the panel, the 14 never-delegable commands, silent refusal of `only` rules |
 | `docs/AUDIT_COMMANDES.md` section 7 (near 400-402 and 449) | new items: delegated `.vv` in a group lands in the requester's DM and nothing in the group (member with a PN, member addressed by LID only); `.vv` delegated without a quote answers in DM; a command closed to a member is ignored in silence and absent from `.menu` / `.help`; `.help eval` from a member unchanged; `.vv` delegated in a private chat; disabled plus closed gives silence for an unlisted member |
 | `lib/utils/settingsCache.js` header (lines 8-11) | list `command_state` (missing today) and `command_perms` |
@@ -364,7 +374,7 @@ No `config.env.example` line, no catalog entry, no lang file change on the bot s
 | 4 | Where the stored constants live | in the engine (X1, B10); the model repeats the literals | `lib/database/index.js` loads models first: an import would be circular |
 | 5 | `lockReason` vocabulary | the registry copies any non-empty string, only the guard test knows the five codes | the panel already has a fallback (FR-022) |
 | 6 | Delegated too-large `.vv` | notice sent by the plugin, no rethrow, `cmd_ok` counted | rethrowing makes the registry reply in the group |
-| 7 | `.save` discretion | not changed | FR-016 only fixes the media destination |
+| 7 | `.save` discretion | discreet like `.vv` for a delegated requester (owner decision 2026-11-02, section 5) | FR-016 was extended after the final review |
 | 8 | Menu evaluation | sequential `await`s over `getCommands()` | deterministic order; the slow path is memoized per message |
 | 9 | Spec `.autorespond` | the command is `ar` (`autorespond.js:119`); there is no `autorespond` alias | the registry key is `entry.name` |
 

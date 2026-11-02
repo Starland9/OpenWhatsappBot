@@ -188,7 +188,7 @@ Les commandes jamais délégables apparaissent grisées, avec la raison. Chaque 
 #### `.vv` et `.save` délégués
 
 - **FR-015**: Quand `.vv` est utilisée par une autre personne que le propriétaire, le média révélé MUST être envoyé en privé à cette personne, jamais dans la discussion où la commande a été tapée, quel que soit le réglage de destination de l'auto-vv.
-- **FR-016**: Quand `.save` est utilisée par une autre personne que le propriétaire, le média MUST être envoyé en privé à cette personne.
+- **FR-016**: Quand `.save` est utilisée par une autre personne que le propriétaire, le média MUST être envoyé en privé à cette personne, et `.save` MUST être aussi discrète que `.vv` : aucune réaction et aucune réponse dans la discussion où la commande a été tapée, les réponses et avis (mode d'emploi, erreurs, média trop lourd) étant envoyés dans la discussion privée de cette personne.
 - **FR-017**: Pour le propriétaire, `.vv` et `.save` MUST garder leur comportement actuel.
 - **FR-018**: `.vv` MUST rester discrète pour une personne autorisée : rien dans le groupe quand la citation n'est pas une vue unique, que le média ne peut pas être téléchargé ou que l'envoi échoue. Le mode d'emploi (rien de cité) et l'avis « média trop lourd » lui sont envoyés en privé.
 

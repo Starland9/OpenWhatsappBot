@@ -37,6 +37,10 @@ Quatre risques encadrent la fonctionnalité :
 - Q: Que propose le panel ? → A: Une page API : gestion des clés et de leurs droits, historique des envois, et un formulaire d'essai qui envoie avec le même moteur que l'API.
 - Q: Quelles limites de débit par défaut ? → A: Des limites prudentes, réglables dans le panel : au moins 2 secondes entre deux messages, 30 envois par minute et 1 000 par jour par clé. Au-delà, un refus clair indique le délai à attendre.
 
+### Session 2026-11-02 (clarify)
+
+- Q: Faut-il retaper le mot de passe du panel avant une action sensible sur l'API ? → A: Oui. Le mot de passe est redemandé pour activer l'API, créer ou dupliquer une clé, élargir ses droits, passer sa politique à « n'importe qui » ou élargir ses restrictions d'IP. La confirmation vaut 5 minutes. Révoquer, restreindre ou couper l'API reste immédiat, sans mot de passe.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Envoyer un texte depuis un programme externe (Priority: P1)
@@ -117,6 +121,8 @@ Le propriétaire ouvre la page API du panel. Il voit ses clés : nom, droits, po
 4. **Given** le formulaire d'essai, **When** le propriétaire choisit un format, un destinataire et un contenu, **Then** le message part avec le même moteur et les mêmes contrôles que l'API (sauf la clé), apparaît dans l'historique avec la source « panel » et respecte le même espacement.
 5. **Given** toute création, modification, duplication ou révocation de clé, et tout changement de l'interrupteur de l'API, **When** l'action est enregistrée, **Then** une entrée d'audit la décrit, sans aucun secret.
 6. **Given** la politique « n'importe qui », **When** le propriétaire la choisit pour une clé, **Then** le panel affiche l'avertissement sur le risque de bannissement et demande une confirmation.
+7. **Given** une session du panel ouverte depuis plus de 5 minutes sans confirmation du mot de passe, **When** le propriétaire crée une clé ou élargit ses droits, **Then** le panel lui redemande son mot de passe avant d'enregistrer ; un mauvais mot de passe n'enregistre rien.
+8. **Given** une clé active, **When** le propriétaire la révoque ou lui retire un droit, **Then** l'action s'applique sans demander le mot de passe.
 
 ---
 
@@ -205,7 +211,7 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 
 #### Activation et exposition
 
-- **FR-001**: L'API MUST être désactivée par défaut et ne s'activer que depuis le panel, par un propriétaire, avec confirmation. Désactivée, chacun de ses endpoints MUST répondre comme une adresse inexistante, et aucune file ni minuterie de l'API ne MUST tourner.
+- **FR-001**: L'API MUST être désactivée par défaut et ne s'activer que depuis le panel, par un propriétaire, avec confirmation du mot de passe (FR-021). Désactivée, chacun de ses endpoints MUST répondre comme une adresse inexistante, et aucune file ni minuterie de l'API ne MUST tourner.
 - **FR-002**: Couper l'API MUST refuser immédiatement toute nouvelle requête et faire passer les messages en file à « annulé ».
 - **FR-003**: L'API MUST refuser une clé reçue sur une connexion non chiffrée, sauf si la requête vient de la machine elle-même. Derrière un proxy de confiance (même réglage que le panel), elle MUST se fier à ce que le proxy déclare du chiffrement.
 - **FR-004**: L'API MUST être réservée aux appels de programme à programme : aucune autorisation d'appel depuis une page web d'un autre site. Une session du panel MUST NOT donner accès à l'API, et une clé d'API MUST NOT donner accès au panel.
@@ -226,6 +232,7 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 - **FR-018**: Après 10 échecs d'authentification en 5 minutes depuis la même origine, l'API MUST bloquer cette origine pendant 15 minutes et le signaler aux propriétaires (alerte « origine bloquée », activable).
 - **FR-019**: Le panel MUST montrer pour chaque clé la date de sa dernière utilisation et la dernière IP. Une alerte facultative MUST pouvoir prévenir les propriétaires quand une clé sert depuis une IP jamais vue pour elle.
 - **FR-020**: L'activation et la désactivation de l'API, ainsi que la création, la modification, la duplication et la révocation d'une clé, MUST produire chacune une entrée d'audit sans secret.
+- **FR-021**: Le panel MUST redemander le mot de passe du propriétaire avant d'enregistrer une action qui élargit l'accès : activer l'API, créer ou dupliquer une clé, lui ajouter un droit, passer sa politique de destinataires à un mode plus large ou ajouter des destinataires, élargir ou retirer ses restrictions d'IP, repousser ou retirer son expiration. Une confirmation réussie MUST valoir 5 minutes pour la session qui l'a obtenue. Les mauvais mots de passe MUST être limités comme les tentatives de connexion au panel. Les actions qui restreignent l'accès (révoquer, retirer un droit, réduire une liste, couper l'API) MUST rester possibles sans mot de passe.
 
 #### Envoi : règles communes à tous les formats
 
@@ -269,7 +276,7 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 
 #### Suivi et historique
 
-- **FR-070**: Chaque message MUST avoir un statut parmi « en file », « en cours », « envoyé », « distribué », « lu », « échec » (avec un code), « expiré », « annulé » et « incertain ». L'heure de chaque changement est conservée. « Distribué » et « lu » ne sont renseignés que si WhatsApp les communique.
+- **FR-070**: Chaque message MUST avoir un statut parmi « en file », « en cours », « envoyé », « distribué », « lu », « échec » (avec un code), « expiré », « annulé » et « incertain ». L'heure de chaque changement est conservée. « Distribué » et « lu » ne concernent que les discussions privées, et ne sont renseignés que si WhatsApp les communique.
 - **FR-071**: Une clé MUST pouvoir lire le statut de ses propres messages, un par un ou en liste paginée filtrable par statut, format et période. Le message d'une autre clé MUST être traité comme inexistant.
 - **FR-072**: Pour les boutons, les listes et les sondages, le suivi MUST exposer les réponses reçues pendant 7 jours après l'envoi : identifiant du choix, auteur, heure ; pour un sondage, le dernier vote de chaque votant et le total par option.
 - **FR-073**: L'historique MUST conserver uniquement des métadonnées : clé ou source « panel », destinataire, format, taille, statut et heures, code d'échec, identifiant WhatsApp. Il MUST NOT conserver le texte, la légende ni le média. Le destinataire MUST être masqué dans les journaux.
@@ -335,4 +342,5 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 - **Durées** : historique et réponses conservés 30 jours ; réponses collectées 7 jours après l'envoi ; expiration en file après 10 minutes ; idempotence valable 24 heures. Toutes réglables sauf l'idempotence.
 - **Espacement partagé** : l'espacement de 2 secondes s'applique aux envois de l'API et aux diffusions ensemble, puisqu'ils partent du même numéro.
 - **Discussions désactivées** : une discussion désactivée dans le bot l'est aussi pour l'API.
+- **Statuts dans un groupe** : WhatsApp donne un accusé par participant ; dans un groupe, le suivi s'arrête donc à « envoyé ». « Distribué » et « lu » ne concernent que les discussions privées.
 - **Panel requis** : sans panel, pas d'API, puisque les clés s'y gèrent.

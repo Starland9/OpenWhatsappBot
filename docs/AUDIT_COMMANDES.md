@@ -25,7 +25,7 @@ Documents liés : [spécification](../specs/001-audit-fix-commands/spec.md), [co
 
 ### Périmètre
 
-Les 81 fichiers de `plugins/` ont été audités (la fonctionnalité 002 en a ajouté deux, `knownchats` et `groupguard`, sans commande : 83 fichiers, 81 modules chargés au démarrage). Les 81 d'origine se répartissent ainsi :
+Les 81 fichiers de `plugins/` ont été audités (la fonctionnalité 002 en a ajouté deux, `knownchats` et `groupguard`, et la fonctionnalité 004 un, `apireplies`, tous sans commande : 84 fichiers, 82 modules chargés au démarrage). Les 81 d'origine se répartissent ainsi :
 
 - **78 commandes** (une ligne chacune dans le tableau de la section 2) ;
 - 1 module sans commande qui réagit aux messages : `trackmessages` ;
@@ -42,7 +42,7 @@ Chaque commande a été évaluée sur les mêmes critères : réponse sans argum
 | Désactivée | 1 | Le service externe est mort et n'a pas d'équivalent gratuit ; la commande reste au menu et répond « service indisponible ». |
 | À surveiller | 8 | Corrigée, mais l'appel réel n'a pas pu être vérifié (clé absente, paiement requis) ou dépend d'un service instable. Voir la colonne « Défauts » et la section 6. |
 
-Modules sans commande : `trackmessages` Corrigée, `buttons` Corrigée, `pollplus` Désactivée, `knownchats` et `groupguard` Nouveaux (002) (voir la fin de la section 2).
+Modules sans commande : `trackmessages` Corrigée, `buttons` Corrigée, `pollplus` Désactivée, `knownchats` et `groupguard` Nouveaux (002), `apireplies` Nouveau (004) (voir la fin de la section 2).
 
 ### Corrections transverses majeures
 
@@ -237,6 +237,7 @@ La plupart des défauts des commandes venaient de quelques manques dans le cœur
 | `pollplus` | Ancien fichier de `poll+` | Désactivée | Fusionné dans `poll` : `poll+` et `pollplus` sont des alias de `.poll` ; le fichier est volontairement vide. |
 | `knownchats` (002) | Registre des discussions connues : les privés qui ont écrit au bot et les groupes vus, pour choisir les destinataires d'une diffusion dans le panel | Nouveau | Observateur sans commande (priorité 5, il ne consomme jamais le message) : enregistre un privé la première fois qu'il écrit (au plus une écriture par heure et par discussion), puis, à chaque connexion, actualise les noms des groupes (au plus toutes les 6 h) et marque comme « ancien groupe » ceux que le bot a quittés. Les privés muets depuis plus d'un an sont purgés chaque jour. |
 | `groupguard` (002) | Applique l'**anti-lien** et l'**anti-bot** des groupes, réglés dans le panel (page Groupes) | Nouveau | Les colonnes `antilink` et `antibot` et les messages `ANTILINK_MSG` / `ANTIBOT_MSG` existaient mais rien ne les appliquait → un hook (priorité 50, après les observateurs et avant les filtres). **Le bot doit être admin du groupe**, sinon il ne fait rien (le panel avertit). **Anti-lien** : un lien (URL, `www.`, invitation `chat.whatsapp.com`, `wa.me`) envoyé par un membre qui n'est ni admin ni propriétaire est supprimé ; l'auteur reçoit un avertissement (`WARN_LIMIT`, `WARN_MESSAGE`, mêmes compteurs que `.warn`) et est retiré à la limite (`ANTILINK_MSG`). La règle est stricte : une commande qui contient un lien est supprimée et **n'est pas exécutée** (`.dl <lien>` d'un membre) ; admins et propriétaires sont exemptés, commandes comprises ; un VIP voit son message supprimé sans avertissement. **Anti-bot** : l'expéditeur est retiré (`ANTIBOT_MSG`) seulement quand l'identifiant du message a une forme qu'aucun client WhatsApp ne produit (`3EB0` + 36 caractères hexadécimaux, `BAE5` + 12) ; l'identifiant de 22 caractères (Baileys 7, probablement aussi WhatsApp Web) est seulement journalisé et inscrit à l'historique comme « suspect », jamais suivi d'une action, pour ne pas retirer un humain. |
+| `apireplies` (004) | Enregistre les réponses aux messages interactifs envoyés par l'API d'envoi de messages (voir [API.md](API.md)) | Nouveau | Observateur sans commande (priorité 5 pour `handleButtonReply`, 6 pour `onMessage`) : enregistre un appui sur un bouton ou une ligne, un numéro qui cite le message et un vote de sondage d'un message envoyé par l'API, puis consomme la réponse pour qu'aucune autre fonction (jeu, répondeur automatique) n'y réagisse. Il ne fait rien pour un message qui n'est pas de l'API ; l'API désactivée ou la fenêtre de réponse (`API_REPLY_WINDOW_DAYS`) passée, la réponse est consommée mais plus enregistrée. |
 | Mode muet (002) | Page Groupes du panel, sans commande ni module | Nouveau | Bascule le réglage WhatsApp « seuls les admins peuvent envoyer des messages » (`announcement` / `not_announcement`) dans les deux sens ; le bot doit être admin ; la colonne `mute` reflète le dernier état posé par le bot. |
 
 ---
@@ -396,7 +397,7 @@ Dépendances système : `ffmpeg` (inchangé) et **`yt-dlp`** (nouveau, voir sect
 
 ### Démarrage
 
-- [ ] `LOG_LEVEL=debug yarn dev` : 81 modules chargés, aucun échec de chargement, aucun alias en double.
+- [ ] `LOG_LEVEL=debug yarn dev` : 82 modules chargés, aucun échec de chargement, aucun alias en double.
 - [ ] Sur une base existante : « Database synced », sans erreur, et la table `warns` accepte un avertissement dans deux groupes différents pour le même membre.
 
 ### Accès et correspondance exacte
@@ -532,7 +533,7 @@ yarn test                         # node --test --test-force-exit "test/**/*.tes
 node tools/check-unused-deps.js   # attendu : 0 unused dependencies
 ```
 
-- `yarn test` charge les 81 modules, vérifie les alias (aucun doublon, aucun faux positif), les refus de permissions, la réponse de chaque commande sans argument, la présence des traductions fr et en, le pipeline et la synchronisation de la base. Depuis la fonctionnalité 002 il couvre aussi le panel d'administration (authentification, routes, interface, sauvegardes, diffusions, mise à jour avec retour arrière, alertes, `config.env.example`). Il n'utilise ni WhatsApp ni le réseau, et dure une vingtaine de secondes (environ 2 350 tests).
+- `yarn test` charge les 82 modules, vérifie les alias (aucun doublon, aucun faux positif), les refus de permissions, la réponse de chaque commande sans argument, la présence des traductions fr et en, le pipeline et la synchronisation de la base. Depuis la fonctionnalité 002 il couvre aussi le panel d'administration (authentification, routes, interface, sauvegardes, diffusions, mise à jour avec retour arrière, alertes, `config.env.example`). Il n'utilise ni WhatsApp ni le réseau, et dure une vingtaine de secondes (environ 2 350 tests).
 - Lancer les scripts et outils avec `OWB_NO_CONFIG_ENV=1` pour qu'ils ne lisent pas votre `config.env`.
 - Une commande testée seule : `node --test --test-force-exit test/commands.test.js`.
 - Les tests tournent en français par défaut ; `BOT_LANG=en yarn test` les lance en anglais.

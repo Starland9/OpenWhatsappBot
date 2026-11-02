@@ -21,6 +21,8 @@ module.exports = {
     desc: getLang("plugins.statussave.desc"),
     type: "admin",
     fromMe: true,
+    delegable: false,
+    lockReason: "config",
   },
 
   async execute(message, argsString = "") {

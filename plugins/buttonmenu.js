@@ -1,9 +1,8 @@
 const { sendList } = require("./buttons");
 const { getLang } = require("../lib/utils/language");
 const config = require("../config");
-const { getCommandByPattern } = require("../lib/plugins/registry");
 const { safeLog } = require("../lib/utils/http");
-const { formatCommandInfo, getVisibleCommands, typeLabel } = require("./help");
+const { findVisibleCommand, formatCommandInfo, getVisibleCommands, typeLabel } = require("./help");
 const { TYPE_ICONS, DEFAULT_ICON, typeRank } = require("./menu");
 
 /**
@@ -38,7 +37,7 @@ function listOptions(message) {
 
 /** The list of categories */
 async function sendCategories(message) {
-  const commands = getVisibleCommands(message);
+  const commands = await getVisibleCommands(message);
   const grouped = groupByType(commands);
   const types = [...grouped.keys()].sort(
     (a, b) => typeRank(a) - typeRank(b) || a.localeCompare(b),
@@ -66,7 +65,7 @@ async function sendCategories(message) {
 
 /** The commands of a category */
 async function sendCategory(message, type) {
-  const commands = getVisibleCommands(message)
+  const commands = (await getVisibleCommands(message))
     .filter((cmd) => (cmd.type || "misc") === type)
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -112,7 +111,7 @@ async function sendCategory(message, type) {
 
 /** The help card of a command */
 async function sendCommand(message, name) {
-  const cmd = getCommandByPattern(name);
+  const cmd = await findVisibleCommand(message, name);
   if (!cmd) {
     return await message.reply(getLang("plugins.buttonmenu.not_found", name));
   }

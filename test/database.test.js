@@ -565,6 +565,16 @@ const NEW_TABLES = {
   },
 };
 
+// specs/003-command-permissions: one table (data-model section 1), kept apart so NEW_TABLES stays at 14
+const FEATURE_003_TABLES = {
+  permission_rules: {
+    model: "PermissionRule",
+    columns: ["command", "scope", "mode", "people", "createdAt", "updatedAt"],
+    primary: ["command", "scope"],
+    indexes: [],
+  },
+};
+
 const OLD_TABLES = [
   "anti_delete", "auto_responder", "banned_chats", "conversations", "filters", "group_economy", "group_roles", "groups",
   "ideas", "notify_keywords", "quotes", "reminders", "sticker_commands", "tasks", "user_stats", "users", "view_once", "warns",
@@ -590,9 +600,10 @@ describe("admin panel tables (002-admin-panel): schema", () => {
     assert.equal(Object.keys(NEW_TABLES).length, 14);
     assert.equal(OLD_TABLES.length, 18);
     for (const table of Object.keys(NEW_TABLES)) assert.ok(first.summary.created.includes(table), `${table} created`);
-    assert.deepEqual([...first.summary.created].sort(), [...Object.keys(NEW_TABLES), ...OLD_TABLES].sort());
+    const everyTable = [...Object.keys(NEW_TABLES), ...Object.keys(FEATURE_003_TABLES), ...OLD_TABLES].sort();
+    assert.deepEqual([...first.summary.created].sort(), everyTable);
     await withDb(file, async (db) => {
-      assert.deepEqual(await tableNames(db), [...Object.keys(NEW_TABLES), ...OLD_TABLES].sort());
+      assert.deepEqual(await tableNames(db), everyTable);
     });
   });
 
@@ -645,6 +656,97 @@ describe("admin panel tables (002-admin-panel): schema", () => {
 
   test("no DataTypes.ENUM in the 14 model files", () => {
     for (const spec of Object.values(NEW_TABLES)) {
+      const source = fs.readFileSync(path.join(ROOT, "lib", "database", "models", `${spec.model}.js`), "utf8");
+      assert.doesNotMatch(source, /ENUM/, spec.model);
+      assert.match(source, new RegExp(`sequelize\\.define\\(\\s*"${spec.model}"`), `${spec.model} is defined under its file name`);
+    }
+  });
+});
+
+describe("command permissions table (003-command-permissions): schema", () => {
+  const file = newDbFile();
+  let first;
+  let second;
+
+  before(() => {
+    first = boot(file);
+    second = boot(file);
+  });
+
+  test("permission_rules is created by sync(), next to the 14 + 18 tables of earlier features", () => {
+    assert.equal(Object.keys(FEATURE_003_TABLES).length, 1);
+    assert.equal(Object.keys(NEW_TABLES).length, 14, "the 002 list is untouched");
+    assert.ok(first.summary.created.includes("permission_rules"));
+    assert.equal(first.summary.created.length, 14 + 18 + 1);
+    assert.deepEqual(first.summary.repaired, []);
+    assert.deepEqual(first.summary.warnings, []);
+    assert.deepEqual(first.summary.errors, []);
+  });
+
+  test("a second sync() is a no-op", () => {
+    assertNothingChanged(second);
+  });
+
+  for (const [table, spec] of Object.entries(FEATURE_003_TABLES)) {
+    test(`${table}: columns, composite primary key, no per-column UNIQUE, no index`, async () => {
+      await withDb(file, async (db) => {
+        assert.deepEqual((await columnNames(db, table)).sort(), [...spec.columns].sort());
+        assert.deepEqual(await primaryKey(db, table), ["command", "scope"]);
+        assert.deepEqual(await primaryKey(db, table), spec.primary);
+        assert.deepEqual(await uniqueColumns(db, table), [], "no UNIQUE constraint per column");
+        assert.deepEqual(await indexes(db, table), {}, "no secondary index");
+        const info = await db.all(`PRAGMA table_info(\`${table}\`)`);
+        const by = Object.fromEntries(info.map((c) => [c.name, c]));
+        for (const column of spec.columns) assert.equal(by[column].notnull, 1, `${column} is NOT NULL`);
+        assert.equal(by.scope.dflt_value, "'*'");
+        assert.equal(by.people.dflt_value, "'[]'");
+      });
+    });
+  }
+
+  test("the composite key allows one command in two scopes and one scope for two commands, but not the same pair twice", async () => {
+    await withDb(file, async (db) => {
+      const insert = (command, scope) =>
+        db.run("INSERT INTO permission_rules (command, scope, mode, people, createdAt, updatedAt) VALUES (?, ?, 'only', '[]', ?, ?)", [command, scope, NOW, NOW]);
+      await insert("vv", "*");
+      await insert("vv", "120363@g.us");
+      await insert("save", "*");
+      await assert.rejects(insert("vv", "*"), /UNIQUE constraint failed/);
+    });
+  });
+
+  test("a database that predates the feature only gains permission_rules: no existing table is altered, no row lost", async () => {
+    const legacy = newDbFile();
+    boot(legacy);
+    const before_ = {};
+    await withDb(legacy, async (db) => {
+      await db.run("INSERT INTO warns (jid, groupJid, createdAt, updatedAt) VALUES ('a@s.whatsapp.net', 'g1@g.us', ?, ?)", [NOW, NOW]);
+      await db.run("INSERT INTO command_states (command, scope, createdAt, updatedAt) VALUES ('ping', '*', ?, ?)", [NOW, NOW]);
+      const everyOther = [...OLD_TABLES, ...Object.keys(NEW_TABLES)];
+      before_.schema = await schemaOf(db, everyOther);
+      for (const table of ["warns", "command_states"]) before_[table] = await db.all(`SELECT * FROM \`${table}\` ORDER BY rowid`);
+      await db.run("DROP TABLE permission_rules");
+    });
+
+    const upgraded = boot(legacy);
+    assert.deepEqual(upgraded.summary.created, ["permission_rules"]);
+    assert.deepEqual(
+      [upgraded.summary.repaired, upgraded.summary.columns, upgraded.summary.indexes, upgraded.summary.warnings, upgraded.summary.errors],
+      [[], [], [], [], []],
+      "0 existing table altered",
+    );
+
+    await withDb(legacy, async (db) => {
+      assert.deepEqual(await schemaOf(db, [...OLD_TABLES, ...Object.keys(NEW_TABLES)]), before_.schema, "the 32 existing tables keep their exact schema and indexes");
+      for (const table of ["warns", "command_states"]) {
+        assert.deepEqual(await db.all(`SELECT * FROM \`${table}\` ORDER BY rowid`), before_[table], `${table} rows`);
+      }
+    });
+    assertNothingChanged(boot(legacy));
+  });
+
+  test("no DataTypes.ENUM in the model file, defined under its file name", () => {
+    for (const spec of Object.values(FEATURE_003_TABLES)) {
       const source = fs.readFileSync(path.join(ROOT, "lib", "database", "models", `${spec.model}.js`), "utf8");
       assert.doesNotMatch(source, /ENUM/, spec.model);
       assert.match(source, new RegExp(`sequelize\\.define\\(\\s*"${spec.model}"`), `${spec.model} is defined under its file name`);
@@ -844,5 +946,155 @@ describe("admin panel tables (002-admin-panel): model validation", () => {
     assert.equal(stat.createdAt, undefined);
     await assert.rejects(db.DailyStat.create({ day: "2026-01-01", metric: "messages" }), /unique/i);
     await db.DailyStat.create({ day: "2026-01-01", metric: "cmd_ok", subject: "ping", count: 3 });
+  });
+
+  // ---- specs/003-command-permissions: PermissionRule (data-model section 1). Kept in this block: the in-memory
+  // database is a module singleton that this block's `after` closes.
+
+  const PN = "237690000001@s.whatsapp.net";
+  const PN2 = "237690000002@s.whatsapp.net";
+  const LID = "123456789012345@lid";
+  const LID2 = "987654321098765@lid";
+  const rule = (people, over = {}) => ({ command: "vv", scope: "*", mode: "extra", people, ...over });
+  const manyPeople = (n) => Array.from({ length: n }, (_, i) => ({ pn: `2376900${String(i).padStart(5, "0")}@s.whatsapp.net`, lid: null }));
+  const clearRules = () => db.PermissionRule.destroy({ where: {} });
+
+  test("PermissionRule: loaded under its file name, composite key, defaults, timestamps", async () => {
+    assert.ok(db.PermissionRule);
+    assert.equal(db.PermissionRule.tableName, "permission_rules");
+    assert.deepEqual(db.PermissionRule.primaryKeyAttributes, ["command", "scope"]);
+    assert.equal(db.PermissionRule.rawAttributes.id, undefined, "no surrogate id");
+
+    const row = await db.PermissionRule.create({ command: "vv", mode: "only" });
+    assert.equal(row.scope, "*", "scope defaults to everywhere");
+    assert.deepEqual(row.people, [], "people defaults to an empty list");
+    assert.ok(row.createdAt instanceof Date && row.updatedAt instanceof Date);
+
+    await assert.rejects(db.PermissionRule.create({ command: "vv", scope: "*", mode: "extra" }), /unique|Validation error/i, "one rule per (command, scope)");
+    await db.PermissionRule.create({ command: "vv", scope: "120363@g.us", mode: "extra" });
+    await db.PermissionRule.create({ command: "save", scope: "*", mode: "only" });
+    assert.equal(await db.PermissionRule.count(), 3);
+    await clearRules();
+  });
+
+  test("PermissionRule.mode: only extra and only, a STRING checked by isIn", async () => {
+    await db.PermissionRule.build(rule([], { mode: "extra" })).validate();
+    await db.PermissionRule.build(rule([], { mode: "only" })).validate();
+    for (const mode of ["all", "normal", "EXTRA", "Only", "", " only", "extra ", null, undefined, 1]) {
+      await rejects(db.PermissionRule.build(rule([], { mode })).validate(), /Validation/);
+    }
+    await rejects(db.PermissionRule.create(rule([], { mode: "all" })));
+    assert.equal(await db.PermissionRule.count(), 0, "nothing stored");
+
+    await db.PermissionRule.create(rule([], { mode: "only" }));
+    await rejects(db.PermissionRule.update({ mode: "all" }, { where: { command: "vv" } }));
+    assert.equal((await db.PermissionRule.findOne({ where: { command: "vv", scope: "*" } })).mode, "only", "the bulk update was refused");
+    await clearRules();
+  });
+
+  test("PermissionRule.people: an empty list and 100 persons are accepted, 101 is not", async () => {
+    await db.PermissionRule.build(rule([])).validate();
+    await db.PermissionRule.build(rule(manyPeople(100))).validate();
+    await rejects(db.PermissionRule.build(rule(manyPeople(101))).validate(), /at most 100/);
+    await rejects(db.PermissionRule.create(rule(manyPeople(101))), /at most 100/);
+    await rejects(db.PermissionRule.update({ people: manyPeople(101) }, { where: { command: "vv" } }), /at most 100/);
+
+    const stored = await db.PermissionRule.create(rule(manyPeople(100)));
+    assert.equal((await db.PermissionRule.findOne({ where: { command: stored.command, scope: "*" } })).people.length, 100);
+    await clearRules();
+  });
+
+  test("PermissionRule.people: a non-array is refused", async () => {
+    for (const people of ["", "[]", `[{"pn":"${PN}","lid":null}]`, {}, { pn: PN, lid: null }, 0, 5, true]) {
+      await rejects(db.PermissionRule.build(rule(people)).validate(), /people must be an array/);
+    }
+    await rejects(db.PermissionRule.build(rule(null)).validate(), /people cannot be null/);
+  });
+
+  test("PermissionRule.people: each item has exactly the keys pn and lid", async () => {
+    for (const item of [null, "237690000001", 5, [], [PN, LID]]) {
+      await rejects(db.PermissionRule.build(rule([item])).validate(), /each item must be an object/);
+    }
+    const keys = /exactly the keys pn and lid/;
+    await rejects(db.PermissionRule.build(rule([{}])).validate(), keys);
+    await rejects(db.PermissionRule.build(rule([{ pn: PN }])).validate(), keys, "lid missing");
+    await rejects(db.PermissionRule.build(rule([{ lid: LID }])).validate(), keys, "pn missing");
+    await rejects(db.PermissionRule.build(rule([{ pn: PN, lid: null, name: "Awa" }])).validate(), keys, "an extra key");
+    await rejects(db.PermissionRule.build(rule([{ pn: PN, id: LID }])).validate(), keys, "a wrong key");
+    await rejects(db.PermissionRule.build(rule([{ pn: PN, lid: LID }, { pn: PN2 }])).validate(), keys, "one bad item among good ones");
+  });
+
+  test("PermissionRule.people: a person has at least one form", async () => {
+    await rejects(db.PermissionRule.build(rule([{ pn: null, lid: null }])).validate(), /cannot both be null/);
+    await rejects(db.PermissionRule.build(rule([{ pn: PN, lid: LID }, { pn: null, lid: null }])).validate(), /cannot both be null/);
+    await db.PermissionRule.build(rule([{ pn: PN, lid: null }])).validate();
+    await db.PermissionRule.build(rule([{ pn: null, lid: LID }])).validate();
+    await db.PermissionRule.build(rule([{ pn: PN, lid: LID }])).validate();
+  });
+
+  test("PermissionRule.people: pn ends with @s.whatsapp.net and lid with @lid", async () => {
+    for (const pn of [LID, "237690000001@g.us", "237690000001@S.WHATSAPP.NET", "237690000001", PN + " ", 237690000001, undefined, true, ""]) {
+      await rejects(db.PermissionRule.build(rule([{ pn, lid: LID }])).validate(), /pn must be null or end with @s\.whatsapp\.net/);
+    }
+    for (const lid of [PN, "123456789012345@LID", "123456789012345@g.us", "123456789012345", LID + " ", 123456789012345, undefined, false, ""]) {
+      await rejects(db.PermissionRule.build(rule([{ pn: PN, lid }])).validate(), /lid must be null or end with @lid/);
+    }
+  });
+
+  test("PermissionRule.people: every form is already normalized (no device suffix, no c.us, no empty user)", async () => {
+    const notNormalized = /is not a normalized JID/;
+    await rejects(db.PermissionRule.build(rule([{ pn: "237690000001:7@s.whatsapp.net", lid: null }])).validate(), notNormalized, "device suffix on a pn");
+    await rejects(db.PermissionRule.build(rule([{ pn: null, lid: "123456789012345:4@lid" }])).validate(), notNormalized, "device suffix on a lid");
+    await rejects(db.PermissionRule.build(rule([{ pn: "237690000001_1@s.whatsapp.net", lid: null }])).validate(), notNormalized, "agent suffix");
+    await rejects(db.PermissionRule.build(rule([{ pn: "@s.whatsapp.net", lid: null }])).validate(), notNormalized, "empty user part");
+    await rejects(db.PermissionRule.build(rule([{ pn: null, lid: "@lid" }])).validate(), notNormalized, "empty user part of a lid");
+    // the c.us form: it never reaches the normalization, its suffix is refused first
+    await rejects(db.PermissionRule.build(rule([{ pn: "237690000001@c.us", lid: null }])).validate(), /pn must be null or end with/);
+    await rejects(db.PermissionRule.build(rule([{ pn: "237690000001:7@c.us", lid: LID }])).validate(), /pn must be null or end with/);
+  });
+
+  test("PermissionRule: extra with an empty list is a legal row; scope is not validated; duplicates are a service rule", async () => {
+    await db.PermissionRule.create(rule([], { mode: "extra", scope: "120363@g.us" }));
+    await db.PermissionRule.create(rule([], { mode: "extra", command: "save" }));
+    await db.PermissionRule.create(rule([], { mode: "only", command: "kick", scope: "120363@g.us" }));
+    await db.PermissionRule.create(rule([{ pn: PN, lid: LID }, { pn: PN, lid: LID }], { command: "tag", scope: "not-a-jid" }));
+    assert.equal(await db.PermissionRule.count(), 4);
+    await clearRules();
+  });
+
+  test("PermissionRule.people: a JSON round trip gives an array of plain objects through model instances", async () => {
+    const people = [
+      { pn: PN, lid: LID },
+      { pn: null, lid: LID2 },
+      { pn: PN2, lid: null },
+    ];
+    await db.PermissionRule.create(rule(people, { mode: "only" }));
+    await db.PermissionRule.create(rule([], { command: "save" }));
+
+    const one = await db.PermissionRule.findOne({ where: { command: "vv", scope: "*" } });
+    assert.ok(Array.isArray(one.people));
+    assert.deepEqual(one.people, people);
+    assert.deepEqual(one.get({ plain: true }).people, people);
+    assert.deepEqual(one.toJSON().people, people);
+
+    const all = await db.PermissionRule.findAll({ order: [["command", "ASC"]] });
+    assert.deepEqual(all.map((r) => r.command), ["save", "vv"]);
+    assert.ok(all.every((r) => Array.isArray(r.people)));
+    assert.deepEqual(all[0].people, []);
+
+    // a replace keeps the key and the creation date, changes the list
+    const createdAt = one.createdAt.getTime();
+    one.people = [{ pn: PN2, lid: LID2 }];
+    one.mode = "extra";
+    await one.save();
+    const again = await db.PermissionRule.findOne({ where: { command: "vv", scope: "*" } });
+    assert.deepEqual(again.people, [{ pn: PN2, lid: LID2 }]);
+    assert.equal(again.mode, "extra");
+    assert.equal(again.createdAt.getTime(), createdAt);
+
+    // the validator also runs on save()
+    again.people = [{ pn: null, lid: null }];
+    await rejects(again.save(), /cannot both be null/);
+    await clearRules();
   });
 });

@@ -259,6 +259,137 @@ test("summarizeDetail: none, a secret operation (never a value), a change, anyth
   assert.deepEqual(summarizeDetail("plain"), { kind: "text", text: "plain", truncated: false });
 });
 
+// Rule details of feature 003 (specs/003-command-permissions T045, contracts/panel-ui.md section 9): the detail of
+// `command.permission.set` and `command.permission.delete` is `{ mode, previousMode, added, removed }`, where a list
+// the server found too long is replaced by `removedCount` / `addedCount` (admin-permissions-api.md 1.7).
+
+test("summarizeDetail: a rule detail reads as a rule, with counts from the lists", async () => {
+  const { summarizeDetail } = await load("audit-logic.mjs");
+  const detail = { mode: "extra", previousMode: "only", added: ["237690000001", "237690000002@lid"], removed: ["237690000003"] };
+  assert.deepEqual(summarizeDetail(detail), {
+    kind: "rule",
+    mode: "extra",
+    previousMode: "only",
+    added: ["237690000001", "237690000002@lid"],
+    removed: ["237690000003"],
+    addedCount: 2,
+    removedCount: 1,
+  });
+  // a creation has no previous mode, a rule without previousMode reads the same
+  assert.equal(summarizeDetail({ mode: "only", previousMode: null, added: ["1"], removed: [] }).previousMode, null);
+  assert.equal(summarizeDetail({ mode: "only", added: ["1"], removed: [] }).previousMode, null);
+  // a deletion: the removed rule's mode twice, nothing added, every id removed
+  assert.deepEqual(summarizeDetail({ mode: "only", previousMode: "only", added: [], removed: ["237690000001"] }), {
+    kind: "rule",
+    mode: "only",
+    previousMode: "only",
+    added: [],
+    removed: ["237690000001"],
+    addedCount: 0,
+    removedCount: 1,
+  });
+  // an enrichment-only save has two empty lists
+  const same = summarizeDetail({ mode: "extra", previousMode: "extra", added: [], removed: [] });
+  assert.deepEqual([same.kind, same.addedCount, same.removedCount], ["rule", 0, 0]);
+  // an unknown mode is kept as written (the view shows the raw string)
+  assert.equal(summarizeDetail({ mode: "mystery", previousMode: null, added: [], removed: [] }).mode, "mystery");
+  // the input is not mutated and the lists are copies
+  const input = { mode: "extra", previousMode: null, added: ["1"], removed: [] };
+  const out = summarizeDetail(input);
+  out.added.push("2");
+  assert.deepEqual(input.added, ["1"]);
+});
+
+test("summarizeDetail: a list the server replaced by its count keeps the number without ids", async () => {
+  const { summarizeDetail } = await load("audit-logic.mjs");
+  assert.deepEqual(summarizeDetail({ mode: "extra", previousMode: "extra", added: ["237690000001"], removedCount: 40 }), {
+    kind: "rule",
+    mode: "extra",
+    previousMode: "extra",
+    added: ["237690000001"],
+    removed: null,
+    addedCount: 1,
+    removedCount: 40,
+  });
+  assert.deepEqual(summarizeDetail({ mode: "extra", previousMode: "only", addedCount: 25, removedCount: 60 }), {
+    kind: "rule",
+    mode: "extra",
+    previousMode: "only",
+    added: null,
+    removed: null,
+    addedCount: 25,
+    removedCount: 60,
+  });
+  // zero is a count too
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: ["1"], removedCount: 0 }).removedCount, 0);
+  // a count that is not a whole non-negative number is not trusted
+  for (const bad of [-1, 1.5, NaN, Infinity, "4", null, true, [], {}]) {
+    assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: ["1"], removedCount: bad }).kind, "text", `removedCount ${String(bad)}`);
+  }
+});
+
+test("summarizeDetail: any other shape keeps the generic text, the server's truncation marker included", async () => {
+  const { summarizeDetail } = await load("audit-logic.mjs");
+  // the server's own marker for a detail over 2000 characters
+  assert.deepEqual(summarizeDetail({ truncated: true, length: 2400, keys: ["mode", "previousMode", "added", "removed"] }), {
+    kind: "text",
+    text: '{"truncated":true,"length":2400,"keys":["mode","previousMode","added","removed"]}',
+    truncated: false,
+  });
+  // an extra key
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: [], removed: [], note: "x" }).kind, "text");
+  // no mode, an empty mode, a mode that is not a string
+  for (const mode of [undefined, "", 3, null, ["extra"]]) {
+    assert.equal(summarizeDetail({ mode, previousMode: null, added: [], removed: [] }).kind, "text", `mode ${JSON.stringify(mode)}`);
+  }
+  // a previousMode that is neither a string nor null
+  for (const previousMode of [3, true, ["only"], {}]) {
+    assert.equal(summarizeDetail({ mode: "extra", previousMode, added: [], removed: [] }).kind, "text", `previousMode ${JSON.stringify(previousMode)}`);
+  }
+  // ids that are not strings, a list that is not an array
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: [237690000001], removed: [] }).kind, "text");
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: ["1", null], removed: [] }).kind, "text");
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: "237690000001", removed: [] }).kind, "text");
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: { 0: "1" }, removed: [] }).kind, "text");
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: null, removed: [] }).kind, "text");
+  // a side with neither its list nor its count
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, added: ["1"] }).kind, "text");
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, removed: ["1"] }).kind, "text");
+  assert.equal(summarizeDetail({ mode: "extra" }).kind, "text");
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null }).kind, "text");
+  assert.equal(summarizeDetail({ mode: "extra", previousMode: null, addedCount: 3 }).kind, "text");
+  // nothing that looked like a rule changes the older branches
+  assert.deepEqual(summarizeDetail({ from: "extra", to: "only" }), { kind: "change", from: "extra", to: "only" });
+});
+
+test("summarizeDetail: ids are cut at 48 characters and lists at 100, the counts stay true", async () => {
+  const { summarizeDetail } = await load("audit-logic.mjs");
+  const long = "7".repeat(60);
+  const cutOne = summarizeDetail({ mode: "extra", previousMode: null, added: [long], removed: [] });
+  assert.equal(cutOne.added[0].length, 48);
+  assert.equal(cutOne.added[0], long.slice(0, 48));
+  const ids = Array.from({ length: 120 }, (_, i) => String(237690000000 + i));
+  const many = summarizeDetail({ mode: "only", previousMode: "only", added: ids.slice(0, 100), removed: ids });
+  assert.equal(many.added.length, 100);
+  assert.equal(many.removed.length, 100, "at most 100 ids are kept");
+  assert.equal(many.addedCount, 100);
+  assert.equal(many.removedCount, 120, "the count is the real length");
+  assert.deepEqual(many.removed, ids.slice(0, 100));
+});
+
+test("ruleIdLabel: digits become +digits, digits@lid becomes @digits, anything else is returned as is", async () => {
+  const { ruleIdLabel } = await load("audit-logic.mjs");
+  assert.equal(ruleIdLabel("237690000001"), "+237690000001");
+  assert.equal(ruleIdLabel("237690000002@lid"), "@237690000002");
+  assert.equal(ruleIdLabel("120363000000000000@g.us"), "120363000000000000@g.us");
+  assert.equal(ruleIdLabel("abc"), "abc");
+  assert.equal(ruleIdLabel("+237690000001"), "+237690000001");
+  assert.equal(ruleIdLabel("12ab"), "12ab");
+  assert.equal(ruleIdLabel("@lid"), "@lid");
+  assert.equal(ruleIdLabel(""), "");
+  assert.equal(ruleIdLabel("1234567@lid"), "@1234567");
+});
+
 // ---------------------------------------------------------------------------
 // The views
 // ---------------------------------------------------------------------------

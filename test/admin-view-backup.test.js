@@ -30,6 +30,7 @@ const format = require("../lib/admin/backup/format");
 const ROOT = path.resolve(__dirname, "..");
 const VIEWS = path.join(ROOT, "lib", "admin", "public", "js", "views");
 const FRAGMENT = path.join(ROOT, "specs", "002-admin-panel", "i18n", "panel-backup.json");
+const FRAGMENT_003 = path.join(ROOT, "specs", "003-command-permissions", "i18n", "panel-permissions.json");
 const load = (file) => import(pathToFileURL(path.join(VIEWS, file)).href);
 const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const placeholdersOf = (text) => (String(text).match(/\{[A-Za-z0-9_]+\}/g) || []).sort().join(",");
@@ -100,7 +101,7 @@ describe("the summary table", () => {
     ignoredTexts: 0,
   };
 
-  test("the 25 models of the page are the 25 the engine exports, in the same order", () => {
+  test("the 26 models of the page are the 26 the engine exports, in the same order", () => {
     assert.deepEqual(logic.ALL_MODELS, [...format.MODELS]);
   });
 
@@ -123,7 +124,7 @@ describe("the summary table", () => {
 
   test("a data type the file does not hold is listed as absent: a restore empties it", () => {
     const model = logic.shapeSummary(SUMMARY);
-    assert.equal(model.absent.length, 25 - 5);
+    assert.equal(model.absent.length, 26 - 5);
     assert.ok(model.absent.includes("Warn") && !model.absent.includes("Group"));
     assert.deepEqual(logic.shapeSummary({ ...SUMMARY, counts: {} }).groups, []);
   });
@@ -285,7 +286,15 @@ describe("panel-backup.json", () => {
       ...logic.REFUSAL_CODES.map((c) => `backup.refusal_${c}`),
     ];
     const catalog = readJson(path.join(ROOT, "lib", "admin", "public", "i18n", "en.json"));
-    for (const key of wanted) assert.ok(key in fragment.en && key in fragment.fr, key);
+    const catalogFr = readJson(path.join(ROOT, "lib", "admin", "public", "i18n", "fr.json"));
+    // Every key comes from a fragment (panel-backup.json, or panel-permissions.json of feature 003 for
+    // `backup.model_PermissionRule`) and is merged into both catalogs
+    const fragment003 = readJson(FRAGMENT_003);
+    for (const key of wanted) {
+      assert.ok(key in fragment.en || key in fragment003.en, `${key} (en fragment)`);
+      assert.ok(key in fragment.fr || key in fragment003.fr, `${key} (fr fragment)`);
+      assert.ok(key in catalog && key in catalogFr, `${key} (merged)`);
+    }
     for (const phase of logic.RESTORE_PHASES) assert.ok(catalog[`jobs.phase.${phase}`], `jobs.phase.${phase}`);
     for (const code of ["too_short", "too_long", "mismatch"]) assert.ok(catalog[`fields.${code}`], `fields.${code}`);
   });

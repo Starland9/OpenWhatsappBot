@@ -234,7 +234,7 @@ describe("BAK-1 export", () => {
     const records = await kit.readAll(file, PASS);
     assert.equal(records[0].t, "manifest");
     assert.equal(records[0].includesSession, false);
-    assert.equal(Object.keys(records[0].counts).length, 25);
+    assert.equal(Object.keys(records[0].counts).length, 26);
   });
 
   test("includeSession: true carries the session files of the folder", async () => {
@@ -382,6 +382,30 @@ describe("BAK-2 inspect", () => {
     assert.equal(codeOf(badRow), "backup_invalid_row");
     assert.deepEqual(paramsOf(badRow), { model: "Group", index: 1, field: "mute" });
     assert.ok(!badRow.text.includes("perhaps"), "the offending value is not echoed");
+  });
+
+  test("backup_invalid_row names PermissionRule for a bad mode, 101 persons or a person with no form; no value is echoed", async () => {
+    await boot();
+    const person = (i) => ({ pn: `2376900${String(i).padStart(5, "0")}@s.whatsapp.net`, lid: null });
+    const base = { command: "vv", scope: "*", mode: "extra", people: [{ pn: "237690000001@s.whatsapp.net", lid: null }] };
+    const cases = [
+      ["mode", { ...base, mode: "everyone-special" }, "mode"],
+      ["101 persons", { ...base, people: Array.from({ length: 101 }, (_, i) => person(i)) }, "people"],
+      ["no form", { ...base, people: [{ pn: null, lid: null }] }, "people"],
+    ];
+    for (const [label, bad, field] of cases) {
+      const file = path.join(root, `bad-permission-rule.owb`);
+      await kit.buildArchive({
+        file,
+        passphrase: PASS,
+        records: [kit.manifest({ counts: { PermissionRule: 2 } }), { t: "rows", model: "PermissionRule", rows: [base, bad] }],
+      });
+      const res = await inspect(await uploadFile(fs.readFileSync(file)));
+      assert.equal(res.status, 422, label);
+      assert.equal(codeOf(res), "backup_invalid_row", label);
+      assert.deepEqual(paramsOf(res), { model: "PermissionRule", index: 1, field }, label);
+      assert.ok(!res.text.includes("everyone-special"), "the offending value is not echoed");
+    }
   });
 
   test("a wrong passphrase leaves the upload for another try; a damaged file is dropped", async () => {

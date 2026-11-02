@@ -42,6 +42,8 @@ const { languageManager } = require("../lib/utils/language");
 
 const ROOT = fakes.ROOT;
 const CONTRACT = fs.readFileSync(path.join(ROOT, "specs", "002-admin-panel", "contracts", "admin-http-api.md"), "utf8");
+// feature 003 adds PERM-1..PERM-7 in a contract of its own (its "Machine-read format" section says how to parse it)
+const PERMISSIONS_CONTRACT = fs.readFileSync(path.join(ROOT, "specs", "003-command-permissions", "contracts", "admin-permissions-api.md"), "utf8");
 const PASSWORD = "a long enough password";
 const OWNER = "111@s.whatsapp.net";
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
@@ -102,12 +104,31 @@ async function waitJob(id, timeout = 8000) {
 // The contract: routes and requirements
 // ---------------------------------------------------------------------------
 
-/** The route rows of section 2: { id, method, path } (STA-1 is the static wildcard and has no single method/path) */
+/** Where "section 2" (Routes) of each contract starts and ends: the title of the next level-2 heading (a line start) */
+const SECTIONS = [
+  { name: "002", text: CONTRACT, from: "## 2. Routes", to: "## 3. Live stream" },
+  { name: "003", text: PERMISSIONS_CONTRACT, from: "## 2. Routes", to: "## 3. Changes to existing routes" },
+];
+
+/** The text from the heading `from` up to the heading `to` of a contract, both searched as line starts */
+function routesSection({ text, from, to }) {
+  const start = text.indexOf(`\n${from}`); // a line start: nothing in the prose can be hit first
+  const end = text.indexOf(`\n${to}`);
+  assert.ok(start !== -1 && end > start, `${from} ... ${to}`);
+  return text.slice(start, end);
+}
+
+/** The two regexes of the route-contract guard, the same for both contracts: row, and row with its auth column */
+const ROUTE_ROW = /^\| ([A-Z]+-\d+) \| `([A-Z]+) (\/[^`?]*)(?:\?[^`]*)?`/gm;
+const ROUTE_AUTH = /^\| ([A-Z]+-\d+) \| `([A-Z]+) (\/[^`?]*)(?:\?[^`]*)?`[^|]*\| (public|session|setup) \|/gm;
+
+/** The route rows of section 2 of both contracts: { id, method, path } (STA-1 is the static wildcard and has no single method/path) */
 function contractRoutes() {
-  const section = CONTRACT.slice(CONTRACT.indexOf("## 2. Routes"), CONTRACT.indexOf("## 3. Live stream"));
   const out = [];
-  for (const match of section.matchAll(/^\| ([A-Z]+-\d+) \| `([A-Z]+) (\/[^`?]*)(?:\?[^`]*)?`/gm)) {
-    out.push({ id: match[1], method: match[2], path: match[3] });
+  for (const contract of SECTIONS) {
+    for (const match of routesSection(contract).matchAll(ROUTE_ROW)) {
+      out.push({ id: match[1], method: match[2], path: match[3] });
+    }
   }
   return out;
 }
@@ -155,15 +176,36 @@ describe("the route table", () => {
     const missing = documented.filter((row) => !registered.has(`${row.method} ${row.path}`)).map((row) => `${row.id} ${row.method} ${row.path}`);
     assert.deepEqual(missing, [], "documented but not registered");
 
-    // the auth column of the contract
-    const section = CONTRACT.slice(CONTRACT.indexOf("## 2. Routes"), CONTRACT.indexOf("## 3. Live stream"));
-    for (const match of section.matchAll(/^\| ([A-Z]+-\d+) \| `([A-Z]+) (\/[^`?]*)(?:\?[^`]*)?`[^|]*\| (public|session|setup) \|/gm)) {
-      const route = registered.get(`${match[2]}${" "}${match[3]}`);
-      assert.equal(route.auth, match[4], `${match[1]} ${match[2]} ${match[3]}`);
+    // the auth column of both contracts
+    for (const contract of SECTIONS) {
+      for (const match of routesSection(contract).matchAll(ROUTE_AUTH)) {
+        const route = registered.get(`${match[2]}${" "}${match[3]}`);
+        assert.equal(route.auth, match[4], `${contract.name}: ${match[1]} ${match[2]} ${match[3]}`);
+      }
     }
 
     // the shell: the static files and the setup link
     for (const key of ["GET /admin", "GET /admin/*", "GET /admin/setup"]) assert.ok(registered.has(key), key);
+  });
+
+  test("the permissions contract (feature 003) documents PERM-1 to PERM-7, all registered with auth: session", () => {
+    const rows = [...routesSection(SECTIONS[1]).matchAll(ROUTE_ROW)].map((match) => `${match[1]} ${match[2]} ${match[3]}`);
+    assert.deepEqual(rows, [
+      "PERM-1 GET /admin/api/permissions",
+      "PERM-2 GET /admin/api/commands/:name/permissions",
+      "PERM-3 PUT /admin/api/commands/:name/permissions/everywhere",
+      "PERM-4 DELETE /admin/api/commands/:name/permissions/everywhere",
+      "PERM-5 GET /admin/api/groups/:jid/permissions",
+      "PERM-6 PUT /admin/api/groups/:jid/permissions/:name",
+      "PERM-7 DELETE /admin/api/groups/:jid/permissions/:name",
+    ]);
+    const registered = new Map(t.admin.routes().map((route) => [keyOf(route), route]));
+    for (const row of rows) {
+      const [id, method, routePath] = row.split(" ");
+      assert.equal(registered.get(`${method} ${routePath}`)?.auth, "session", id);
+    }
+    // nothing else in the file looks like a route row
+    assert.equal(PERMISSIONS_CONTRACT.match(ROUTE_ROW).length, 7);
   });
 
   test("no registered route is missing from the contract, and every route declares an auth level", () => {

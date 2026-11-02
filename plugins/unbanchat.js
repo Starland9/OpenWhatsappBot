@@ -14,6 +14,8 @@ module.exports = {
     desc: getLang("plugins.unbanchat.desc"),
     type: "owner",
     fromMe: true,
+    delegable: false,
+    lockReason: "lockout",
   },
 
   async execute(message) {

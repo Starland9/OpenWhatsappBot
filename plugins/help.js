@@ -1,6 +1,7 @@
 const path = require("path");
 const { getCommandByPattern, getCommands } = require("../lib/plugins/registry");
 const { getLang } = require("../lib/utils/language");
+const commandPermissions = require("../lib/utils/commandPermissions");
 const config = require("../config");
 
 /**
@@ -15,10 +16,41 @@ function isOwnerOnly(cmd) {
   return !!(cmd && (cmd.fromMe || cmd.ownerOnly));
 }
 
-/** Commands the requester may run or see: owner-only ones are hidden from non-owners */
-function getVisibleCommands(message) {
-  const owner = !!(message && message.isSudo && message.isSudo());
-  return getCommands().filter((cmd) => owner || !isOwnerOnly(cmd));
+/** Is the requester an owner (SUDO)? Tolerates a missing message */
+function isOwnerMessage(message) {
+  return !!(message && message.isSudo && message.isSudo());
+}
+
+/**
+ * Commands the requester may run or see, in registry order. The verdict is the one execution uses
+ * (`commandPermissions.decide`, specs/003-command-permissions): an owner and a person a rule grants see the
+ * command; a person an `only` rule closes does not; otherwise today's rule holds, owner-only commands are
+ * hidden from non-owners. With no rule (or a failed rule load) this is `owner || !isOwnerOnly(cmd)`.
+ */
+async function getVisibleCommands(message) {
+  const owner = isOwnerMessage(message);
+  const { VERDICTS } = commandPermissions;
+  const visible = [];
+  for (const cmd of getCommands()) {
+    const { verdict } = await commandPermissions.decide(cmd, message, { isOwner: owner });
+    if (verdict === VERDICTS.CLOSED) continue;
+    if (verdict === VERDICTS.NORMAL && isOwnerOnly(cmd)) continue;
+    visible.push(cmd);
+  }
+  return visible;
+}
+
+/**
+ * The entry behind a name or an alias, unless a rule closes it to the requester (or it does not exist):
+ * then `null`, and the caller answers like for an unknown command. Only `closed` hides a command here, never
+ * "owner-only": `.help eval` from a member still shows the card (today's behaviour, FR-029).
+ */
+async function findVisibleCommand(message, name) {
+  const cmd = getCommandByPattern(name);
+  if (!cmd) return null;
+  const owner = isOwnerMessage(message);
+  const { verdict } = await commandPermissions.decide(cmd, message, { isOwner: owner });
+  return verdict === commandPermissions.VERDICTS.CLOSED ? null : cmd;
 }
 
 /** Localized label of a command type; the upper-cased type when there is none */
@@ -113,7 +145,7 @@ module.exports = {
       return;
     }
 
-    const command = getCommandByPattern(name);
+    const command = await findVisibleCommand(message, name);
     if (!command) {
       await message.reply(getLang("plugins.help.not_found", name, config.PREFIX));
       return;
@@ -123,6 +155,7 @@ module.exports = {
   },
 
   // Shared with menu.js and buttonmenu.js
+  findVisibleCommand,
   formatCommandInfo,
   getVisibleCommands,
   isOwnerOnly,

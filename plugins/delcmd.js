@@ -31,6 +31,8 @@ module.exports = {
     desc: getLang("plugins.delcmd.desc"),
     type: "utility",
     fromMe: true,
+    delegable: false,
+    lockReason: "config",
   },
 
   async execute(message) {

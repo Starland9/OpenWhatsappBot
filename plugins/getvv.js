@@ -11,6 +11,8 @@ module.exports = {
     desc: getLang("plugins.viewonce.getvv_desc"),
     type: "whatsapp",
     fromMe: true,
+    delegable: false,
+    lockReason: "config",
   },
 
   async execute(message) {

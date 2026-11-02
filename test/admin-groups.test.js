@@ -462,7 +462,7 @@ describe("GRP-3", () => {
       antibot: false,
       mute: false,
       disabled: false,
-      counts: { filters: 2, roles: 1, warnings: 1 },
+      counts: { filters: 2, roles: 1, warnings: 1, permissions: 0 },
       disabledCommands: ["ping"],
       variables: ["@user", "@group", "@desc"],
       limits: { messageMax: 1000, filtersMax: 50, patternMax: 100, responseMax: 1000 },
@@ -736,7 +736,7 @@ describe("GRP-6", () => {
 
     const answer = await http.api("DELETE", `${url(jid)}?confirm=true`);
     assert.equal(answer.status, 200);
-    assert.deepEqual(answer.json, { deleted: { group: 1, filters: 1, roles: 1, warnings: 1, commandStates: 1 } });
+    assert.deepEqual(answer.json, { deleted: { group: 1, filters: 1, roles: 1, warnings: 1, commandStates: 1, permissionRules: 0 } });
 
     assert.equal(await count("Group", { jid }), 0);
     assert.equal(await count("Filter", { groupJid: jid }), 0);

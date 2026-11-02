@@ -391,8 +391,8 @@ describe("registry: describe(name) and doc(name) (3.4)", () => {
     const by = Object.fromEntries(registry.describe("demo").fields.map((f) => [f.name, f]));
     assert.equal(by.title.labelKey, "api.format.demo.field.title.label".replace("title", "title"));
     const label = by.cards.items.fields[0];
-    assert.equal(label.labelKey, "api.format.demo.field.cards.label.label");
-    assert.equal(label.hintKey, "api.format.demo.field.cards.label.hint");
+    assert.equal(label.labelKey, "api.format.demo.field.cards.label_field.label"); // a nested field named `label` gets the `_field` segment
+    assert.equal(label.hintKey, "api.format.demo.field.cards.label_field.hint");
     assert.equal(by.cards.items.fields[1].item.labelKey, "api.format.demo.field.cards.nums.label");
   });
 

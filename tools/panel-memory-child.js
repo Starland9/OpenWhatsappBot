@@ -6,22 +6,34 @@
  *
  *   node --expose-gc tools/panel-memory-child.js baseline [--idle-ms=20000]
  *   node --expose-gc tools/panel-memory-child.js panel    [--idle-ms=20000]
+ *   node --expose-gc tools/panel-memory-child.js api-off  [--idle-ms=20000]
+ *   node --expose-gc tools/panel-memory-child.js api-on   [--idle-ms=20000]
  *
  *   baseline  what the bot loads whether or not the panel is on: config, the in-memory database (additive sync),
- *             the settings store, the text overrides, the engine modules (required, not started), the bot runtime
- *             with a stand-in client, and every plugin (PluginLoader.loadAll). Idles, then measures.
+ *             the settings store, the text overrides, the engine modules (required, not started; `apiState` and the
+ *             messaging facade included, boot.js requires them with or without the panel), the bot runtime with a
+ *             stand-in client, and every plugin (PluginLoader.loadAll). Idles, then measures.
  *   panel     the baseline plus the admin panel: createAdmin with the real services and engines, the HTTP server on
  *             127.0.0.1:0, admin.start(), the setup and login of a first administrator, one GET of every static
- *             file ("every page"), one GET of every read-only session route of the API, one SSE stream kept open
- *             (logs=1), then the same idle. Measured after two forced garbage collections.
+ *             file ("every page"), one GET of every read-only session route of the panel's API, one SSE stream kept
+ *             open (logs=1), then the same idle. Measured after two forced garbage collections.
+ *   api-off   the panel wired the way boot.js wires the messaging API (feature 004, SC-011): `apiState.load()` over
+ *             the empty table, the messaging engine started (`messaging.start(client)`: format registry, crash
+ *             recovery, one media sweep; no timer, no listener), `createAdmin` given both. The switch is off, so
+ *             `/api/v1/*` is unclaimed: the child probes it and reports the answer.
+ *   api-on    the same with the switch saved as on before the load (the state of a bot restarted with the API
+ *             enabled): the outbox timer and the receipts listener exist, nothing is sent (the stand-in client is
+ *             never ready). Idle, probed with one call without a key (`401 unauthenticated`).
  *
- * The last stdout line is a JSON object: { mode, rss, heapUsed, external, arrayBuffers, routes, fetched, failed }
- * (bytes). Nothing else is printed to stdout; the setup link and every error go nowhere near it.
+ * The last stdout line is a JSON object: { mode, rss, heapUsed, external, arrayBuffers, routes, fetched, failed, api }
+ * (bytes; `api` is null outside the api modes, else { enabled, probe: { status, json, code } }). Nothing else is
+ * printed to stdout; the setup link and every error go nowhere near it.
  *
  * Safety: the environment is forced before anything is required. `OWB_NO_CONFIG_ENV=1` keeps config.js from reading
  * config.env, the database is `:memory:`, every secret setting is blank, the secret key and the admin data live in a
  * temporary directory removed on exit, and nothing reaches WhatsApp or the network (the stand-in client never
- * connects, no engine is started). It never reads sessions/, data/ or database.db.
+ * connects, no engine but the messaging one is started, over a temporary media root so its sweep never lists the
+ * real data/api-media). It never reads sessions/, data/ or database.db.
  */
 
 const fs = require("fs");
@@ -31,7 +43,8 @@ const path = require("path");
 const { EventEmitter } = require("events");
 
 const ROOT = path.resolve(__dirname, "..");
-const MODES = ["baseline", "panel"];
+const MODES = ["baseline", "panel", "api-off", "api-on"];
+const API_MODES = new Set(["api-off", "api-on"]);
 const DEFAULT_IDLE_MS = 20 * 1000;
 const PASSWORD = "a long enough password for the measure";
 /** Path-parameter values tried in turn for the read-only routes (the first one the router does not 404 wins) */
@@ -108,9 +121,10 @@ async function loadBaseline() {
   settingsStore.markInForce();
 
   const engines = {};
-  for (const name of ["stats", "housekeeping", "broadcaster", "alerts", "updater", "textOverrides", "commandState", "ytdlpUpdate"]) {
+  for (const name of ["stats", "housekeeping", "broadcaster", "alerts", "updater", "textOverrides", "commandState", "ytdlpUpdate", "apiState"]) {
     engines[name] = require(path.join(ROOT, "lib/utils", name)); // required as boot.js does, never started
   }
+  require(path.join(ROOT, "lib/messaging")); // the `messaging` engine of boot.js: a hard require, panel or not
   await engines.textOverrides.load({ models: database });
 
   const client = standInClient();
@@ -178,6 +192,36 @@ function fill(routePath) {
   });
 }
 
+/**
+ * The messaging engine as boot.js leaves it before `admin.start()` (api-off and api-on): the switch loaded, the
+ * engine started over the stand-in client. The media root is a temporary one, never the repository's data/api-media.
+ */
+async function startMessaging(baseline, mode) {
+  const { database, engines, client, dataDir, tmp } = baseline;
+  if (mode === "api-on") await database.ApiState.create({ id: 1, enabled: true }); // what a previous run saved
+  await engines.apiState.load({ models: database });
+  const stage = require(path.join(ROOT, "lib/messaging/stage")).createStage({ rootDir: tmp, dataDir });
+  const messaging = require(path.join(ROOT, "lib/messaging")).createMessaging({ stage });
+  await messaging.start(client);
+  return messaging;
+}
+
+/** One call to the API without a key, the way an application that forgot it would make it */
+async function probeApi(base) {
+  const res = await fetch(`${base}/api/v1/messages`, { redirect: "manual" });
+  const text = await res.text();
+  let json = false;
+  let code = null;
+  try {
+    const body = JSON.parse(text);
+    json = true;
+    code = body && body.error && typeof body.error.code === "string" ? body.error.code : null;
+  } catch {
+    // not JSON: the page every unknown URL gets
+  }
+  return { status: res.status, json, code };
+}
+
 async function runPanel(base, { admin, port, printed }) {
   const browser = makeBrowser(base);
   const link = /\/admin\/setup\?token=([A-Za-z0-9_-]{43})/.exec(printed.join("\n"));
@@ -234,9 +278,10 @@ async function main() {
   prepareEnvironment();
   const baseline = await loadBaseline();
   const cleanups = [];
-  let report = { routes: 0, fetched: 0, failed: [] };
+  let report = { routes: 0, fetched: 0, failed: [], api: null };
 
-  if (mode === "panel") {
+  if (mode === "panel" || API_MODES.has(mode)) {
+    const messaging = API_MODES.has(mode) ? await startMessaging(baseline, mode) : null;
     const { createAdmin } = require(path.join(ROOT, "lib/admin"));
     const { startAdminServer } = require(path.join(ROOT, "lib/admin/server"));
     const config = require(path.join(ROOT, "config"));
@@ -261,6 +306,7 @@ async function main() {
       alerts: baseline.engines.alerts,
       updater: baseline.engines.updater,
       ytdlpUpdate: baseline.engines.ytdlpUpdate,
+      ...(messaging ? { messaging, apiState: baseline.engines.apiState } : {}),
       dataDir: baseline.dataDir,
       port: () => (panel && panel.server ? panel.server.address().port : 0),
       printToConsole: (line) => printed.push(String(line)),
@@ -272,6 +318,10 @@ async function main() {
     const base = `http://127.0.0.1:${port}`;
     const result = await runPanel(base, { admin, port, printed });
     report = { routes: result.routes, fetched: result.fetched, failed: result.failed };
+    if (messaging) {
+      report.api = { enabled: baseline.engines.apiState.isEnabled(), probe: await probeApi(base) };
+      cleanups.push(() => messaging.stop());
+    }
     cleanups.push(async () => {
       result.stream.req.destroy();
       await admin.stop();
@@ -294,6 +344,7 @@ async function main() {
       routes: report.routes,
       fetched: report.fetched,
       failed: report.failed,
+      api: report.api,
     })}\n`,
   );
 
@@ -302,8 +353,13 @@ async function main() {
   process.exit(0); // plugins may leave handles open: the measure is done
 }
 
-main().catch((err) => {
-  // the name and the message only: never a request, a header or a setting
-  process.stderr.write(`panel-memory-child: ${(err && err.name) || "Error"}: ${String((err && err.message) || "failed").slice(0, 300)}\n`);
-  process.exit(1);
-});
+// Required by test/admin-memory.test.js only for MODES: nothing runs unless this file is the entry point
+if (require.main === module) {
+  main().catch((err) => {
+    // the name and the message only: never a request, a header or a setting
+    process.stderr.write(`panel-memory-child: ${(err && err.name) || "Error"}: ${String((err && err.message) || "failed").slice(0, 300)}\n`);
+    process.exit(1);
+  });
+}
+
+module.exports = { MODES };

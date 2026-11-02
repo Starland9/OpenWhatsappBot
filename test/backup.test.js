@@ -3,7 +3,8 @@
  * SC-011 and the backup engines (T167; contracts/runtime.md section 13, data-model.md 4.3): export, inspect, apply.
  *
  *  - round trip: export, then restore into a FRESH database; each of the 26 exported models is identical, as
- *    canonical JSON, to its source; the 7 excluded models are never exported and a Conversation row is not restored;
+ *    canonical JSON, to its source; the 11 excluded models (7 + the four of the messaging API) are never exported and a
+ *    Conversation row, an API key, message, answer or switch is not restored;
  *  - secrets travel in clear inside the archive and are re-encrypted with the target key, which is created when
  *    missing; a wrong passphrase is reported before anything is decrypted; one altered byte or a cut file is
  *    `file_altered` and, with the damage in the tag, every table is unchanged (the tag is verified before COMMIT);
@@ -125,7 +126,7 @@ async function installation(label, models, { clock, runtime, logger, extra = {} 
   };
 }
 
-/** Everything the 26 + 7 models hold, to prove a refused restore changed nothing */
+/** Everything the 26 + 11 models hold, to prove a refused restore changed nothing */
 async function dumpAll(models) {
   const out = {};
   for (const name of [...format.MODELS, ...format.EXCLUDED_MODELS]) out[name] = await kit.canonical(models, name);
@@ -222,6 +223,18 @@ describe("every model is either backed up or deliberately excluded (CLAUDE.md \"
 
   test("AUTO_INCREMENT_MODELS only names exported models", () => {
     for (const name of format.AUTO_INCREMENT_MODELS) assert.ok(format.MODELS.includes(name), `${name} is auto-increment but not exported`);
+  });
+
+  test("the four messaging API models (004) are excluded: MODELS stays at 26, EXCLUDED_MODELS goes from 7 to 11", () => {
+    const api = ["ApiKey", "ApiMessage", "ApiMessageResponse", "ApiState"];
+    for (const name of api) {
+      assert.ok(format.EXCLUDED_MODELS.includes(name), `${name} is excluded`);
+      assert.ok(!format.MODELS.includes(name), `${name} is not exported`);
+      assert.ok(!format.AUTO_INCREMENT_MODELS.includes(name), `${name} has no sequence to move`);
+    }
+    assert.equal(format.MODELS.length, 26);
+    assert.equal(format.EXCLUDED_MODELS.length, 11);
+    assert.deepEqual(format.EXCLUDED_MODELS.slice(0, 7), ["AdminAccount", "AdminSession", "AdminToken", "AuditLog", "AlertState", "AlertOutbox", "Conversation"], "the seven of earlier features keep their place");
   });
 
   test("PermissionRule (003) is exported, right after CommandState, with a composite key and no sequence to move", () => {
@@ -354,6 +367,88 @@ describe("SC-011: export then restore on a fresh database", () => {
     assert.equal(await target.Group.count(), 1);
     assert.equal(await target.Conversation.count(), 1);
     assert.ok(!JSON.stringify(after.Conversation).includes("SECRET CHAT"));
+  });
+
+  test("an export carries none of the four API tables: no key, no hash, no message, no answer, no staged media (U9, FR-076)", async () => {
+    const src = await filledSource();
+    assert.equal(await db.ApiKey.count(), 1, "the source holds API rows");
+    const stage = path.join(src.dataDir, "api-media", kit.API_SEED.publicId);
+    fs.mkdirSync(stage, { recursive: true });
+    fs.writeFileSync(path.join(stage, "source"), "API-MEDIA-CANARY");
+
+    const file = path.join(src.home, "api-excluded.owb");
+    await src.exporter.exportToFile({ file, passphrase: PASS, includeSession: false, now: T0 });
+    const records = await kit.readAll(file, PASS);
+
+    const models = new Set(records.filter((r) => r.t === "rows").map((r) => r.model));
+    for (const name of ["ApiKey", "ApiMessage", "ApiMessageResponse", "ApiState"]) assert.ok(!models.has(name), `${name} is not in the archive`);
+    assert.deepEqual(Object.keys(records[0].counts).filter((name) => name.startsWith("Api")), []);
+
+    const text = JSON.stringify(records);
+    for (const needle of [kit.API_SEED.lookupId, kit.API_SEED.secretHash, kit.API_SEED.publicId, kit.API_SEED.waId, kit.API_SEED.keyName, "api-media", Buffer.from("API-MEDIA-CANARY").toString("base64")]) {
+      assert.ok(!text.includes(needle), `the archive must not contain ${needle}`);
+    }
+    // the only media directory an archive reads is data/broadcast-media
+    const mediaPaths = records.filter((r) => r.t === "blob").map((r) => r.path);
+    assert.ok(mediaPaths.length > 0, "the broadcast media is still exported");
+    for (const mediaPath of mediaPaths) assert.match(mediaPath, /^data\/broadcast-media\//);
+    assert.ok(!records[0].files.some((f) => /api-media/.test(JSON.stringify(f))));
+  });
+
+  test("a restore leaves the four API tables byte for byte as they are: no revoked key comes back, the switch stays off, no row appears", async () => {
+    const src = await filledSource();
+    const hostile = path.join(src.home, "hostile-api.owb");
+    const nowStamp = "2026-03-01T08:00:00.000Z";
+    await kit.buildArchive({
+      file: hostile,
+      passphrase: PASS,
+      records: [
+        kit.manifest({ botVersion: "1.0.0", counts: { Group: 1, ApiKey: 1, ApiMessage: 1, ApiMessageResponse: 1, ApiState: 1 } }),
+        { t: "rows", model: "Group", rows: [{ jid: "1@g.us", name: "ok" }] },
+        // an OLDER archive of the key the target has since revoked, and of a switch that was on
+        { t: "rows", model: "ApiKey", rows: [{ id: 1, name: kit.API_SEED.keyName, nameKey: "seed api key", lookupId: kit.API_SEED.lookupId, secretHash: kit.API_SEED.secretHash, last4: "wXyZ", rights: ["messages.send.text", "messages.send.image"], policyMode: "anyone", recipients: [], ipAllow: [], seenIps: [], revokedAt: null, version: 1, createdAt: nowStamp, updatedAt: nowStamp }] },
+        { t: "rows", model: "ApiMessage", rows: [{ id: 1, publicId: "msg_REPLAYREPLAYREPLAYREPLA", apiKeyId: 1, source: "api", recipient: "237600000001@s.whatsapp.net", format: "text", status: "queued", acceptedAt: nowStamp, expiresAt: nowStamp, payload: { v: 1, input: { text: "REPLAY ME" } }, createdAt: nowStamp, updatedAt: nowStamp }] },
+        { t: "rows", model: "ApiMessageResponse", rows: [{ id: 1, messageId: 1, kind: "choice", author: "237600000001@s.whatsapp.net", choiceIds: ["x"], respondedAt: nowStamp, createdAt: nowStamp, updatedAt: nowStamp }] },
+        { t: "rows", model: "ApiState", rows: [{ id: 1, enabled: true, plainHttpFrom: ["10.0.0.0/8", "192.168.0.0/16"], createdAt: nowStamp, updatedAt: nowStamp }] },
+      ],
+    });
+
+    const restoreInto = async (target) => {
+      const tgt = await installation("target", target);
+      const uploadId = tgt.uploads.addFile(hostile);
+      const inspected = await tgt.restorer.inspect({ uploadId, passphrase: PASS, adminSessionId: "s1" });
+      assert.deepEqual(
+        inspected.summary.ignoredModels.map((m) => m.model).sort(),
+        ["ApiKey", "ApiMessage", "ApiMessageResponse", "ApiState"],
+        "the file's rows for the four tables are reported as ignored",
+      );
+      const done = await tgt.restorer.apply({ restoreToken: inspected.restoreToken, confirm: true, actor: "x", adminSessionId: "s1" });
+      assert.equal(done.ok, true);
+      assert.equal(await target.Group.count(), 1, "the exported models were restored");
+      assert.ok(!fs.existsSync(path.join(tgt.dataDir, "api-media")), "a restore stages no API media");
+      return tgt;
+    };
+
+    // an installation that has API data
+    const withData = await kit.makeDb();
+    await kit.seedExcluded(withData);
+    const before = await dumpAll(withData);
+    await restoreInto(withData);
+    const after = await dumpAll(withData);
+    for (const name of ["ApiKey", "ApiMessage", "ApiMessageResponse", "ApiState"]) assert.deepEqual(after[name], before[name], `${name} byte for byte`);
+    for (const name of format.EXCLUDED_MODELS) assert.deepEqual(after[name], before[name], `${name} untouched`);
+    const key = await withData.ApiKey.findByPk(1);
+    assert.ok(key.revokedAt, "a revoked key is never resurrected");
+    assert.equal(key.nameKey, null);
+    assert.equal(key.version, 2);
+    assert.equal((await withData.ApiState.findByPk(1)).enabled, false, "a restore never switches the API on");
+    assert.deepEqual((await withData.ApiState.findByPk(1)).plainHttpFrom, ["10.0.0.0/8"], "nor widens the network list");
+    assert.equal(await withData.ApiMessage.count({ where: { status: "queued" } }), 0, "no send is replayed");
+
+    // a fresh installation: nothing appears
+    const fresh = await kit.makeDb();
+    await restoreInto(fresh);
+    for (const name of ["ApiKey", "ApiMessage", "ApiMessageResponse", "ApiState"]) assert.equal(await fresh[name].count(), 0, `${name} stays empty`);
   });
 
   test("a restore into an installation that already has data replaces it", async () => {

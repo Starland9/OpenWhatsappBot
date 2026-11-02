@@ -220,6 +220,30 @@ describe("the route table", () => {
     }
   });
 
+  test("the exact step-up set (feature 004, admin-api.md 1.5): true on API-5 and API-7, conditional on API-2 and API-6, false everywhere else", () => {
+    const stepUp = Object.fromEntries(routes.filter((r) => r.stepUp !== false).map((r) => [keyOf(r), r.stepUp]));
+    assert.deepEqual(stepUp, {
+      "PUT /admin/api/api/state": "conditional",
+      "POST /admin/api/api/keys": true,
+      "PUT /admin/api/api/keys/:id": "conditional",
+      "POST /admin/api/api/keys/:id/duplicate": true,
+    });
+    for (const route of routes) {
+      assert.ok([false, true, "conditional"].includes(route.stepUp), keyOf(route));
+      if (route.stepUp !== false) assert.ok(UNSAFE.includes(route.method) && route.auth === "session", `${keyOf(route)}: a step-up needs an unsafe session route`);
+    }
+    assert.equal(routes.find((r) => r.path === "/admin/api/session/reauth").stepUp, false, "AUTH-7 is the door itself");
+    assert.equal(routes.find((r) => r.path === "/admin/api/api/keys/:id/revoke").stepUp, false, "revoking narrows");
+    assert.equal(routes.find((r) => r.path === "/admin/api/api/test").stepUp, false, "the test send is not in FR-021");
+  });
+
+  test("the API page routes (API-1 to API-13) are all session routes, and there is no GET on a single key", () => {
+    const api = routes.filter((r) => r.path.startsWith("/admin/api/api"));
+    assert.equal(api.length, 13);
+    assert.ok(api.every((r) => r.auth === "session"));
+    assert.ok(!api.some((r) => r.method === "GET" && r.path === "/admin/api/api/keys/:id"));
+  });
+
   test("touch:false is for read routes only", () => {
     for (const route of routes.filter((r) => r.touch === false)) assert.equal(route.method, "GET", keyOf(route));
   });
@@ -414,6 +438,23 @@ describe("safe methods", () => {
     }
     assert.ok(answers.length >= 8);
     assert.deepEqual(await t.dumpTables(), before);
+  });
+
+  test("API-1 never creates the ApiState row, and the four Api tables are part of the dump (feature 004)", async () => {
+    const dump = await t.dumpTables();
+    for (const name of ["ApiKey", "ApiMessage", "ApiMessageResponse", "ApiState"]) assert.ok(Array.isArray(dump[name]), `${name} is in dumpTables()`);
+    assert.equal(await t.db.ApiState.count(), 0);
+    for (const headers of [{ Cookie: session.cookie }, {}]) {
+      await send(t, { path: "/admin/api/api", headers });
+      await send(t, { path: "/admin/api/api/keys", headers });
+      await send(t, { path: "/admin/api/api/catalog", headers });
+      await send(t, { path: "/admin/api/api/usage?days=30", headers });
+    }
+    assert.equal(await t.db.ApiState.count(), 0, "a read never creates the row (absence reads as disabled)");
+    assert.deepEqual(await t.dumpTables(), dump);
+    const state = await send(t, { path: "/admin/api/api", headers: { Cookie: session.cookie } });
+    assert.equal(state.status, 200);
+    assert.equal(state.json.enabled, false);
   });
 
   test("HEAD and a body on a GET change nothing either", async () => {

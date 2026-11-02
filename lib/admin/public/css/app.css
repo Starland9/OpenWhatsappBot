@@ -1202,6 +1202,19 @@ progress,
   list-style: none;
 }
 
+/* API area (feature 004): code samples and curl lines wrap instead of widening the page at 360 px */
+.code-block {
+  margin: 0;
+  padding: 0.75rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
 @media print {
   .topbar,
   .nav,

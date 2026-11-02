@@ -55,6 +55,7 @@ beforeEach(async () => {
     timers: clock.timers,
     dataDir: dir,
     broadcaster: null,
+    messaging: null,
     timezone: () => "UTC",
   });
 });
@@ -101,12 +102,12 @@ describe("daily_stats", () => {
       { day: "2025-10-04", metric: "messages", subject: "", count: 1 },
     ]);
     // 2026-01-01 12:00 UTC is already 2026-01-02 02:00 in Kiritimati: the cutoff is 2025-10-04
-    const ahead = createHousekeeping({ models: db, clock: () => NOW, dataDir: dir, broadcaster: null, timezone: () => "Pacific/Kiritimati" });
+    const ahead = createHousekeeping({ models: db, clock: () => NOW, dataDir: dir, broadcaster: null, messaging: null, timezone: () => "Pacific/Kiritimati" });
     await ahead.run();
     assert.deepEqual((await db.DailyStat.findAll({ raw: true })).map((row) => row.day), ["2025-10-04"]);
 
     await db.DailyStat.create({ day: "2025-10-02", metric: "messages", subject: "", count: 1 });
-    const invalid = createHousekeeping({ models: db, clock: () => NOW, dataDir: dir, broadcaster: null, timezone: () => "Not/AZone" });
+    const invalid = createHousekeeping({ models: db, clock: () => NOW, dataDir: dir, broadcaster: null, messaging: null, timezone: () => "Not/AZone" });
     await invalid.run();
     assert.deepEqual((await db.DailyStat.findAll({ raw: true, order: [["day", "ASC"]] })).map((row) => row.day), ["2025-10-04"], "UTC: 10-02 goes, 10-04 stays");
   });
@@ -186,6 +187,16 @@ describe("sessions and tokens", () => {
   });
 });
 
+describe("the messaging API steps (feature 004)", () => {
+  test("run() reports the five steps after mediaSweep; the messaging engine is optional like the broadcaster", async () => {
+    const report = await housekeeping.run();
+    const keys = Object.keys(report).filter((key) => key !== "errors");
+    assert.deepEqual(keys.slice(keys.indexOf("mediaSweep") + 1), ["apiIdempotency", "apiTransient", "apiMessages", "apiKeys", "apiMedia"]);
+    assert.equal(report.apiMedia, null, "no engine, no sweep");
+    assert.deepEqual(report.errors, []);
+  });
+});
+
 describe("alerts", () => {
   test("outbox: resolved rows after 7 days; pending rows over 24 h become expired", async () => {
     const make = async (status, createdAt, updatedAt) => {
@@ -227,6 +238,23 @@ describe("alerts", () => {
     const report = await housekeeping.run();
     assert.equal(report.alertStates, 1);
     assert.deepEqual((await db.AlertState.findAll({ raw: true, order: [["key", "ASC"]] })).map((row) => row.key), ["errors_series", "login_blocked:5.6.7.8"]);
+  });
+
+  test("states: the three messaging API slot prefixes go after 24 h too (feature 004), the recent ones and the others stay", async () => {
+    await db.AlertState.bulkCreate([
+      { key: "api_origin_blocked:203.0.113.9", lastSentAt: ago(25 * HOUR) },
+      { key: "api_origin_blocked:203.0.113.10", lastSentAt: ago(2 * HOUR) },
+      { key: "api_key_new_ip:7:198.51.100.4", lastSentAt: ago(30 * HOUR) },
+      { key: "api_key_new_ip:7:198.51.100.5", lastSentAt: ago(23 * HOUR) },
+      { key: "api_paused", lastSentAt: ago(48 * HOUR) },
+      { key: "key_refused:openai", lastSentAt: ago(100 * HOUR) },
+    ]);
+    const report = await housekeeping.run();
+    assert.equal(report.alertStates, 3);
+    assert.deepEqual(
+      (await db.AlertState.findAll({ raw: true, order: [["key", "ASC"]] })).map((row) => row.key),
+      ["api_key_new_ip:7:198.51.100.5", "api_origin_blocked:203.0.113.10", "key_refused:openai"],
+    );
   });
 });
 
@@ -342,7 +370,7 @@ describe("broadcaster.sweepMedia", () => {
   test("is called with now when the engine exists, and skipped when it is absent", async () => {
     const calls = [];
     const engine = { sweepMedia: async (options) => { calls.push(options); return { removed: 2 }; } };
-    const withEngine = createHousekeeping({ models: db, clock: () => NOW, dataDir: dir, broadcaster: engine, timezone: () => "UTC" });
+    const withEngine = createHousekeeping({ models: db, clock: () => NOW, dataDir: dir, broadcaster: engine, messaging: null, timezone: () => "UTC" });
     const report = await withEngine.run();
     assert.deepEqual(calls, [{ now: NOW }]);
     assert.deepEqual(report.mediaSweep, { removed: 2 });
@@ -372,7 +400,7 @@ describe("broadcaster.sweepMedia", () => {
         return {};
       },
     };
-    const h = createHousekeeping({ models: db, clock: () => NOW, dataDir: dir, broadcaster: engine, timezone: () => "UTC" });
+    const h = createHousekeeping({ models: db, clock: () => NOW, dataDir: dir, broadcaster: engine, messaging: null, timezone: () => "UTC" });
     await h.run();
     assert.equal(lockedDuringSweep, false);
   });
@@ -386,7 +414,7 @@ describe("a pass", () => {
     };
     const logged = [];
     const h = createHousekeeping({
-      models: broken, clock: () => NOW, dataDir: dir, broadcaster: null, timezone: () => "UTC",
+      models: broken, clock: () => NOW, dataDir: dir, broadcaster: null, messaging: null, timezone: () => "UTC",
       logger: { warn: (...args) => logged.push(args), debug() {}, info() {}, error() {} },
     });
     await db.AdminToken.create({ kind: "setup", tokenHash: "gone", expiresAt: ago(3 * DAY) });
@@ -439,7 +467,7 @@ describe("lifecycle", () => {
       setInterval: (...a) => { const h = clock.timers.setInterval(...a); handles.push(h); return h; },
       clearInterval: (h) => clock.timers.clearInterval(h),
     };
-    const h = fresh.createHousekeeping({ models: db, clock: () => clock.now(), timers: spy, dataDir: dir, broadcaster: null, timezone: () => "UTC" });
+    const h = fresh.createHousekeeping({ models: db, clock: () => clock.now(), timers: spy, dataDir: dir, broadcaster: null, messaging: null, timezone: () => "UTC" });
     assert.equal(clock.pending(), 0, "no timer before start()");
     await h.start();
     assert.equal(clock.pending(), 2);

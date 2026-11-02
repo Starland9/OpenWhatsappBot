@@ -40,6 +40,8 @@ const MINUTE = 60 * 1000;
 const PASSWORD = "correct horse battery";
 const OWNER = "111@s.whatsapp.net";
 const ALERT_KEYS = ["ALERT_RECONNECT", "ALERT_ERROR_BURST", "ALERT_KEY_REFUSED", "ALERT_LOGIN_BLOCKED", "ALERT_NEW_ORIGIN", "ALERT_UPDATE"];
+/** Feature 004: the three alerts of the messaging API, appended after update_available (ALR-1 goes from 6 to 9 types) */
+const API_ALERT_KEYS = ["ALERT_API_ORIGIN_BLOCKED", "ALERT_API_KEY_NEW_IP", "ALERT_API_PAUSED"];
 
 let t;
 let sock;
@@ -107,7 +109,7 @@ describe("ALR-1", () => {
     assert.equal(t.admin.routes().filter((r) => r.path === "/admin/api/alerts").length, 1, "read only: no other method");
   });
 
-  test("shape: canDeliver, ownerCount, the six types in order with their setting, nothing recent", async () => {
+  test("shape: canDeliver, ownerCount, the nine types in order with their setting, nothing recent", async () => {
     await boot();
     await resetAlertTables();
     const c = await loggedIn();
@@ -125,8 +127,11 @@ describe("ALR-1", () => {
         { type: "login_blocked", settingKey: "ALERT_LOGIN_BLOCKED", enabled: true, lastSentAt: null, pending: 0 },
         { type: "new_origin", settingKey: "ALERT_NEW_ORIGIN", enabled: true, lastSentAt: null, pending: 0 },
         { type: "update_available", settingKey: "ALERT_UPDATE", enabled: true, lastSentAt: null, pending: 0 },
+        { type: "api_origin_blocked", settingKey: "ALERT_API_ORIGIN_BLOCKED", enabled: true, lastSentAt: null, pending: 0 },
+        { type: "api_key_new_ip", settingKey: "ALERT_API_KEY_NEW_IP", enabled: false, lastSentAt: null, pending: 0 },
+        { type: "api_paused", settingKey: "ALERT_API_PAUSED", enabled: true, lastSentAt: null, pending: 0 },
       ],
-      "all on by default (U12)",
+      "all on by default (U12) except api_key_new_ip",
     );
     assert.deepEqual(res.json.recent, []);
   });
@@ -142,6 +147,13 @@ describe("ALR-1", () => {
       assert.equal(entry.type, "bool");
       assert.equal(entry.theme, "alerts");
       assert.equal(entry.default, true);
+    }
+    for (const key of API_ALERT_KEYS) {
+      const entry = catalog.entries.find((e) => e.key === key);
+      assert.ok(entry, `${key} is in the catalog`);
+      assert.equal(entry.type, "bool");
+      assert.equal(entry.theme, "alerts");
+      assert.equal(entry.default, key !== "ALERT_API_KEY_NEW_IP", `${key}: only the new-address alert is off by default`);
     }
   });
 
@@ -189,7 +201,7 @@ describe("ALR-1", () => {
     const service = createAlertsService({ alerts: { raise() {} } });
     await boot({ real: false });
     const answer = await service.list();
-    assert.equal(answer.types.length, 6);
+    assert.equal(answer.types.length, 9);
   });
 });
 
@@ -203,7 +215,7 @@ describe("no recipient (US13 scenario 5)", () => {
     const res = await c.get("/admin/api/alerts");
     assert.equal(res.json.canDeliver, false);
     assert.equal(res.json.ownerCount, 0);
-    assert.ok(res.json.types.every((row) => row.enabled), "the toggles keep their value");
+    assert.ok(res.json.types.every((row) => row.enabled === (row.type !== "api_key_new_ip")), "the toggles keep their value (api_key_new_ip is off by default)");
 
     const state = await c.get("/admin/api/state");
     assert.ok(state.json.banners.some((banner) => banner.id === "no_owner"), "the dashboard says nobody can be reached");

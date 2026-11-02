@@ -421,3 +421,137 @@ test("the three views export their meta and a component, and every text they nam
   // the pending counter is a plural: the generic form stays as the fallback
   assert.ok(known.has("logs.pending"));
 });
+
+// ---------------------------------------------------------------------------
+// Feature 004 (contracts/panel-ui.md 11.5): the `api` prefix and the three new detail kinds of the audit page
+// ---------------------------------------------------------------------------
+
+test("the api prefix is a filter of the audit page, after broadcast, with its text in both languages; dayBound is exported", async () => {
+  const { ACTION_PREFIXES, dayBound } = await load("audit-logic.mjs");
+  assert.equal(ACTION_PREFIXES[ACTION_PREFIXES.indexOf("broadcast") + 1], "api");
+  for (const lang of ["en", "fr"]) {
+    const catalog = JSON.parse(fs.readFileSync(path.join(ROOT, "lib", "admin", "public", "i18n", `${lang}.json`), "utf8"));
+    assert.equal(typeof catalog["audit.prefix_api"], "string", lang);
+  }
+  assert.equal(typeof dayBound, "function");
+  assert.equal(dayBound("2026-03-05", false).getHours(), 0);
+  assert.equal(dayBound("2026-03-05", true).getHours(), 23);
+  assert.equal(dayBound("2026-02-30", false), null);
+});
+
+test("summarizeDetail: an api detail reads as an api change, with the lists cut and the absent fields null", async () => {
+  const { summarizeDetail } = await load("audit-logic.mjs");
+  const full = summarizeDetail({
+    name: "n8n", last4: "x9Qa", source: 2, rightsAdded: ["messages.send.text"], rightsRemoved: ["messages.read"],
+    changed: ["rights", "policy"], policyFrom: "list", policyTo: "known", widened: ["rights", "policy"], cancelled: 3,
+  });
+  assert.deepEqual(full, {
+    kind: "api", name: "n8n", last4: "x9Qa", source: "2", rightsAdded: ["messages.send.text"], rightsRemoved: ["messages.read"],
+    rightsAddedCount: null, rightsRemovedCount: null, changed: ["rights", "policy"], policyFrom: "list", policyTo: "known",
+    widened: ["rights", "policy"], cancelled: 3,
+  });
+  // a create: the name and what was granted, nothing else
+  const created = summarizeDetail({ name: "n8n", last4: "x9Qa", rightsAdded: ["messages.send.text"], policyTo: "list", changed: ["name", "rights"] });
+  assert.equal(created.kind, "api");
+  assert.equal(created.source, null);
+  assert.equal(created.cancelled, null);
+  assert.deepEqual(created.rightsRemoved, null);
+  // the disable of the API carries only the count
+  assert.deepEqual(summarizeDetail({ cancelled: 0 }), {
+    kind: "api", name: null, last4: null, source: null, rightsAdded: null, rightsRemoved: null, rightsAddedCount: null,
+    rightsRemovedCount: null, changed: null, policyFrom: null, policyTo: null, widened: null, cancelled: 0,
+  });
+  // the server replaced a long list by its count
+  const counted = summarizeDetail({ name: "n8n", last4: "x9Qa", rightsAddedCount: 40, rightsRemovedCount: 2 });
+  assert.equal(counted.rightsAdded, null);
+  assert.equal(counted.rightsAddedCount, 40);
+  assert.equal(counted.rightsRemovedCount, 2);
+  // ids are cut at 64 characters and lists at 100
+  const cut = summarizeDetail({ name: "n8n", rightsAdded: Array.from({ length: 150 }, (_, i) => `right.${i}${"x".repeat(80)}`) });
+  assert.equal(cut.rightsAdded.length, 100);
+  assert.ok(cut.rightsAdded.every((id) => id.length <= 64));
+});
+
+test("summarizeDetail: a count in place of a list, an extra key or a non-string id fall back to text", async () => {
+  const { summarizeDetail } = await load("audit-logic.mjs");
+  for (const detail of [
+    { name: "n8n", rightsAdded: 3 },
+    { name: "n8n", changed: "rights" },
+    { name: "n8n", extra: true },
+    { name: "n8n", rightsAdded: ["ok", 4] },
+    { name: "n8n", rightsAddedCount: -1 },
+    { name: "n8n", cancelled: "3" },
+    { name: 7, last4: "x9Qa" },
+  ]) {
+    assert.equal(summarizeDetail(detail).kind, "text", JSON.stringify(detail));
+  }
+  // the key set of the other kinds is untouched
+  assert.equal(summarizeDetail({ from: "a", to: "b" }).kind, "change");
+  assert.equal(summarizeDetail({ mode: "only", added: [], removed: [] }).kind, "rule");
+});
+
+test("summarizeDetail: the plain-HTTP networks and the retry delay", async () => {
+  const { summarizeDetail } = await load("audit-logic.mjs");
+  assert.deepEqual(summarizeDetail({ added: ["192.168.1.0/24"], removed: [] }), { kind: "networks", added: ["192.168.1.0/24"], removed: [] });
+  const many = summarizeDetail({ added: Array.from({ length: 130 }, (_, i) => `10.0.${i}.0/24${"x".repeat(80)}`), removed: ["10.0.0.0/8"] });
+  assert.equal(many.kind, "networks");
+  assert.equal(many.added.length, 100);
+  assert.ok(many.added.every((range) => range.length <= 64));
+  assert.equal(summarizeDetail({ added: "10.0.0.0/8", removed: [] }).kind, "text");
+  assert.equal(summarizeDetail({ added: [], removed: [], extra: 1 }).kind, "text");
+  assert.deepEqual(summarizeDetail({ retryAfterMs: 900000 }), { kind: "retry", ms: 900000 });
+  assert.deepEqual(summarizeDetail({ retryAfterMs: 0 }), { kind: "retry", ms: 0 });
+  for (const bad of [{ retryAfterMs: -1 }, { retryAfterMs: "900000" }, { retryAfterMs: Infinity }, { retryAfterMs: 5, other: 1 }]) {
+    assert.equal(summarizeDetail(bad).kind, "text", JSON.stringify(bad));
+  }
+});
+
+test("the audit page renders the api, networks and retry details (feature 004, T121)", async () => {
+  const { createDom, importPublic } = require("./helpers/fakeDom");
+  const { createViewGuard, answer } = require("./helpers/viewGuard");
+  const { catalogOf } = require("./helpers/apiViewKit");
+  const dom = await createDom();
+  const i18n = await importPublic("js/i18n.mjs");
+  for (const lang of ["en", "fr"]) i18n.setCatalog(lang, catalogOf(lang));
+  await i18n.setLanguage("en", { remember: false });
+  const components = await importPublic("js/components/index.mjs");
+  const view = await importPublic("js/views/audit.mjs");
+  const guard = createViewGuard({ preact: dom.preact });
+  const T = (key, params) => i18n.t(key, params);
+  const rows = [
+    { id: 1, at: "2026-11-02T09:00:00.000Z", action: "api.key.update", target: "3", origin: "127.0.0.1", result: "ok", detail: { name: "n8n", last4: "x9Qa", rightsAdded: ["messages.send.image"], rightsRemoved: [], changed: ["rights", "policy"], policyFrom: "list", policyTo: "known", widened: ["rights", "policy", "brand_new"] } },
+    { id: 2, at: "2026-11-02T09:01:00.000Z", action: "api.key.create", target: "4", origin: "127.0.0.1", result: "ok", detail: { name: "mailer", last4: "ab12", rightsAddedCount: 40, changed: ["name"], source: 3 } },
+    { id: 3, at: "2026-11-02T09:02:00.000Z", action: "api.disable", target: null, origin: "127.0.0.1", result: "ok", detail: { cancelled: 1 } },
+    { id: 4, at: "2026-11-02T09:03:00.000Z", action: "api.plainhttp.update", target: null, origin: "127.0.0.1", result: "ok", detail: { added: ["192.168.1.0/24"], removed: ["10.0.0.0/8", "172.16.0.0/12"] } },
+    { id: 5, at: "2026-11-02T09:04:00.000Z", action: "api.origin.block", target: "203.0.113.9", origin: "203.0.113.9", result: "blocked", detail: { retryAfterMs: 900000 } },
+    { id: 6, at: "2026-11-02T09:05:00.000Z", action: "api.test", target: "31", origin: "127.0.0.1", result: "ok", detail: { format: "text", kind: "private" } },
+  ];
+  globalThis.fetch = guard.fetch({ "GET /admin/api/audit": () => answer(200, { items: rows, page: 1, pageSize: 50, total: rows.length }) });
+  const root = dom.mount(components.html`<${view.default} />`);
+  try {
+    await dom.settle(6);
+    const cell = (id) => dom.text(dom.find(root, (el) => el.localName === "tr" && dom.text(el).includes(`api.`) && dom.find(el, (c) => c.localName === "span" && dom.text(c) === rows[id - 1].action).length)[0]);
+    const update = cell(1);
+    assert.ok(update.includes(T("audit.detail_api_key", { name: "n8n" })) && update.includes("x9Qa") && update.includes("messages.send.image"));
+    assert.ok(update.includes(T("audit.detail_api_policy", { from: T("api.policy_list"), to: T("api.policy_known") })));
+    assert.ok(update.includes(T("audit.detail_api_changed", { fields: "rights, policy" })));
+    assert.ok(update.includes(T("audit.detail_api_widened", { reasons: [T("api.reason_rights"), T("api.reason_policy"), "brand_new"].join(", ") })), "a reason without a text is shown raw");
+    const create = cell(2);
+    assert.ok(create.includes(T("audit.detail_api_key", { name: "mailer" })) && /\+\s*40/.test(create) && create.includes(T("audit.detail_api_source", { id: "3" })));
+    assert.ok(cell(3).includes(T("audit.detail_api_cancelled", { count: 1 })));
+    const networks = cell(4);
+    assert.ok(networks.includes(T("audit.detail_networks", { added: 1, removed: 2 })) && networks.includes("192.168.1.0/24") && networks.includes("172.16.0.0/12"));
+    assert.ok(cell(5).includes(T("audit.detail_retry", { retryAfter: i18n.formatDuration(900000) })));
+    assert.ok(cell(6).includes('{"format":"text","kind":"private"}'), "an unknown shape stays as data");
+  } finally {
+    dom.unmount(root);
+    try {
+      guard.assertClean();
+    } finally {
+      guard.restore();
+      dom.restore();
+      i18n.__resetForTests();
+      delete globalThis.fetch;
+    }
+  }
+});

@@ -6,7 +6,8 @@
  *  - errors.<code> for every envelope code and fields.<code> for every field code of admin-http-api.md 1.9,
  *    banners.<id> for the 11 banner ids of 3.3, settings.theme.<id> for the 10 themes, status.<id> for the
  *    client states, nav.<area> and <area>.title for the 14 areas;
- *  - settings.<KEY>.label and .desc for the 101 entries of the settings catalog (settings-catalog.md 8, item 4);
+ *  - settings.<KEY>.label and .desc for the 112 entries of the settings catalog (settings-catalog.md 8, item 4; the
+ *    eleven of feature 004 come from specs/004-messaging-api/i18n/panel-api-server.json);
  *  - every literal t("...") key used under lib/admin/public/js/** exists in both catalogs (the fragments are merged:
  *    nothing counts as "pending" any more);
  *  - the fragments themselves are valid, complete, do not conflict, and are all merged (panel-*.json into the panel
@@ -28,7 +29,7 @@ const ROOT = path.resolve(__dirname, "..");
 const CATALOG_DIR = path.join(ROOT, "lib", "admin", "public", "i18n");
 const FRAGMENT_DIR = path.join(ROOT, "specs", "002-admin-panel", "i18n");
 // panel-*.json fragments live in one directory per feature (the bot-*.json fragments stay in the 002 directory)
-const FRAGMENT_DIRS = [FRAGMENT_DIR, path.join(ROOT, "specs", "003-command-permissions", "i18n")];
+const FRAGMENT_DIRS = [FRAGMENT_DIR, path.join(ROOT, "specs", "003-command-permissions", "i18n"), path.join(ROOT, "specs", "004-messaging-api", "i18n")];
 const JS_DIR = path.join(ROOT, "lib", "admin", "public", "js");
 const CONTRACT = path.join(ROOT, "specs", "002-admin-panel", "contracts", "admin-http-api.md");
 const LANG_DIR = path.join(ROOT, "lang");
@@ -58,11 +59,17 @@ const BANNER_IDS = [
 const THEMES = ["general", "behavior", "api-keys", "responder", "moderation", "limits", "advanced", "boot", "alerts", "inactive"];
 const STATUSES = ["idle", "connecting", "qr", "open", "reconnecting", "restarting", "stopped", "logged_out"];
 const AREAS = [
-  "dashboard", "settings", "commands", "groups", "pairing", "data", "broadcasts",
+  "dashboard", "settings", "commands", "groups", "pairing", "data", "broadcasts", "api",
   "backup", "maintenance", "texts", "alerts", "logs", "stats", "audit",
 ];
 // codes the server sends that the contract table of 1.9 does not list (the boot window of runtime.md section 15)
-const EXTRA_SERVER_CODES = ["starting"];
+// (+ password_required of the step-up, api_disabled and the engine refusals of MESSAGING_STATUS that are not envelope
+// codes, feature 004, admin-api.md 1.4)
+const EXTRA_SERVER_CODES = [
+  "starting", "password_required", "api_disabled",
+  "recipient_not_allowed", "chat_disabled", "queue_full", "pending_limit_reached", "media_type_mismatch", "media_too_large",
+  "url_forbidden", "url_unreachable",
+];
 // codes only the browser produces (no server answer carries them)
 const CLIENT_ERROR_CODES = ["unknown", "network_error", "invalid_response", "aborted"];
 const CLIENT_FIELD_CODES = ["unknown", "mismatch"];
@@ -195,10 +202,31 @@ test("every code the HTTP layer can send has an errors.<code> text (STATUS_BY_CO
   assertNone(problems, "error codes without a text:");
 });
 
-test("settings.<KEY>.label and settings.<KEY>.desc exist in both catalogs for all 101 settings catalog entries, and for nothing else", () => {
+test("every key of MESSAGING_STATUS is an envelope code or listed in EXTRA_SERVER_CODES, and has its panel text (feature 004)", () => {
+  const { MESSAGING_STATUS } = require("../lib/messaging/errors");
+  const { STATUS_BY_CODE } = require("../lib/admin/http/response");
+  const problems = [];
+  for (const [code, status] of Object.entries(MESSAGING_STATUS)) {
+    if (!ENVELOPE_CODES.includes(code) && !EXTRA_SERVER_CODES.includes(code)) problems.push(`${code} is neither an envelope code nor in EXTRA_SERVER_CODES`);
+    if (STATUS_BY_CODE[code] !== status) problems.push(`${code}: STATUS_BY_CODE says ${STATUS_BY_CODE[code]}, the engine ${status}`);
+    for (const lang of LANGS) if (typeof catalogs[lang][`errors.${code}`] !== "string") problems.push(`errors.${code} missing in ${lang}.json`);
+  }
+  assert.equal(Object.keys(MESSAGING_STATUS).length, 9, "nine engine refusals: validation_failed is an envelope code, eight are added");
+  assert.equal(STATUS_BY_CODE.api_disabled, 409);
+  assertNone(problems, "engine refusals:");
+});
+
+test("fields.not_found exists in both catalogs (the field code of a quote or an upload that designates nothing)", () => {
+  for (const lang of LANGS) assert.equal(typeof catalogs[lang]["fields.not_found"], "string", `fields.not_found missing in ${lang}.json`);
+  const fr = catalogs.fr["errors.queue_full"];
+  assert.ok(fr.includes("{retryAfter}") && catalogs.en["errors.queue_full"].includes("{retryAfter}"), "queue_full shows the wait the server asks for");
+  assert.ok(catalogs.en["errors.media_too_large"].includes("{maxBytes}") && catalogs.fr["errors.media_too_large"].includes("{maxBytes}"));
+});
+
+test("settings.<KEY>.label and settings.<KEY>.desc exist in both catalogs for all 112 settings catalog entries, and for nothing else", () => {
   const settingsCatalog = require("../lib/utils/settingsCatalog");
   const keys = settingsCatalog.entries.map((entry) => entry.key);
-  assert.equal(keys.length, 101, "settings-catalog.md: 101 entries");
+  assert.equal(keys.length, 112, "settings-catalog.md: 101 entries + the eleven of feature 004 (data-model.md 8.1)");
   assert.equal(new Set(keys).size, keys.length, "setting keys are unique");
   const problems = [];
   for (const lang of LANGS) {
@@ -289,6 +317,14 @@ test("panel fragments are valid and complete (en and fr: same keys, same placeho
     fragments.some((f) => f.dir === "003-command-permissions" && f.file === "panel-permissions.json"),
     "specs/003-command-permissions/i18n/panel-permissions.json is among the loaded fragments",
   );
+  assert.ok(
+    fragments.some((f) => f.dir === "004-messaging-api" && f.file === "panel-api-server.json" && !f.error),
+    "specs/004-messaging-api/i18n/panel-api-server.json is among the loaded fragments",
+  );
+  assert.ok(
+    fragments.some((f) => f.dir === "004-messaging-api" && f.file === "panel-api.json" && !f.error),
+    "specs/004-messaging-api/i18n/panel-api.json is among the loaded fragments",
+  );
   const problems = [];
   const seen = new Map();
   for (const fragment of fragments) {
@@ -346,6 +382,31 @@ test("every bot fragment is merged: its keys and texts are in lang/{en,fr}.json"
     }
   }
   assertNone(problems, "unmerged bot fragments:");
+});
+
+test("the bot fragment of feature 004 is merged too: the three API alerts and the registry failure, same placeholders", () => {
+  const dir = path.join(ROOT, "specs", "004-messaging-api", "i18n");
+  const fragment = readJson(path.join(dir, "bot-api.json"));
+  const lang = Object.fromEntries(LANGS.map((l) => [l, flatten(readJson(path.join(LANG_DIR, `${l}.json`)))]));
+  const expected = {
+    "alerts.api_origin_blocked": ["{0}", "{1}"],
+    "alerts.api_key_new_ip": ["{0}", "{1}"],
+    "alerts.api_paused": ["{0}"],
+    "api.registry_failed": ["{0}"],
+  };
+  const problems = [];
+  const holes = (text) => [...new Set(text.match(/\{\d+\}/g) || [])].sort();
+  for (const l of LANGS) {
+    assert.deepEqual(Object.keys(flatten(fragment[l])).sort(), Object.keys(expected).sort(), `bot-api.json (${l}) holds exactly the four texts`);
+    for (const [key, placeholders] of Object.entries(expected)) {
+      const text = lang[l][key];
+      if (typeof text !== "string" || text.trim() === "") problems.push(`${key} missing in lang/${l}.json (run node tools/merge-i18n.js --frag-dir specs/004-messaging-api/i18n --pattern "bot-*.json")`);
+      else if (JSON.stringify(holes(text)) !== JSON.stringify(placeholders)) problems.push(`${key} (${l}) has the placeholders ${holes(text)}, expected ${placeholders}`);
+      else if (text !== fragment[l][key]) problems.push(`${key} (${l}) differs from the fragment`);
+    }
+  }
+  assertNone(problems, "bot-api.json:");
+  assert.doesNotMatch(JSON.stringify([lang.fr["alerts.api_origin_blocked"], lang.fr["alerts.api_key_new_ip"], lang.fr["alerts.api_paused"]]), /panneau/i);
 });
 
 // ---------------------------------------------------------------------------
@@ -419,12 +480,28 @@ test("dynamic key families used by the shell are complete", () => {
     "jobs.phase.": ["stop", "settings", "start", "ready", "fetch", "merge", "install", "verify", "maintenance", "pre_backup", "database", "session", "finalize", "restarting"],
     "account.language_": ["fr", "en"],
     "account.theme_": ["auto", "light", "dark"],
+    // feature 004, contracts/panel-ui.md 11.3: message statuses, key states, rights groups (api-logic.mjs, api-keys.mjs, api-rights.mjs)
+    "api.msg_status.": ["queued", "sending", "sent", "delivered", "read", "failed", "expired", "cancelled", "unknown"],
+    "api.key_state.": ["active", "expired", "revoked"],
+    "api.right_group.": ["send", "read", "media", "docs"],
   };
   const problems = [];
   for (const [prefix, names] of Object.entries(families)) {
     for (const name of names) for (const lang of LANGS) if (typeof catalogs[lang][`${prefix}${name}`] !== "string") problems.push(`${prefix}${name} missing in ${lang}.json`);
   }
   assertNone(problems, "dynamic key families:");
+});
+
+test("errors.password_required exists in both languages and uses only the parameters its envelope can carry", () => {
+  // 403 { code, params: { windowMs, reasons? }, requestId } + the helpers of tError (admin-api.md 1.4, 1.5)
+  const allowed = new Set(["windowMs", "reasons", "code", "retryAfter", "requestId"]);
+  const problems = [];
+  for (const lang of LANGS) {
+    const text = catalogs[lang]["errors.password_required"];
+    if (typeof text !== "string") problems.push(`errors.password_required missing in ${lang}.json`);
+    else for (const token of text.match(/\{[A-Za-z0-9_]+\}/g) || []) if (!allowed.has(token.slice(1, -1))) problems.push(`${lang}: ${token} is not a parameter of password_required`);
+  }
+  assertNone(problems, "errors.password_required:");
 });
 
 // ---------------------------------------------------------------------------
@@ -537,4 +614,23 @@ test("the real panel catalogs are in the canonical merged form (a merge with no 
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Feature 004, W4: the alert titles of the three API alerts and the audit prefix (contracts/panel-ui.md 11.3, 11.5)
+// ---------------------------------------------------------------------------
+
+test("the six alerts.type_api_* texts live in the 002 panel-alerts fragment and in both catalogs; audit.prefix_api exists; French says panel d'administration, never panneau", () => {
+  const fragment = readJson(path.join(ROOT, "specs", "002-admin-panel", "i18n", "panel-alerts.json"));
+  const keys = ["api_origin_blocked", "api_key_new_ip", "api_paused"].flatMap((type) => [`alerts.type_${type}`, `alerts.type_${type}_desc`]);
+  const problems = [];
+  for (const l of LANGS) {
+    for (const key of keys) {
+      if (typeof fragment[l][key] !== "string" || fragment[l][key].trim() === "") problems.push(`${key} missing in panel-alerts.json (${l})`);
+      if (catalogs[l][key] !== fragment[l][key]) problems.push(`${key} (${l}) differs between the fragment and the catalog: merge the 002 fragments`);
+    }
+    if (typeof catalogs[l]["audit.prefix_api"] !== "string") problems.push(`audit.prefix_api missing in ${l}.json`);
+  }
+  assert.doesNotMatch(JSON.stringify(keys.map((key) => catalogs.fr[key])), /panneau/i);
+  assertNone(problems, "feature 004 alert titles and audit prefix:");
 });

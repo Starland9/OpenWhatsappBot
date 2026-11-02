@@ -25,7 +25,7 @@ const { assertNone } = require("./helpers/fakes");
 const ROOT = path.resolve(__dirname, "..");
 const PUBLIC = path.join(ROOT, "lib", "admin", "public");
 const AREAS = [
-  "dashboard", "settings", "commands", "groups", "pairing", "data", "broadcasts",
+  "dashboard", "settings", "commands", "groups", "pairing", "data", "broadcasts", "api",
   "backup", "maintenance", "texts", "alerts", "logs", "stats", "audit",
 ];
 
@@ -1147,6 +1147,11 @@ const CONFIRMED_ACTIONS = [
   // the richer forms: the call itself, then the field the body builder adds
   { id: "BC-3 broadcast creation (destination count)", file: "js/views/broadcasts-form.mjs", call: /api\("POST", "\/admin\/api\/broadcasts", buildBody\(form\)\)/, field: { file: "js/views/broadcasts-logic.mjs", needle: /body\.confirmTargets = targets\.length/ } },
   { id: "SET-2 owners emptied", file: "js/views/settings.mjs", call: /post\(\{ \.\.\.payload, confirm: \["owners_empty"\] \}\)/, field: { file: "js/views/settings-logic.mjs", needle: /"owners_empty"/ } },
+  // feature 004 (contracts/panel-ui.md section 2): the API switch, the key revoke and the "anyone" confirmation of both key writes
+  { id: "API-2 API disable", file: "js/views/api-state.mjs", call: /api\("PUT", `\$\{base\}\/state`, \{ enabled: false, confirm: true \}\)/ },
+  { id: "API-8 key revoke", file: "js/views/api-key-actions.mjs", call: /api\("POST", `\$\{base\}\/keys\/\$\{encodeURIComponent\(key\.id\)\}\/revoke`, \{ confirm: true \}\)/ },
+  { id: "API-5 key creation (policy_anyone)", file: "js/views/api-key-actions.mjs", call: /api\("POST", `\$\{base\}\/keys`, body\)/, field: { file: "js/views/api-logic.mjs", needle: /"policy_anyone"/ } },
+  { id: "API-6 key update (policy_anyone)", file: "js/views/api-key-actions.mjs", call: /api\("PUT", `\$\{base\}\/keys\/\$\{encodeURIComponent\(id\)\}`, body\)/, field: { file: "js/views/api-logic.mjs", needle: /"policy_anyone"/ } },
   { id: "BAK-1 session export", file: "js/views/backup-export.mjs", call: /download\("POST", EXPORT_PATH, exportBody\(\{ passphrase, includeSession, sessionConfirmed \}\), fallbackFileName\(\)\)/, field: { file: "js/views/backup-logic.mjs", needle: /body\.confirmSession = Boolean\(sessionConfirmed\)/ } },
 ];
 
@@ -1167,7 +1172,7 @@ test("every destructive action of 1.10 asks first (dialog) and sends the confirm
       problems.push(`${action.id}: ${action.field.file} does not add the confirmation field (${action.field.needle})`);
     }
   }
-  assert.equal(CONFIRMED_ACTIONS.length, 14);
+  assert.equal(CONFIRMED_ACTIONS.length, 18);
   assertNone(problems, "destructive action without its confirmation:");
 });
 
@@ -1180,6 +1185,7 @@ test("no call to a route of 1.10 leaves the SPA without a confirmation: restart,
     [/api\(\s*"POST",\s*"\/admin\/api\/maintenance\/ytdlp\/update"/g, /confirm: true/],
     [/api\(\s*"POST",\s*`\/admin\/api\/maintenance\/storage\/[^`]*\/purge`/g, /confirm: true/],
     [/api\(\s*"POST",\s*"\/admin\/api\/backup\/restore"/g, /confirm: true/],
+    [/api\(\s*"POST",\s*`\$\{base\}\/keys\/\$\{encodeURIComponent\(key\.id\)\}\/revoke`/g, /confirm: true/],
     [/api\(\s*"DELETE",\s*`[^`]*`/g, null], // DELETE: checked below
   ];
   const problems = [];

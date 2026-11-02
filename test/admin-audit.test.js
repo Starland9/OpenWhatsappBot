@@ -127,6 +127,24 @@ describe("record", () => {
     assert.equal(await quiet.record({}), null);
   });
 
+  test("the vocabulary lists the ten actions of the messaging API (feature 004), each with a prefix of the audit page", async () => {
+    const actions = [
+      "api.enable", "api.disable", "api.plainhttp.update", "api.key.create", "api.key.duplicate", "api.key.update",
+      "api.key.revoke", "api.test", "account.confirm", "api.origin.block",
+    ];
+    for (const action of actions) assert.ok(ACTIONS.includes(action), action);
+    assert.equal(new Set(ACTIONS).size, ACTIONS.length, "no duplicate");
+    const path = require("node:path");
+    const { pathToFileURL } = require("node:url");
+    const logic = await import(pathToFileURL(path.join(fakes.ROOT, "lib", "admin", "public", "js", "views", "audit-logic.mjs")).href);
+    for (const action of actions) {
+      assert.ok(logic.ACTION_PREFIXES.some((prefix) => action === prefix || action.startsWith(`${prefix}.`)), `${action} has no ACTION_PREFIXES prefix`);
+    }
+    assert.ok(logic.ACTION_PREFIXES.includes("api"), "the filter prefix of the API page");
+    assert.ok(logic.ACTION_PREFIXES.indexOf("api") === logic.ACTION_PREFIXES.indexOf("broadcast") + 1, "after broadcast");
+    assert.ok(logic.ACTION_PREFIXES.includes("account"), "the account prefix already existed (account.confirm)");
+  });
+
   test("the vocabulary lists the login events and the CLI reset", () => {
     for (const action of ["login.success", "login.failure", "login.blocked", "logout", "setup.complete", "reset.issued", "reset.complete", "account.update"]) {
       assert.ok(ACTIONS.includes(action), action);

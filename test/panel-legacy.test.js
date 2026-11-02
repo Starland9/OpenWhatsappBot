@@ -54,11 +54,47 @@ if (fs.existsSync(SERVER_MODULE)) {
   });
 }
 
+/**
+ * Feature 004 (RT-130): a messaging API that is mounted but switched off, or whose registry failed, claims no URL:
+ * every expectation below holds for it exactly as for the legacy-only server, `/api/v1/**` included.
+ */
+function mountedApi({ enabled, broken = false }) {
+  const { createApi } = require("../lib/api");
+  const dir = fs.mkdtempSync(path.join(require("os").tmpdir(), "owb-legacy-api-"));
+  if (broken) {
+    fs.writeFileSync(
+      path.join(dir, "bad.js"),
+      '"use strict";\nmodule.exports = { id: "bad.get", method: "GET", path: "/api/v1/bad", doc: { summary: "x" }, handle() {} };\n',
+    );
+  }
+  return createApi({
+    config: { ADMIN_PANEL: true },
+    runtime: { dbReady: true },
+    endpointsDir: dir,
+    apiState: { isEnabled: () => enabled, plainHttpFrom: () => [] },
+    maintenanceMode: { isActive: () => false },
+  });
+}
+
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
   "access-control-allow-headers": "Content-Type",
 };
+
+if (fs.existsSync(SERVER_MODULE)) {
+  for (const [name, options] of [
+    ["switched off", { enabled: false }],
+    ["registry failed", { enabled: true, broken: true }],
+  ]) {
+    variants.push({
+      name: `lib/admin/server.js createPanelServer() with the messaging API mounted but ${name}`,
+      livePrefix: true,
+      adminNotFound: true,
+      make: () => require(SERVER_MODULE).createPanelServer({ botState: panel.botState, api: mountedApi(options) }),
+    });
+  }
+}
 
 const sortedKeys = (obj) => Object.keys(obj).sort();
 
@@ -309,7 +345,7 @@ describe("legacy HTTP contract", () => {
       });
 
       test("OPTIONS on any non-admin path: 200, empty body, CORS headers", async () => {
-        for (const route of ["/", "/health", "/api/restart", "/anything", "/administrator"]) {
+        for (const route of ["/", "/health", "/api/restart", "/anything", "/administrator", "/api/v1/messages", "/api/v1/openapi.json", "/api/v1/messages/msg_Vx3k9QfL2mNvB7aRtYhZwc", "/api/v1"]) {
           const res = await fetch(`${base}${route}`, { method: "OPTIONS" });
           assert.equal(res.status, 200, route);
           assertCors(res, route);
@@ -318,7 +354,7 @@ describe("legacy HTTP contract", () => {
       });
 
       test("any other path answers 200 text/html (the status page), with the CORS headers", async () => {
-        for (const route of ["/unknown", "/health?x=1", "/status/", "/administrator", "/adminfoo", "/api/info/x"]) {
+        for (const route of ["/unknown", "/health?x=1", "/status/", "/administrator", "/adminfoo", "/api/info/x", "/api/v1/messages", "/api/v1/openapi.json"]) {
           for (const method of ["GET", "POST"]) {
             const res = await fetch(`${base}${route}`, { method });
             assert.equal(res.status, 200, `${method} ${route}`);
@@ -327,6 +363,23 @@ describe("legacy HTTP contract", () => {
             const html = await res.text();
             assert.match(html, /^<!DOCTYPE html>/i);
             assert.match(html, /OpenWhatsappBot/);
+          }
+        }
+      });
+
+      test("/api/v1/** is answered byte for byte like any unknown URL (status, headers, body), whatever the verb or the key (feature 004)", async () => {
+        const key = "Bearer owbk_0123456789abcdef_" + "A".repeat(43);
+        const strip = (res) => {
+          const headers = Object.fromEntries([...res.headers.entries()].filter(([name]) => !["date", "connection", "keep-alive"].includes(name)));
+          // the status page shows live figures (memory, uptime, message count): compare everything else
+          return res.text().then((text) => ({ status: res.status, headers, text: text.replace(/(class="stat-value">)[^<]*</g, "$1X<") }));
+        };
+        for (const method of ["GET", "POST", "OPTIONS", "PUT", "DELETE"]) {
+          for (const headers of [{}, { Authorization: key }]) {
+            const reference = await strip(await fetch(`${base}/definitely-unknown`, { method, headers }));
+            for (const route of ["/api/v1/messages", "/api/v1/openapi.json", "/api/v1/messages/msg_Vx3k9QfL2mNvB7aRtYhZwc", "/api/v2/anything"]) {
+              assert.deepEqual(await strip(await fetch(`${base}${route}`, { method, headers })), reference, `${method} ${route}`);
+            }
           }
         }
       });

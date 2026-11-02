@@ -318,6 +318,166 @@ describe("interval singletons: reconfigure() and live getters", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Feature 004: the settings of the messaging API are read where they are used (data-model 8.1, runtime RT-03)
+// ---------------------------------------------------------------------------
+
+describe("messaging API settings: a change applies to the next request or message, never to rows already queued", () => {
+  const { createQuotas } = require("../lib/api/limits");
+  const { ApiError } = require("../lib/api/errors");
+  const { createEngineKit } = require("./helpers/messagingKit");
+  const T0 = Date.UTC(2026, 4, 12, 10, 0, 0);
+
+  test("API_RATE_PER_MINUTE and API_RATE_PER_DAY: the next check of a key without its own limit sees the new value", async () => {
+    await db.ApiMessage.destroy({ where: {} });
+    const quotas = createQuotas({ now: () => T0, models: db }); // the real config: nothing copied
+    const key = { id: 4040, limits: { perMinute: null, perDay: null, maxPending: null } };
+    await quotas.hydrate(key);
+    quotas.reserve(key);
+    quotas.reserve(key);
+    await quotas.check(key); // the defaults (30 per minute, 1000 per day) are far away
+
+    settingsStore.setRuntime("API_RATE_PER_MINUTE", 2);
+    await assert.rejects(quotas.check(key), (err) => err instanceof ApiError && err.code === "rate_limited" && err.params.limit === 2);
+    settingsStore.setRuntime("API_RATE_PER_MINUTE", 30);
+    await quotas.check(key);
+
+    settingsStore.setRuntime("API_RATE_PER_DAY", 2);
+    await assert.rejects(quotas.check(key), (err) => err instanceof ApiError && err.code === "daily_quota_exceeded" && err.params.limit === 2);
+    settingsStore.setRuntime("API_RATE_PER_DAY", 1000);
+    await quotas.check(key);
+
+    const own = { id: 4040, limits: { perMinute: 1, perDay: null, maxPending: null } };
+    await assert.rejects(quotas.check(own), (err) => err.code === "rate_limited", "a limit of the key itself wins over the setting");
+  });
+
+  test("API_MAX_PENDING: the next admission of a key without its own limit sees the new value", async () => {
+    const kit = await createEngineKit({ realConfig: true });
+    try {
+      const key = await kit.key();
+      await kit.db.ApiMessage.bulkCreate(
+        [1, 2, 3].map((n) => ({
+          publicId: `msg_${String(n).padStart(22, "P")}`,
+          apiKeyId: key.id,
+          recipient: "237690000001@s.whatsapp.net",
+          format: "text",
+          status: "queued",
+          acceptedAt: new Date(T0),
+          expiresAt: new Date(T0 + 600000),
+          payload: { v: 1, input: { text: "x" }, media: null, quote: null },
+        })),
+      );
+      await kit.messaging.checkAdmission({ apiKeyId: key.id }); // 3 pending, the default limit is 100
+      settingsStore.setRuntime("API_MAX_PENDING", 3);
+      await assert.rejects(kit.messaging.checkAdmission({ apiKeyId: key.id }), (err) => err.code === "pending_limit_reached" && err.params.limit === 3);
+      settingsStore.setRuntime("API_MAX_PENDING", 4);
+      await kit.messaging.checkAdmission({ apiKeyId: key.id });
+    } finally {
+      await kit.close();
+    }
+  });
+
+  test("API_QUEUE_EXPIRY_MIN: the expiry is a snapshot taken at acceptance, a queued row never moves", async () => {
+    const kit = await createEngineKit({ realConfig: true });
+    try {
+      const key = await kit.key();
+      const first = await kit.send({ apiKeyId: key.id, now: T0 });
+      settingsStore.setRuntime("API_QUEUE_EXPIRY_MIN", 1);
+      const second = await kit.send({ apiKeyId: key.id, now: T0 });
+      assert.equal((await kit.row(first.message.publicId)).expiresAt.getTime(), T0 + 10 * 60000);
+      assert.equal((await kit.row(second.message.publicId)).expiresAt.getTime(), T0 + 60000);
+      assert.equal((await kit.row(first.message.publicId)).expiresAt.getTime(), T0 + 10 * 60000, "still");
+    } finally {
+      await kit.close();
+    }
+  });
+
+  test("API_REPLY_WINDOW_DAYS: a sent message keeps its window, the next message gets the new one", async () => {
+    const kit = await createEngineKit({ realConfig: true });
+    try {
+      const key = await kit.key();
+      await kit.start();
+      const buttons = { format: "buttons", fields: { text: "Ok?", buttons: [{ id: "a", label: "A" }] } };
+      const a = await kit.send({ apiKeyId: key.id, ...buttons });
+      await kit.tick();
+      settingsStore.setRuntime("API_REPLY_WINDOW_DAYS", 3);
+      const b = await kit.send({ apiKeyId: key.id, ...buttons });
+      await kit.tick(3000);
+      const rowA = await kit.row(a.message.publicId);
+      const rowB = await kit.row(b.message.publicId);
+      assert.equal(rowA.repliesUntil.getTime() - rowA.sentAt.getTime(), 7 * 86400000);
+      assert.equal(rowB.repliesUntil.getTime() - rowB.sentAt.getTime(), 3 * 86400000);
+    } finally {
+      await kit.close();
+    }
+  });
+
+  test("SEND_MIN_SPACING_MS: raised, the very next gap is longer; it never goes below the 2 s floor", async () => {
+    const kit = await createEngineKit({ realConfig: true });
+    try {
+      const key = await kit.key();
+      await kit.start();
+      await kit.send({ apiKeyId: key.id, fields: { text: "one" } });
+      await kit.send({ apiKeyId: key.id, fields: { text: "two" } });
+      await kit.send({ apiKeyId: key.id, fields: { text: "three" } });
+      await kit.tick();
+      assert.equal(kit.sock.sent.length, 1);
+      settingsStore.setRuntime("SEND_MIN_SPACING_MS", 10000);
+      await kit.tick(9000);
+      assert.equal(kit.sock.sent.length, 1);
+      await kit.tick(1000);
+      assert.equal(kit.sock.sent.length, 2);
+      settingsStore.setRuntime("SEND_MIN_SPACING_MS", 100);
+      assert.equal(kit.messaging.spacingMs(), 2000);
+      await kit.tick(2000);
+      assert.equal(kit.sock.sent.length, 3);
+    } finally {
+      await kit.close();
+    }
+  });
+
+  describe("static scan: nothing copies a setting at load, nothing in the engine subscribes to the store", () => {
+    const { scan } = require("./helpers/jsScan");
+    const ROOT = path.resolve(__dirname, "..");
+    const filesOf = (dir) => {
+      const out = [];
+      const walk = (current) => {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+          const file = path.join(current, entry.name);
+          if (entry.isDirectory()) walk(file);
+          else if (entry.name.endsWith(".js")) out.push(file);
+        }
+      };
+      walk(path.join(ROOT, dir));
+      return out;
+    };
+    const masked = (file) => scan(fs.readFileSync(file, "utf8")).masked;
+    const watched = [...filesOf("lib/api"), ...filesOf("lib/messaging"), path.join(ROOT, "lib", "utils", "apiState.js")];
+
+    test("no top-level `= config.X`, no class field, no default parameter copies a setting (lib/api, lib/messaging, apiState)", () => {
+      assert.ok(watched.length > 20);
+      for (const file of watched) {
+        const code = masked(file);
+        const where = path.relative(ROOT, file);
+        assert.doesNotMatch(code, /^(?:const|let|var)\s+[\w$]+\s*=\s*config\s*\.\s*\w+/m, `${where}: a module-level constant copies a setting`);
+        assert.doesNotMatch(code, /^(?:const|let|var)\s+[\w$]+\s*=\s*require\([^)]*config[^)]*\)\s*\.\s*\w+/m, `${where}: a module-level constant copies a setting`);
+        assert.doesNotMatch(code, /\bthis\s*\.\s*[\w$]+\s*=\s*config\s*\./, `${where}: a field copies a setting`);
+        assert.doesNotMatch(code, /\(\s*(?:[^()]*,\s*)?[\w$]+\s*=\s*config\s*\.\s*[A-Z_]+/, `${where}: a default parameter copies a setting`);
+      }
+    });
+
+    test("lib/messaging has no reconfigure() and no settingsStore subscription: the numbers are read where they are used", () => {
+      for (const file of filesOf("lib/messaging")) {
+        const code = masked(file);
+        const where = path.relative(ROOT, file);
+        assert.doesNotMatch(code, /reconfigure/, where);
+        assert.doesNotMatch(code, /settingsStore/, where);
+        assert.doesNotMatch(code, /\.onChange\s*\(\s*\[/, `${where}: onChange([...keys]) is the settings-store subscription`);
+      }
+    });
+  });
+});
+
 test("nothing tried to leave the machine", () => {
   assert.deepEqual(net.calls, []);
 });

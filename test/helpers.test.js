@@ -131,3 +131,97 @@ test("setupEnv: environment is set before config.js, secrets are blank", () => {
   assert.equal(config.GIPHY_API_KEY, "");
   assert.equal(process.env.DATABASE_URL, ":memory:");
 });
+
+// ---------------------------------------------------------------------------
+// Feature 004: options of fakeSocket / fakeClient the messaging tests rely on (contracts/runtime.md section 18)
+// ---------------------------------------------------------------------------
+
+test("fakeSocket.sendMessage uses options.messageId as key.id when given, BOT<n> otherwise", async () => {
+  const sock = fakes.fakeSocket();
+  const a = await sock.sendMessage("a@s.whatsapp.net", { text: "one" });
+  const b = await sock.sendMessage("a@s.whatsapp.net", { text: "two" }, { messageId: "3EB0AAAA0001" });
+  const c = await sock.sendMessage("a@s.whatsapp.net", { text: "three" }, { quoted: { key: { id: "Q" } } });
+  const d = await sock.sendMessage("a@s.whatsapp.net", { text: "four" }, { messageId: "" });
+  assert.equal(a.key.id, "BOT1");
+  assert.equal(b.key.id, "3EB0AAAA0001");
+  assert.equal(c.key.id, "BOT2", "a given messageId does not consume the BOT counter, other calls are unchanged");
+  assert.equal(d.key.id, "BOT3", "an empty messageId is no messageId");
+  assert.deepEqual(sock.sent.map((s) => s.key.id), ["BOT1", "3EB0AAAA0001", "BOT2", "BOT3"]);
+  assert.deepEqual(sock.sent[1].options, { messageId: "3EB0AAAA0001" });
+  // relayMessage already did this
+  assert.equal(await sock.relayMessage("a@s.whatsapp.net", { interactiveMessage: { body: { text: "x" } } }, { messageId: "3EB0AAAA0002" }), "3EB0AAAA0002");
+});
+
+test("fakeSocket({ announce }) sets the group metadata announce flag, false by default", async () => {
+  assert.equal((await fakes.fakeSocket().groupMetadata(IDS.GROUP)).announce, false);
+  assert.equal((await fakes.fakeSocket({ announce: false }).groupMetadata(IDS.GROUP)).announce, false);
+  assert.equal((await fakes.fakeSocket({ announce: true }).groupMetadata(IDS.GROUP)).announce, true);
+  assert.equal((await fakes.fakeSocket({ announce: "yes" }).groupMetadata(IDS.GROUP)).announce, false, "only a real true");
+});
+
+test("fakeSocket({ groupMetadataError }) makes groupMetadata reject; settable and clearable later", async () => {
+  assert.equal(typeof (await fakes.fakeSocket().groupMetadata(IDS.GROUP)).id, "string", "default: no error");
+
+  const failure = new Error("not-authorized");
+  const sock = fakes.fakeSocket({ groupMetadataError: failure });
+  await assert.rejects(sock.groupMetadata(IDS.GROUP), (e) => e === failure);
+  assert.equal(sock.groupMetadataCalls, 1, "the call is still counted");
+  await assert.rejects(fakes.fakeSocket({ groupMetadataError: true }).groupMetadata(IDS.GROUP), { message: "true" });
+  await assert.rejects(fakes.fakeSocket({ groupMetadataError: "forbidden" }).groupMetadata(IDS.GROUP), { message: "forbidden" });
+  // groupFetchAllParticipating goes through groupMetadata
+  await assert.rejects(sock.groupFetchAllParticipating(), (e) => e === failure);
+
+  sock.groupMetadataError = null;
+  assert.equal((await sock.groupMetadata(IDS.GROUP)).id, IDS.GROUP);
+  sock.groupMetadataError = new Error("later");
+  await assert.rejects(sock.groupMetadata(IDS.GROUP), { message: "later" });
+});
+
+test("fakeSocket({ onWhatsApp }) takes a function or a fixed result; the default says everybody exists", async () => {
+  const jid = "237690000001@s.whatsapp.net";
+  assert.deepEqual(await fakes.fakeSocket().onWhatsApp(jid), [{ jid, exists: true }]);
+
+  const fixed = [{ jid, exists: false }];
+  assert.equal(await fakes.fakeSocket({ onWhatsApp: fixed }).onWhatsApp(jid), fixed);
+  assert.deepEqual(await fakes.fakeSocket({ onWhatsApp: [] }).onWhatsApp(jid), []);
+  assert.equal(await fakes.fakeSocket({ onWhatsApp: undefined }).onWhatsApp(jid).then((r) => r[0].exists), true, "undefined keeps the default");
+
+  const seen = [];
+  const sock = fakes.fakeSocket({
+    onWhatsApp: async (...jids) => {
+      seen.push(jids);
+      return jids.map((j) => ({ jid: j, exists: j.startsWith("237") }));
+    },
+  });
+  assert.deepEqual(await sock.onWhatsApp(jid, "33612345678@s.whatsapp.net"), [
+    { jid, exists: true },
+    { jid: "33612345678@s.whatsapp.net", exists: false },
+  ]);
+  assert.deepEqual(seen, [[jid, "33612345678@s.whatsapp.net"]]);
+  const failing = fakes.fakeSocket({ onWhatsApp: () => Promise.reject(new Error("timeout")) });
+  await assert.rejects(failing.onWhatsApp(jid), { message: "timeout" });
+});
+
+test("fakeClient.ready() is true by default and follows a settable flag (a simulated disconnection)", () => {
+  const client = fakes.fakeClient();
+  assert.equal(client.ready(), true);
+  assert.equal(client.isReady, true);
+
+  assert.equal(client.setReady(false), client, "chainable");
+  assert.equal(client.ready(), false);
+  assert.equal(client.isReady, false);
+  client.setReady(true);
+  assert.equal(client.ready(), true);
+  assert.equal(client.isReady, true);
+
+  client.fakeReady = false;
+  assert.equal(client.ready(), false, "the flag can also be assigned");
+  client.fakeReady = true;
+  assert.equal(client.ready(), true);
+});
+
+test("fakeClient.ready() does not follow isReady: tests that only flip isReady behave as before", () => {
+  const client = fakes.fakeClient();
+  client.isReady = false;
+  assert.equal(client.ready(), true);
+});

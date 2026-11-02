@@ -5,7 +5,7 @@
  * registry.
  *
  *   const target = await makeDb();                        a fresh Sequelize instance with every model, tables created
- *   const rows = await seedAll(db, at);                   one or more rows in each of the 26 models (+ the 7 excluded)
+ *   const rows = await seedAll(db, at);                   one or more rows in each of the 26 models (+ one in each of the 11 excluded)
  *   await canonical(db, "Group")                         the table as sorted, key-ordered JSON lines
  *   await buildArchive({ file, passphrase, records })     an .owb written with the real container code (low KDF cost)
  *   const up = fakeUploads(dir); const id = up.add(buf)   peek / consume like lib/admin/http/uploads.js
@@ -158,6 +158,17 @@ async function seedAll(db) {
   ]);
 }
 
+/** Values seeded in the messaging API tables (feature 004), to search an archive for them */
+const API_SEED = Object.freeze({
+  lookupId: "5eed5eed5eed5eed",
+  secretHash: "d".repeat(64),
+  last4: "wXyZ",
+  publicId: "msg_SEEDSEEDSEEDSEEDSEEDSE",
+  waId: "3EB0SEEDSEEDSEEDSEED",
+  recipient: "237600000009@s.whatsapp.net",
+  keyName: "Seed API key",
+});
+
 /** One row in each table that a backup must never carry */
 async function seedExcluded(db) {
   await db.AdminAccount.create({ id: 1, passwordHash: "scrypt$16$1$1$AAAA$BBBB", uiLang: "fr", theme: "auto" });
@@ -167,6 +178,33 @@ async function seedExcluded(db) {
   await db.AlertState.create({ key: "errors_series", count: 1 });
   await db.AlertOutbox.create({ type: "reconnected", status: "pending" });
   await db.Conversation.create({ jid: "237600000001@s.whatsapp.net", messages: "[]" });
+  // feature 004: a REVOKED key (an older archive would flip revokedAt back), one message and one answer, the switch off
+  const key = await db.ApiKey.create({
+    name: API_SEED.keyName,
+    nameKey: null,
+    lookupId: API_SEED.lookupId,
+    secretHash: API_SEED.secretHash,
+    last4: API_SEED.last4,
+    rights: ["messages.send.text"],
+    revokedAt: TIMES.updated,
+    version: 2,
+  });
+  const message = await db.ApiMessage.create({
+    publicId: API_SEED.publicId,
+    apiKeyId: key.id,
+    recipient: API_SEED.recipient,
+    format: "buttons",
+    status: "sent",
+    waId: API_SEED.waId,
+    acceptedAt: TIMES.created,
+    expiresAt: TIMES.later,
+    sendingAt: TIMES.created,
+    sentAt: TIMES.created,
+    choices: [{ id: "yes", label: "Yes" }],
+    repliesUntil: TIMES.later,
+  });
+  await db.ApiMessageResponse.create({ messageId: message.id, kind: "choice", author: API_SEED.recipient, choiceIds: ["yes"], via: "tap", sourceId: "S-SEED", respondedAt: TIMES.later });
+  await db.ApiState.create({ id: 1, enabled: false, plainHttpFrom: ["10.0.0.0/8"] });
 }
 
 /**
@@ -258,6 +296,7 @@ module.exports = {
   makeDb,
   seedAll,
   seedExcluded,
+  API_SEED,
   canonical,
   buildArchive,
   manifest,

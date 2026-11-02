@@ -575,6 +575,72 @@ const FEATURE_003_TABLES = {
   },
 };
 
+// specs/004-messaging-api: four tables (data-model sections 1 to 4), kept apart so NEW_TABLES stays at 14.
+// `notNull` lists the NOT NULL columns (the primary key is checked on its own), `defaults` the SQL DEFAULT text SQLite
+// reports, `types` the declared column types.
+const FEATURE_004_TABLES = {
+  api_keys: {
+    model: "ApiKey",
+    columns: [
+      "id", "name", "nameKey", "lookupId", "secretHash", "last4", "rights", "policyMode", "recipients",
+      "limitPerMinute", "limitPerDay", "limitPending", "ipAllow", "expiresAt", "revokedAt", "lastUsedAt", "lastIp",
+      "seenIps", "version", "createdAt", "updatedAt",
+    ],
+    primary: ["id"],
+    indexes: [
+      { name: "api_keys_lookup_id", unique: true, columns: ["lookupId"] },
+      { name: "api_keys_name_key", unique: true, columns: ["nameKey"] },
+    ],
+    notNull: ["name", "lookupId", "secretHash", "last4", "rights", "policyMode", "recipients", "ipAllow", "seenIps", "version", "createdAt", "updatedAt"],
+    defaults: { rights: "'[]'", policyMode: "'list'", recipients: "'[]'", ipAllow: "'[]'", seenIps: "'[]'", version: "1" },
+    types: { name: "VARCHAR(64)", nameKey: "VARCHAR(128)", lookupId: "VARCHAR(16)", secretHash: "VARCHAR(64)", last4: "VARCHAR(4)", policyMode: "VARCHAR(8)", lastIp: "VARCHAR(45)", limitPerMinute: "INTEGER", version: "INTEGER", rights: "JSON", expiresAt: "DATETIME" },
+  },
+  api_messages: {
+    model: "ApiMessage",
+    columns: [
+      "id", "publicId", "apiKeyId", "source", "idempotencyKey", "requestHash", "recipient", "format", "size", "status", "errorCode",
+      "waId", "requestId", "acceptedAt", "expiresAt", "sendingAt", "sentAt", "deliveredAt", "readAt", "endedAt", "repliesUntil",
+      "payload", "choices", "replyData", "pollSecret", "mediaPath", "createdAt", "updatedAt",
+    ],
+    primary: ["id"],
+    indexes: [
+      { name: "api_messages_public_id", unique: true, columns: ["publicId"] },
+      { name: "api_messages_api_key_id_idempotency_key", unique: true, columns: ["apiKeyId", "idempotencyKey"] },
+      { name: "api_messages_wa_id", unique: true, columns: ["waId"] },
+      { name: "api_messages_status_accepted_at", unique: false, columns: ["status", "acceptedAt"] },
+      { name: "api_messages_api_key_id_status", unique: false, columns: ["apiKeyId", "status"] },
+      { name: "api_messages_api_key_id_accepted_at", unique: false, columns: ["apiKeyId", "acceptedAt"] },
+      { name: "api_messages_accepted_at", unique: false, columns: ["acceptedAt"] },
+    ],
+    notNull: ["publicId", "source", "recipient", "format", "status", "acceptedAt", "expiresAt", "createdAt", "updatedAt"],
+    defaults: { source: "'api'", status: "'queued'" },
+    types: { publicId: "VARCHAR(32)", source: "VARCHAR(5)", idempotencyKey: "VARCHAR(80)", requestHash: "VARCHAR(64)", recipient: "VARCHAR(64)", format: "VARCHAR(24)", size: "INTEGER", status: "VARCHAR(10)", errorCode: "VARCHAR(40)", waId: "VARCHAR(64)", requestId: "VARCHAR(16)", payload: "JSON", choices: "JSON", replyData: "JSON", pollSecret: "VARCHAR(255)", mediaPath: "VARCHAR(255)", acceptedAt: "DATETIME" },
+  },
+  api_message_responses: {
+    model: "ApiMessageResponse",
+    columns: ["id", "messageId", "kind", "author", "voterKey", "choiceIds", "via", "sourceId", "respondedAt", "createdAt", "updatedAt"],
+    primary: ["id"],
+    indexes: [
+      { name: "api_message_responses_message_id_voter_key", unique: true, columns: ["messageId", "voterKey"] },
+      { name: "api_message_responses_message_id_source_id", unique: true, columns: ["messageId", "sourceId"] },
+      { name: "api_message_responses_message_id_responded_at", unique: false, columns: ["messageId", "respondedAt"] },
+      { name: "api_message_responses_responded_at", unique: false, columns: ["respondedAt"] },
+    ],
+    notNull: ["messageId", "kind", "author", "choiceIds", "respondedAt", "createdAt", "updatedAt"],
+    defaults: { choiceIds: "'[]'" },
+    types: { messageId: "INTEGER", kind: "VARCHAR(6)", author: "VARCHAR(64)", voterKey: "VARCHAR(64)", choiceIds: "JSON", via: "VARCHAR(6)", sourceId: "VARCHAR(64)", respondedAt: "DATETIME" },
+  },
+  api_state: {
+    model: "ApiState",
+    columns: ["id", "enabled", "plainHttpFrom", "createdAt", "updatedAt"],
+    primary: ["id"],
+    indexes: [],
+    notNull: ["enabled", "plainHttpFrom", "createdAt", "updatedAt"],
+    defaults: { enabled: "0", plainHttpFrom: "'[]'" },
+    types: { id: "INTEGER", enabled: "TINYINT(1)", plainHttpFrom: "JSON" },
+  },
+};
+
 const OLD_TABLES = [
   "anti_delete", "auto_responder", "banned_chats", "conversations", "filters", "group_economy", "group_roles", "groups",
   "ideas", "notify_keywords", "quotes", "reminders", "sticker_commands", "tasks", "user_stats", "users", "view_once", "warns",
@@ -600,7 +666,7 @@ describe("admin panel tables (002-admin-panel): schema", () => {
     assert.equal(Object.keys(NEW_TABLES).length, 14);
     assert.equal(OLD_TABLES.length, 18);
     for (const table of Object.keys(NEW_TABLES)) assert.ok(first.summary.created.includes(table), `${table} created`);
-    const everyTable = [...Object.keys(NEW_TABLES), ...Object.keys(FEATURE_003_TABLES), ...OLD_TABLES].sort();
+    const everyTable = [...Object.keys(NEW_TABLES), ...Object.keys(FEATURE_003_TABLES), ...Object.keys(FEATURE_004_TABLES), ...OLD_TABLES].sort();
     assert.deepEqual([...first.summary.created].sort(), everyTable);
     await withDb(file, async (db) => {
       assert.deepEqual(await tableNames(db), everyTable);
@@ -677,7 +743,7 @@ describe("command permissions table (003-command-permissions): schema", () => {
     assert.equal(Object.keys(FEATURE_003_TABLES).length, 1);
     assert.equal(Object.keys(NEW_TABLES).length, 14, "the 002 list is untouched");
     assert.ok(first.summary.created.includes("permission_rules"));
-    assert.equal(first.summary.created.length, 14 + 18 + 1);
+    assert.equal(first.summary.created.length, 14 + 18 + 1 + 4, "+ the four tables of feature 004");
     assert.deepEqual(first.summary.repaired, []);
     assert.deepEqual(first.summary.warnings, []);
     assert.deepEqual(first.summary.errors, []);
@@ -750,6 +816,173 @@ describe("command permissions table (003-command-permissions): schema", () => {
       const source = fs.readFileSync(path.join(ROOT, "lib", "database", "models", `${spec.model}.js`), "utf8");
       assert.doesNotMatch(source, /ENUM/, spec.model);
       assert.match(source, new RegExp(`sequelize\\.define\\(\\s*"${spec.model}"`), `${spec.model} is defined under its file name`);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// specs/004-messaging-api: the four tables of the messaging API (data-model sections 0 to 4)
+// ---------------------------------------------------------------------------
+
+describe("messaging API tables (004-messaging-api): schema", () => {
+  const file = newDbFile();
+  let first;
+  let second;
+
+  before(() => {
+    first = boot(file);
+    second = boot(file);
+  });
+
+  test("the four tables are created, next to the 14 + 18 + 1 tables of earlier features", async () => {
+    assert.deepEqual(Object.keys(FEATURE_004_TABLES).sort(), ["api_keys", "api_message_responses", "api_messages", "api_state"]);
+    for (const table of Object.keys(FEATURE_004_TABLES)) assert.ok(first.summary.created.includes(table), `${table} created`);
+    assert.equal(first.summary.created.length, 14 + 18 + 1 + 4);
+    assert.deepEqual([first.summary.repaired, first.summary.columns, first.summary.indexes, first.summary.warnings, first.summary.errors], [[], [], [], [], []]);
+    await withDb(file, async (db) => {
+      for (const table of Object.keys(FEATURE_004_TABLES)) assert.ok(await tableExists(db, table), table);
+    });
+  });
+
+  test("a second sync() is a no-op", () => {
+    assertNothingChanged(second);
+  });
+
+  for (const [table, spec] of Object.entries(FEATURE_004_TABLES)) {
+    test(`${table}: columns, primary key, indexes by derived name, no per-column UNIQUE`, async () => {
+      await withDb(file, async (db) => {
+        assert.deepEqual((await columnNames(db, table)).sort(), [...spec.columns].sort());
+        assert.deepEqual(await primaryKey(db, table), spec.primary);
+        assert.deepEqual(await uniqueColumns(db, table), [], "no UNIQUE constraint per column");
+
+        const found = await indexes(db, table);
+        assert.deepEqual(Object.keys(found).sort(), spec.indexes.map((i) => i.name).sort());
+        for (const wanted of spec.indexes) {
+          assert.deepEqual(found[wanted.name], { unique: wanted.unique, columns: wanted.columns }, wanted.name);
+          assert.ok(wanted.name.length <= 63, `${wanted.name} fits the 63 characters of Postgres`);
+        }
+      });
+    });
+
+    test(`${table}: NOT NULL, defaults and declared types of every column`, async () => {
+      await withDb(file, async (db) => {
+        const by = Object.fromEntries((await db.all(`PRAGMA table_info(\`${table}\`)`)).map((c) => [c.name, c]));
+        for (const column of spec.columns) {
+          if (spec.primary.includes(column)) continue; // an INTEGER PRIMARY KEY never reports notnull
+          assert.equal(by[column].notnull, spec.notNull.includes(column) ? 1 : 0, `${column} ${spec.notNull.includes(column) ? "is" : "is not"} NOT NULL`);
+        }
+        for (const column of spec.columns) {
+          assert.equal(by[column].dflt_value, spec.defaults[column] ?? null, `${column} default`);
+        }
+        for (const [column, type] of Object.entries(spec.types)) assert.equal(by[column].type, type, `${column} type`);
+      });
+    });
+  }
+
+  test("the seven unique and the six non-unique indexes, nothing else", async () => {
+    await withDb(file, async (db) => {
+      let unique = 0;
+      let plain = 0;
+      for (const table of Object.keys(FEATURE_004_TABLES)) {
+        for (const index of Object.values(await indexes(db, table))) index.unique ? unique++ : plain++;
+      }
+      assert.deepEqual([unique, plain], [7, 6]);
+    });
+  });
+
+  test("api_state keeps its single id 1 as the primary key (no auto-increment)", async () => {
+    await withDb(file, async (db) => {
+      const [{ sql }] = await db.all("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'api_state'");
+      assert.doesNotMatch(sql, /AUTOINCREMENT/i);
+      const [{ sql: keys }] = await db.all("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'api_keys'");
+      assert.match(keys, /AUTOINCREMENT/i);
+    });
+  });
+
+  test("a NULL does not collide in a unique index; a duplicate non-NULL pair is refused", async () => {
+    await withDb(file, async (db) => {
+      const key = (name, nameKey, lookupId) =>
+        db.run("INSERT INTO api_keys (name, nameKey, lookupId, secretHash, last4, createdAt, updatedAt) VALUES (?, ?, ?, ?, 'abcd', ?, ?)", [name, nameKey, lookupId, lookupId.repeat(4), NOW, NOW]);
+      // two revoked keys with the same name: nameKey NULL on both
+      await key("Billing", null, "aaaaaaaaaaaaaaaa");
+      await key("Billing", null, "bbbbbbbbbbbbbbbb");
+      // a live key with the folded name, then a second one is refused
+      await key("Billing", "billing", "cccccccccccccccc");
+      await assert.rejects(key("BILLING", "billing", "dddddddddddddddd"), /UNIQUE constraint failed: api_keys\.nameKey/);
+      await assert.rejects(key("Other", "other", "cccccccccccccccc"), /UNIQUE constraint failed: api_keys\.lookupId/);
+
+      const message = (publicId, apiKeyId, idempotencyKey, waId) =>
+        db.run(
+          "INSERT INTO api_messages (publicId, apiKeyId, idempotencyKey, waId, recipient, format, acceptedAt, expiresAt, createdAt, updatedAt) VALUES (?, ?, ?, ?, '237690000001@s.whatsapp.net', 'text', ?, ?, ?, ?)",
+          [publicId, apiKeyId, idempotencyKey, waId, NOW, NOW, NOW, NOW],
+        );
+      // calls without an idempotency key, panel rows (apiKeyId NULL), rows without a waId
+      await message("msg_AAAAAAAAAAAAAAAAAAAAAA", 1, null, null);
+      await message("msg_BBBBBBBBBBBBBBBBBBBBBB", 1, null, null);
+      await message("msg_CCCCCCCCCCCCCCCCCCCCCC", null, "same-key", null);
+      await message("msg_DDDDDDDDDDDDDDDDDDDDDD", null, "same-key", null);
+      // the same key and the same idempotency key is a conflict, another key is not
+      await message("msg_EEEEEEEEEEEEEEEEEEEEEE", 1, "k1", "3EB0AAAA");
+      await assert.rejects(message("msg_FFFFFFFFFFFFFFFFFFFFFF", 1, "k1", null), /UNIQUE constraint failed: api_messages\.apiKeyId, api_messages\.idempotencyKey/);
+      await message("msg_GGGGGGGGGGGGGGGGGGGGGG", 2, "k1", null);
+      await assert.rejects(message("msg_HHHHHHHHHHHHHHHHHHHHHH", 2, null, "3EB0AAAA"), /UNIQUE constraint failed: api_messages\.waId/);
+      await assert.rejects(message("msg_AAAAAAAAAAAAAAAAAAAAAA", 3, null, null), /UNIQUE constraint failed: api_messages\.publicId/);
+
+      const response = (messageId, kind, voterKey, sourceId) =>
+        db.run(
+          "INSERT INTO api_message_responses (messageId, kind, author, voterKey, sourceId, respondedAt, createdAt, updatedAt) VALUES (?, ?, '237690000002@s.whatsapp.net', ?, ?, ?, ?, ?)",
+          [messageId, kind, voterKey, sourceId, NOW, NOW, NOW],
+        );
+      // choice responses have no voterKey and no sourceId: they never collide
+      await response(1, "choice", null, null);
+      await response(1, "choice", null, null);
+      await response(1, "vote", "237690000002@s.whatsapp.net", "S1");
+      await assert.rejects(response(1, "vote", "237690000002@s.whatsapp.net", "S2"), /UNIQUE constraint failed: api_message_responses\.messageId, api_message_responses\.voterKey/);
+      await assert.rejects(response(1, "vote", "237690000003@s.whatsapp.net", "S1"), /UNIQUE constraint failed: api_message_responses\.messageId, api_message_responses\.sourceId/);
+      await response(2, "vote", "237690000002@s.whatsapp.net", "S1");
+    });
+  });
+
+  test("a database that predates the feature only gains the four tables: no existing table is altered, no row lost", async () => {
+    const legacy = newDbFile();
+    boot(legacy);
+    const before_ = {};
+    await withDb(legacy, async (db) => {
+      await db.run("INSERT INTO warns (jid, groupJid, createdAt, updatedAt) VALUES ('a@s.whatsapp.net', 'g1@g.us', ?, ?)", [NOW, NOW]);
+      await db.run("INSERT INTO alert_outbox (type, status, attempts, createdAt, updatedAt) VALUES ('reconnected', 'pending', 0, ?, ?)", [NOW, NOW]);
+      const everyOther = [...OLD_TABLES, ...Object.keys(NEW_TABLES), ...Object.keys(FEATURE_003_TABLES)];
+      before_.schema = await schemaOf(db, everyOther);
+      for (const table of ["warns", "alert_outbox"]) before_[table] = await db.all(`SELECT * FROM \`${table}\` ORDER BY rowid`);
+      for (const table of Object.keys(FEATURE_004_TABLES)) await db.run(`DROP TABLE \`${table}\``);
+    });
+
+    const upgraded = boot(legacy);
+    assert.deepEqual([...upgraded.summary.created].sort(), Object.keys(FEATURE_004_TABLES).sort());
+    assert.deepEqual(
+      [upgraded.summary.repaired, upgraded.summary.columns, upgraded.summary.indexes, upgraded.summary.warnings, upgraded.summary.errors],
+      [[], [], [], [], []],
+      "0 existing table altered",
+    );
+
+    await withDb(legacy, async (db) => {
+      assert.deepEqual(
+        await schemaOf(db, [...OLD_TABLES, ...Object.keys(NEW_TABLES), ...Object.keys(FEATURE_003_TABLES)]),
+        before_.schema,
+        "the 33 existing tables keep their exact schema and indexes",
+      );
+      for (const table of ["warns", "alert_outbox"]) {
+        assert.deepEqual(await db.all(`SELECT * FROM \`${table}\` ORDER BY rowid`), before_[table], `${table} rows`);
+      }
+    });
+    assertNothingChanged(boot(legacy));
+  });
+
+  test("no DataTypes.ENUM in the four model files, each defined under its file name", () => {
+    for (const spec of Object.values(FEATURE_004_TABLES)) {
+      const source = fs.readFileSync(path.join(ROOT, "lib", "database", "models", `${spec.model}.js`), "utf8");
+      assert.doesNotMatch(source, /ENUM/, spec.model);
+      assert.match(source, new RegExp(`sequelize\\.define\\(\\s*"${spec.model}"`), `${spec.model} is defined under its file name`);
+      assert.doesNotMatch(source, /^\s*unique:\s*true,?\s*$/m, `${spec.model}: a unique index is declared in indexes[], never as a column option`);
     }
   });
 });
@@ -1096,5 +1329,308 @@ describe("admin panel tables (002-admin-panel): model validation", () => {
     again.people = [{ pn: null, lid: null }];
     await rejects(again.save(), /cannot both be null/);
     await clearRules();
+  });
+
+  // ---- specs/004-messaging-api: ApiKey, ApiMessage, ApiMessageResponse, ApiState and AlertOutbox.TYPES (data-model
+  // sections 0 to 4, 8.3). Same block: the in-memory database is a module singleton that `after` closes.
+
+  const refuses = (promise, pattern = /Validation|cannot be null/) => assert.rejects(promise, pattern);
+  let seq = 0;
+  const KEY_PN = "237690000001@s.whatsapp.net";
+  const GROUP = "120363000000000001@g.us";
+  const later = new Date("2026-01-01T00:10:00Z");
+  const keyRow = (over = {}) => {
+    const n = ++seq;
+    return { name: `Key ${n}`, nameKey: `key ${n}`, lookupId: n.toString(16).padStart(16, "0"), secretHash: n.toString(16).padStart(64, "0"), last4: "abcd", ...over };
+  };
+  const publicId = (n = ++seq) => `msg_${String(n).padStart(22, "A")}`;
+  const messageRow = (over = {}) => ({ publicId: publicId(), apiKeyId: 1, recipient: KEY_PN, format: "text", acceptedAt: when, expiresAt: later, ...over });
+  const responseRow = (over = {}) => ({ messageId: 1, kind: "choice", author: KEY_PN, respondedAt: when, ...over });
+  const manyOf = (n, make) => Array.from({ length: n }, (_, i) => make(i));
+  const clear4 = async () => {
+    for (const name of ["ApiMessageResponse", "ApiMessage", "ApiKey", "ApiState"]) await db[name].destroy({ where: {} });
+  };
+
+  test("the four API models are loaded under their file names, with their table names and keys", () => {
+    for (const [table, spec] of Object.entries(FEATURE_004_TABLES)) {
+      assert.ok(db[spec.model], spec.model);
+      assert.equal(db[spec.model].name, spec.model);
+      assert.equal(db[spec.model].tableName, table);
+      assert.deepEqual(db[spec.model].primaryKeyAttributes, spec.primary);
+    }
+  });
+
+  test("ApiKey: defaults, nullable columns, array columns come back as arrays through every read", async () => {
+    const created = await (await db.ApiKey.create(keyRow())).reload();
+    assert.deepEqual(
+      [created.rights, created.policyMode, created.recipients, created.ipAllow, created.seenIps, created.version],
+      [[], "list", [], [], [], 1],
+    );
+    for (const column of ["limitPerMinute", "limitPerDay", "limitPending", "expiresAt", "revokedAt", "lastUsedAt", "lastIp"]) assert.equal(created[column], null, column);
+
+    await db.ApiKey.create(
+      keyRow({
+        rights: ["messages.send.text", "messages.read"],
+        recipients: [KEY_PN, GROUP],
+        ipAllow: ["10.0.0.0/8", "2001:db8::/32"],
+        seenIps: ["203.0.113.5", "2001:db8:1:2::/64"],
+      }),
+    );
+    for (const row of [...(await db.ApiKey.findAll()), (await db.ApiKey.findAll({ limit: 1 }))[0], await db.ApiKey.findByPk(created.id)]) {
+      for (const column of ["rights", "recipients", "ipAllow", "seenIps"]) assert.ok(Array.isArray(row[column]), `${column} is an array`);
+    }
+    const full = (await db.ApiKey.findAll({ order: [["id", "ASC"]] }))[1];
+    assert.deepEqual(full.rights, ["messages.send.text", "messages.read"]);
+    assert.deepEqual(full.get({ plain: true }).seenIps, ["203.0.113.5", "2001:db8:1:2::/64"]);
+    await clear4();
+  });
+
+  test("ApiKey: policyMode is list, known or anyone; name is not empty", async () => {
+    for (const policyMode of ["list", "known", "anyone"]) await db.ApiKey.build(keyRow({ policyMode })).validate();
+    for (const policyMode of ["all", "ANYONE", "", " list", null]) await refuses(db.ApiKey.build(keyRow({ policyMode })).validate());
+    await refuses(db.ApiKey.build(keyRow({ name: "" })).validate());
+    await refuses(db.ApiKey.build(keyRow({ name: null })).validate());
+    await refuses(db.ApiKey.build(keyRow({ lookupId: null })).validate());
+    await refuses(db.ApiKey.build(keyRow({ secretHash: null })).validate());
+  });
+
+  test("ApiKey: lookupId is 16 lower-case hex characters, secretHash 64", async () => {
+    await db.ApiKey.build(keyRow({ lookupId: "0123456789abcdef", secretHash: "f".repeat(64) })).validate();
+    for (const lookupId of ["0123456789abcde", "0123456789abcdef0", "0123456789ABCDEF", "0123456789abcdeg", "", "owbk_0123456789ab"]) {
+      await refuses(db.ApiKey.build(keyRow({ lookupId })).validate(), /Validation/);
+    }
+    for (const secretHash of ["f".repeat(63), "f".repeat(65), "F".repeat(64), "g".repeat(64), ""]) {
+      await refuses(db.ApiKey.build(keyRow({ secretHash })).validate(), /Validation/);
+    }
+  });
+
+  test("ApiKey.rights: at most 64 distinct ids of the right shape", async () => {
+    await db.ApiKey.build(keyRow({ rights: ["messages.send.text", "messages.read", "media.url", "api.docs", "messages", "a.b_c.d9"] })).validate();
+    await db.ApiKey.build(keyRow({ rights: manyOf(64, (i) => `messages.send.r${i}`) })).validate();
+    await refuses(db.ApiKey.build(keyRow({ rights: manyOf(65, (i) => `messages.send.r${i}`) })).validate(), /at most 64/);
+    await refuses(db.ApiKey.build(keyRow({ rights: ["messages.read", "messages.read"] })).validate(), /duplicate/);
+    for (const bad of ["Messages.read", "messages..read", "messages.", ".messages", "messages.read-all", "messages read", "1messages", "", `a.${"b".repeat(63)}`, 5, null, {}]) {
+      await refuses(db.ApiKey.build(keyRow({ rights: [bad] })).validate(), /rights/);
+    }
+    for (const notArray of ["messages.read", {}, 7, true]) await refuses(db.ApiKey.build(keyRow({ rights: notArray })).validate(), /rights must be an array/);
+    await refuses(db.ApiKey.build(keyRow({ rights: null })).validate(), /rights cannot be null/);
+    await refuses(db.ApiKey.update({ rights: ["Bad"] }, { where: { id: 1 } }), /rights/);
+  });
+
+  test("ApiKey.recipients: at most 200 JIDs, a phone number or a group, never a LID", async () => {
+    await db.ApiKey.build(keyRow({ recipients: [KEY_PN, GROUP, "12036-1234@g.us", "12345678@s.whatsapp.net", "123456789012345@s.whatsapp.net"] })).validate();
+    await db.ApiKey.build(keyRow({ recipients: manyOf(200, (i) => `2376900${String(10000 + i)}@s.whatsapp.net`) })).validate();
+    await refuses(db.ApiKey.build(keyRow({ recipients: manyOf(201, (i) => `2376900${String(10000 + i)}@s.whatsapp.net`) })).validate(), /at most 200/);
+    const bad = [
+      "123456789012345@lid", "0237690000001@s.whatsapp.net", "1234567@s.whatsapp.net", "1234567890123456@s.whatsapp.net",
+      "237690000001@c.us", "237690000001@S.WHATSAPP.NET", "237690000001:7@s.whatsapp.net", "237690000001", "1234@g.us", "g@g.us",
+      "120363-@g.us", " 237690000001@s.whatsapp.net", "", 237690000001, null, {},
+    ];
+    for (const jid of bad) await refuses(db.ApiKey.build(keyRow({ recipients: [jid] })).validate(), /recipients/, String(jid));
+    await refuses(db.ApiKey.build(keyRow({ recipients: "x" })).validate(), /recipients must be an array/);
+  });
+
+  test("ApiKey quotas: integers inside their bounds, or NULL", async () => {
+    const bounds = { limitPerMinute: [1, 1000], limitPerDay: [1, 100000], limitPending: [1, 5000] };
+    for (const [column, [min, max]] of Object.entries(bounds)) {
+      for (const ok of [min, max, null, undefined]) await db.ApiKey.build(keyRow({ [column]: ok })).validate();
+      for (const bad of [0, min - 1, max + 1, 1.5, "ten", NaN, -1]) await refuses(db.ApiKey.build(keyRow({ [column]: bad })).validate(), /Validation/, `${column} ${bad}`);
+    }
+    const stored = await (await db.ApiKey.create(keyRow({ limitPerMinute: 5, limitPerDay: null }))).reload();
+    assert.deepEqual([stored.limitPerMinute, stored.limitPerDay, stored.limitPending], [5, null, null]);
+    await clear4();
+  });
+
+  test("ApiKey.ipAllow and seenIps: caps of 50 and 20, strings only; the grammar is not the model's", async () => {
+    await db.ApiKey.build(keyRow({ ipAllow: manyOf(50, (i) => `10.0.${i}.0/24`), seenIps: manyOf(20, (i) => `203.0.113.${i}`) })).validate();
+    await refuses(db.ApiKey.build(keyRow({ ipAllow: manyOf(51, (i) => `10.0.${i}.0/24`) })).validate(), /at most 50/);
+    await refuses(db.ApiKey.build(keyRow({ seenIps: manyOf(21, (i) => `203.0.113.${i}`) })).validate(), /at most 20/);
+    await db.ApiKey.build(keyRow({ ipAllow: ["x".repeat(50)] })).validate();
+    await refuses(db.ApiKey.build(keyRow({ ipAllow: ["x".repeat(51)] })).validate(), /ipAllow/);
+    for (const bad of [5, null, {}, ["a"]]) {
+      await refuses(db.ApiKey.build(keyRow({ ipAllow: [bad] })).validate(), /ipAllow/);
+      await refuses(db.ApiKey.build(keyRow({ seenIps: [bad] })).validate(), /seenIps/);
+    }
+    await refuses(db.ApiKey.build(keyRow({ ipAllow: "10.0.0.0/8" })).validate(), /ipAllow must be an array/);
+  });
+
+  test("ApiKey: two revoked keys may share a name (nameKey NULL); a live name and a lookupId are unique", async () => {
+    await db.ApiKey.create(keyRow({ name: "Billing", nameKey: null, revokedAt: when }));
+    await db.ApiKey.create(keyRow({ name: "Billing", nameKey: null, revokedAt: when }));
+    const live = await db.ApiKey.create(keyRow({ name: "Billing", nameKey: "billing" }));
+    await assert.rejects(db.ApiKey.create(keyRow({ name: "BILLING", nameKey: "billing" })), /unique/i);
+    await assert.rejects(db.ApiKey.create(keyRow({ lookupId: live.lookupId })), /unique/i);
+    await clear4();
+  });
+
+  test("ApiMessage: defaults, nullable columns and the JSON columns", async () => {
+    const created = await (await db.ApiMessage.create(messageRow())).reload();
+    assert.deepEqual([created.source, created.status], ["api", "queued"]);
+    for (const column of ["idempotencyKey", "requestHash", "size", "errorCode", "waId", "requestId", "sendingAt", "sentAt", "deliveredAt", "readAt", "endedAt", "repliesUntil", "payload", "choices", "replyData", "pollSecret", "mediaPath"]) {
+      assert.equal(created[column], null, column);
+    }
+
+    const payload = { v: 1, input: { text: "hello" }, media: null, quote: null };
+    const choices = [{ id: "yes", label: "Yes" }, { id: "no", label: "No" }];
+    const replyData = { v: 1, multi: false, hashes: ["a".repeat(64), "b".repeat(64)] };
+    const full = await db.ApiMessage.create(messageRow({ payload, choices, replyData, pollSecret: "enc:v1:x:y:z", mediaPath: "data/api-media/x/source" }));
+    for (const row of [await db.ApiMessage.findByPk(full.id), (await db.ApiMessage.findAll({ where: { id: full.id } }))[0]]) {
+      assert.deepEqual(row.payload, payload);
+      assert.deepEqual(row.choices, choices);
+      assert.deepEqual(row.replyData, replyData);
+    }
+
+    // erasing the content writes a SQL NULL, not the text 'null' (invariant I2 and the housekeeping net rely on it)
+    await db.ApiMessage.update({ payload: null, choices: null, replyData: null }, { where: { id: full.id } });
+    const [raw] = await db.DATABASE.query("SELECT payload, choices, replyData FROM api_messages WHERE id = :id", { replacements: { id: full.id }, type: "SELECT" });
+    assert.deepEqual(raw, { payload: null, choices: null, replyData: null });
+    assert.equal(await db.ApiMessage.count({ where: { payload: null } }), 2);
+    await clear4();
+  });
+
+  test("ApiMessage.publicId: msg_ plus 22 base64url characters", async () => {
+    await db.ApiMessage.build(messageRow({ publicId: "msg_abcdefghijklmnopqrstuv" })).validate();
+    await db.ApiMessage.build(messageRow({ publicId: "msg_A-_9A-_9A-_9A-_9A-_9AB".slice(0, 26) })).validate();
+    for (const bad of ["msg_abcdefghijklmnopqrstu", "msg_abcdefghijklmnopqrstuvw", "msg_abcdefghijklmnopqrst+v", "msg_abcdefghijklmnopqrst/v", "Msg_abcdefghijklmnopqrstuv", "abcdefghijklmnopqrstuvwxyz", "", null]) {
+      await refuses(db.ApiMessage.build(messageRow({ publicId: bad })).validate(), /Validation/, String(bad));
+    }
+  });
+
+  test("ApiMessage.source and apiKeyId: api <=> a key, panel <=> no key", async () => {
+    await db.ApiMessage.build(messageRow({ source: "api", apiKeyId: 3 })).validate();
+    await db.ApiMessage.build(messageRow({ source: "panel", apiKeyId: null })).validate();
+    await refuses(db.ApiMessage.build(messageRow({ source: "api", apiKeyId: null })).validate(), /apiKeyId/);
+    await refuses(db.ApiMessage.build(messageRow({ source: "panel", apiKeyId: 3 })).validate(), /apiKeyId/);
+    await refuses(db.ApiMessage.build(messageRow({ source: "cli", apiKeyId: null })).validate());
+    await refuses(db.ApiMessage.create(messageRow({ source: "api", apiKeyId: undefined })), /apiKeyId/);
+    await refuses(db.ApiMessage.create(messageRow({ source: "panel", apiKeyId: 2 })), /apiKeyId/);
+    assert.equal(await db.ApiMessage.count(), 0, "nothing stored");
+
+    // the transitions are static conditional UPDATEs on a partial build: the rule must not refuse them
+    const row = await db.ApiMessage.create(messageRow({ source: "panel", apiKeyId: null }));
+    const [changed] = await db.ApiMessage.update({ status: "sending", sendingAt: later, waId: "3EB0BBBB" }, { where: { id: row.id, status: "queued" } });
+    assert.equal(changed, 1);
+    assert.equal((await db.ApiMessage.findByPk(row.id)).status, "sending");
+    const found = await db.ApiMessage.findByPk(row.id);
+    found.status = "sent";
+    await found.save();
+    await clear4();
+  });
+
+  test("ApiMessage.status is one of the nine; errorCode and format are open sets", async () => {
+    const statuses = ["queued", "sending", "sent", "delivered", "read", "failed", "expired", "cancelled", "unknown"];
+    for (const status of statuses) await db.ApiMessage.build(messageRow({ status })).validate();
+    for (const status of ["done", "SENT", "", " sent", null]) await refuses(db.ApiMessage.build(messageRow({ status })).validate());
+
+    for (const errorCode of ["not_on_whatsapp", "whatsapp_rejected", "a_code_a_later_wave_invents", null]) {
+      await db.ApiMessage.build(messageRow({ status: "failed", errorCode })).validate();
+    }
+    for (const format of ["text", "image", "my_new_format", "ab", "a".repeat(24)]) await db.ApiMessage.build(messageRow({ format })).validate();
+    for (const format of ["Text", "1text", "a", "a".repeat(25), "te-xt", "te xt", "", null]) {
+      await refuses(db.ApiMessage.build(messageRow({ format })).validate(), /Validation|cannot be null/, String(format));
+    }
+  });
+
+  test("ApiMessage.idempotencyKey and recipient: shapes", async () => {
+    for (const idempotencyKey of ["order-1234", "a", "A.b_c:d-e", "x".repeat(80), null]) await db.ApiMessage.build(messageRow({ idempotencyKey })).validate();
+    for (const idempotencyKey of ["", "a b", "x".repeat(81), "é", "a/b", "a\n"]) await refuses(db.ApiMessage.build(messageRow({ idempotencyKey })).validate(), /Validation/);
+
+    for (const recipient of [KEY_PN, GROUP, "12036-1234@g.us", "12345678@s.whatsapp.net"]) await db.ApiMessage.build(messageRow({ recipient })).validate();
+    for (const recipient of ["123456789012345@lid", "0237690000001@s.whatsapp.net", "237690000001@c.us", "237690000001", "1234@g.us", "", null]) {
+      await refuses(db.ApiMessage.build(messageRow({ recipient })).validate(), /Validation|cannot be null/, String(recipient));
+    }
+  });
+
+  test("ApiMessage.payload: at most 128 KiB", async () => {
+    await db.ApiMessage.build(messageRow({ payload: { v: 1, input: { text: "x".repeat(4096) } } })).validate();
+    await db.ApiMessage.build(messageRow({ payload: { v: 1, input: { text: "x".repeat(131000) } } })).validate();
+    await refuses(db.ApiMessage.build(messageRow({ payload: { v: 1, input: { text: "x".repeat(131072) } } })).validate(), /payload/);
+    await refuses(db.ApiMessage.build(messageRow({ payload: { v: 1, input: { text: "é".repeat(70000) } } })).validate(), /payload/, "128 KiB is counted in bytes");
+  });
+
+  test("ApiMessage: publicId, (apiKeyId, idempotencyKey) and waId are unique, NULLs are not", async () => {
+    await db.ApiMessage.create(messageRow({ idempotencyKey: null, waId: null }));
+    await db.ApiMessage.create(messageRow({ idempotencyKey: null, waId: null }));
+    await db.ApiMessage.create(messageRow({ source: "panel", apiKeyId: null, idempotencyKey: "same" }));
+    await db.ApiMessage.create(messageRow({ source: "panel", apiKeyId: null, idempotencyKey: "same" }));
+    const first = await db.ApiMessage.create(messageRow({ idempotencyKey: "k1", waId: "3EB0AAAAAAAAAAAAAAAA" }));
+    await assert.rejects(db.ApiMessage.create(messageRow({ idempotencyKey: "k1" })), /unique/i);
+    await db.ApiMessage.create(messageRow({ apiKeyId: 2, idempotencyKey: "k1" }));
+    await assert.rejects(db.ApiMessage.create(messageRow({ waId: "3EB0AAAAAAAAAAAAAAAA" })), /unique/i);
+    await assert.rejects(db.ApiMessage.create(messageRow({ publicId: first.publicId })), /unique/i);
+    await clear4();
+  });
+
+  test("ApiMessageResponse: kind and via are closed sets; defaults; choiceIds is an array of strings", async () => {
+    const created = await (await db.ApiMessageResponse.create(responseRow({ via: "tap" }))).reload();
+    assert.deepEqual(created.choiceIds, []);
+    assert.equal(created.voterKey, null);
+    assert.equal(created.sourceId, null);
+
+    for (const kind of ["choice", "vote"]) await db.ApiMessageResponse.build(responseRow({ kind })).validate();
+    for (const kind of ["poll", "button", "", "Vote", null]) await refuses(db.ApiMessageResponse.build(responseRow({ kind })).validate());
+    for (const via of ["tap", "number", null, undefined]) await db.ApiMessageResponse.build(responseRow({ via })).validate();
+    for (const via of ["click", "TAP", ""]) await refuses(db.ApiMessageResponse.build(responseRow({ via })).validate());
+
+    const withIds = await db.ApiMessageResponse.create(responseRow({ kind: "vote", voterKey: KEY_PN, choiceIds: ["0", "2"], sourceId: "S1" }));
+    for (const row of [await db.ApiMessageResponse.findByPk(withIds.id), ...(await db.ApiMessageResponse.findAll())]) assert.ok(Array.isArray(row.choiceIds));
+    assert.deepEqual((await db.ApiMessageResponse.findByPk(withIds.id)).choiceIds, ["0", "2"]);
+    for (const bad of ["0", { 0: "a" }, [1], [null], [["a"]]]) await refuses(db.ApiMessageResponse.build(responseRow({ choiceIds: bad })).validate(), /choiceIds/);
+    await refuses(db.ApiMessageResponse.build(responseRow({ messageId: null })).validate());
+    await refuses(db.ApiMessageResponse.build(responseRow({ author: null })).validate());
+    await clear4();
+  });
+
+  test("ApiMessageResponse: choice rows never collide; one vote per voter per message; one source id per message", async () => {
+    await db.ApiMessageResponse.create(responseRow({ kind: "choice" }));
+    await db.ApiMessageResponse.create(responseRow({ kind: "choice" }));
+    await db.ApiMessageResponse.create(responseRow({ kind: "vote", voterKey: KEY_PN, sourceId: "S1" }));
+    await assert.rejects(db.ApiMessageResponse.create(responseRow({ kind: "vote", voterKey: KEY_PN, sourceId: "S2" })), /unique/i);
+    await assert.rejects(db.ApiMessageResponse.create(responseRow({ kind: "vote", voterKey: "237690000009@s.whatsapp.net", sourceId: "S1" })), /unique/i);
+    await db.ApiMessageResponse.create(responseRow({ messageId: 2, kind: "vote", voterKey: KEY_PN, sourceId: "S1" }));
+    assert.equal(await db.ApiMessageResponse.count(), 4);
+    await clear4();
+  });
+
+  test("ApiState: a singleton with id 1, switched off and with an empty list by default", async () => {
+    const row = await db.ApiState.create({});
+    assert.deepEqual([row.id, row.enabled, row.plainHttpFrom], [1, false, []]);
+    await assert.rejects(db.ApiState.create({ id: 1 }), /unique|Validation/i);
+    await refuses(db.ApiState.create({ id: 2 }), /Validation/);
+    await refuses(db.ApiState.build({ id: 0 }).validate());
+    await refuses(db.ApiState.build({ id: "1x" }).validate());
+    await refuses(db.ApiState.build({ enabled: null }).validate());
+    assert.equal(await db.ApiState.count(), 1);
+
+    const again = await db.ApiState.findByPk(1);
+    again.enabled = true;
+    again.plainHttpFrom = ["192.168.0.0/16", "fd00::/8"];
+    await again.save();
+    const stored = await db.ApiState.findOne();
+    assert.deepEqual([stored.enabled, stored.plainHttpFrom], [true, ["192.168.0.0/16", "fd00::/8"]]);
+    assert.ok(Array.isArray((await db.ApiState.findAll())[0].plainHttpFrom));
+    await clear4();
+  });
+
+  test("ApiState.plainHttpFrom: at most 20 strings of at most 50 characters; the grammar is apiState's", async () => {
+    await db.ApiState.build({ plainHttpFrom: manyOf(20, (i) => `10.0.${i}.0/24`) }).validate();
+    await refuses(db.ApiState.build({ plainHttpFrom: manyOf(21, (i) => `10.0.${i}.0/24`) }).validate(), /at most 20/);
+    await db.ApiState.build({ plainHttpFrom: ["x".repeat(50)] }).validate();
+    await refuses(db.ApiState.build({ plainHttpFrom: ["x".repeat(51)] }).validate(), /plainHttpFrom/);
+    for (const bad of ["10.0.0.0/8", {}, 5]) await refuses(db.ApiState.build({ plainHttpFrom: bad }).validate(), /plainHttpFrom must be an array/);
+    await refuses(db.ApiState.build({ plainHttpFrom: [5] }).validate(), /plainHttpFrom/);
+    await refuses(db.ApiState.build({ plainHttpFrom: null }).validate(), /plainHttpFrom cannot be null/);
+  });
+
+  test("AlertOutbox accepts the three API alert types and still rejects others", async () => {
+    for (const type of ["api_origin_blocked", "api_key_new_ip", "api_paused"]) {
+      assert.ok(type.length <= 24, `${type} fits STRING(24)`);
+      await db.AlertOutbox.build({ type }).validate();
+      const row = await db.AlertOutbox.create({ type });
+      assert.deepEqual([row.type, row.status], [type, "pending"]);
+    }
+    await refuses(db.AlertOutbox.build({ type: "spam" }).validate());
+    await refuses(db.AlertOutbox.build({ type: "api_unknown" }).validate());
+    await db.AlertOutbox.destroy({ where: { type: ["api_origin_blocked", "api_key_new_ip", "api_paused"] } });
   });
 });

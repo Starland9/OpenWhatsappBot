@@ -1,13 +1,13 @@
-const crypto = require("crypto");
 const fs = require("fs").promises;
 const path = require("path");
 const { extractMessageContent, getContentType } = require("baileys");
-const webp = require("node-webpmux");
 const config = require("../config");
 const { getLang } = require("../lib/utils/language");
 const { withTempDir } = require("../lib/utils/media");
 const { runFfmpeg } = require("../lib/utils/ffmpeg");
 const { classifyError, replyKeyFor, safeLog } = require("../lib/utils/http");
+// image to sticker conversion and pack/author EXIF live in lib/utils/stickerMaker.js (shared with the messaging API)
+const { STICKER_SIZE, MAX_STICKER_BYTES, imageToWebp, withStickerExif } = require("../lib/utils/stickerMaker");
 
 const MEDIA_TYPES = {
   imageMessage: "image",
@@ -17,26 +17,16 @@ const MEDIA_TYPES = {
   stickerMessage: "sticker",
 };
 
-const STICKER_SIZE = 512;
-// WhatsApp refuses (or silently drops) heavy stickers: stay under this size
-const MAX_STICKER_BYTES = 900 * 1024;
 const MAX_VIDEO_SECONDS = 10;
 // Biggest source accepted, in MB (also bounded by MAX_UPLOAD)
 const MAX_INPUT_MB = 25;
 
 // At most 3 encodes, each lighter than the previous one
-const IMAGE_QUALITIES = [80, 60, 40];
 const VIDEO_PROFILES = [
   { fps: 15, quality: 50 },
   { fps: 12, quality: 35 },
   { fps: 8, quality: 20 },
 ];
-
-// TIFF header WhatsApp expects in front of the sticker metadata JSON (22 bytes)
-const EXIF_HEADER = Buffer.from([
-  0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00,
-]);
 
 function toNumber(value) {
   if (value && typeof value.toNumber === "function") return value.toNumber();
@@ -93,26 +83,6 @@ async function downloadSource(message, source, maxBytes) {
 }
 
 /**
- * Photo to a 512x512 webp (transparent padding), re-encoded with a lower
- * quality until it fits. Resolves null when no attempt fits.
- */
-async function imageToWebp(buffer) {
-  const sharp = require("sharp");
-  for (const quality of IMAGE_QUALITIES) {
-    const output = await sharp(buffer)
-      .rotate()
-      .resize(STICKER_SIZE, STICKER_SIZE, {
-        fit: "contain",
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      })
-      .webp({ quality })
-      .toBuffer();
-    if (output.length <= MAX_STICKER_BYTES) return output;
-  }
-  return null;
-}
-
-/**
  * Short video to an animated 512x512 webp: the first 10 seconds only, then a
  * lower quality and frame rate until it fits. Resolves null when no attempt fits.
  */
@@ -152,39 +122,6 @@ function videoToWebp(buffer) {
     }
     return null;
   });
-}
-
-/**
- * EXIF block that makes WhatsApp show the pack name and the author.
- * The pack id is derived from both, so every sticker of the bot is one pack.
- */
-function buildExif(pack, author) {
-  const packId = crypto
-    .createHash("sha1")
-    .update(`${pack}\u0000${author}`)
-    .digest("hex");
-  const json = Buffer.from(
-    JSON.stringify({
-      "sticker-pack-id": packId,
-      "sticker-pack-name": pack,
-      "sticker-pack-publisher": author,
-      emojis: [],
-    }),
-    "utf8",
-  );
-  const exif = Buffer.concat([EXIF_HEADER, json]);
-  exif.writeUInt32LE(json.length, 14);
-  return exif;
-}
-
-async function withStickerExif(buffer) {
-  const image = new webp.Image();
-  await image.load(buffer);
-  image.exif = buildExif(
-    String(config.STICKER_PACKNAME || ""),
-    String(config.STICKER_AUTHOR || ""),
-  );
-  return await image.save(null);
 }
 
 // Lang key of the reply for a sticker that could not be made

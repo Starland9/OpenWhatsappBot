@@ -15,6 +15,7 @@ A web interface to run the bot without editing files or typing commands. **It is
 - [Docker notes](#docker-notes)
 - [Backups and the encryption key](#backups-and-the-encryption-key)
 - [Monitoring routes](#monitoring-routes)
+- [API](#api)
 - [Security](#security)
 
 ## What it does
@@ -30,6 +31,7 @@ A web interface to run the bot without editing files or typing commands. **It is
 | Broadcasts | One-time and recurring messages to groups and chats, at most once per destination, spaced out |
 | Backup | Encrypted export and verified restore |
 | Maintenance | Update the bot (with automatic rollback), update yt-dlp, storage |
+| API | Switch the messaging API on or off, create keys with their rights, recipients and limits, browse the send history, try every format, download the OpenAPI description (see [API](#api)) |
 | Texts, Alerts, Logs, Statistics, History | Edit the bot's texts, WhatsApp alerts to the owner, live logs without secrets, usage charts, the administrator action log |
 
 ## First start
@@ -91,7 +93,7 @@ Set `ADMIN_PANEL=false`. Only that exact value turns the panel off, and the bot 
 
 ## Backups and the encryption key
 
-The **Backup** page exports the settings (API keys included, inside the encrypted file), command states, edited texts and the bot data to one `.owb` file protected by a passphrase of at least 12 characters, chosen at export time and **not recoverable**. The administrator account, history, alert state, AI conversations and `data/panel.key` are never exported. The WhatsApp session is optional and the panel warns that it would let whoever holds the file take over the number. The file is built in `data/tmp` first, so the download shows its size.
+The **Backup** page exports the settings (API keys included, inside the encrypted file), command states, edited texts and the bot data to one `.owb` file protected by a passphrase of at least 12 characters, chosen at export time and **not recoverable**. The administrator account, history, alert state, AI conversations, the messaging API (keys, messages, switch) and `data/panel.key` are never exported. The WhatsApp session is optional and the panel warns that it would let whoever holds the file take over the number. The file is built in `data/tmp` first, so the download shows its size.
 
 A restore first checks the file without changing anything (wrong passphrase, altered file or a backup from a newer bot version are refused) and shows a summary with the number of rows per table and what this version ignores (`ignoredSettings`, `ignoredTexts`, unknown tables and columns). On confirmation the bot writes an automatic backup of the current state to `data/backups/pre-restore-<time>.owb`, replaces the data in one transaction and restarts in-process; if anything fails, the previous state is kept. A backup moves freely between SQLite and PostgreSQL.
 
@@ -108,6 +110,24 @@ curl -X POST -H "Authorization: Bearer a-long-random-secret" http://localhost:30
 
 `panel.js` runs the same bot as `index.js`; with `ADMIN_PANEL=false` it still serves these routes alone, which is what hosting panels probe. Stopping the process (SIGTERM/SIGINT) closes the WhatsApp connection without logging the device out, so a restart does not need a new QR scan. The response formats are documented in [BOT_HOSTING_GUIDE.md](BOT_HOSTING_GUIDE.md).
 
+## API
+
+The **API** page manages the messaging API: the HTTP interface your own applications use to send WhatsApp messages from the bot's number. The API is **off by default**, exists only while the panel does (`ADMIN_PANEL=false` removes it) and answers exactly like any unknown URL until you switch it on. The wire format, formats, limits and errors are in the French user guide [API.md](API.md); the English OpenAPI description is downloadable from the page itself.
+
+The page has a state card (switch, base URL, queue size, pause and disconnection banners) and five tabs:
+
+| Tab | What you can do |
+|-----|-----------------|
+| Keys | Create, edit, duplicate and revoke keys (a key has its own rights, recipient policy `list` / `known` / `anyone`, per-minute, per-day and pending limits, optional IP allowlist and expiry); the full key is shown once at creation, never again. The plain-HTTP network list is here too |
+| History | Every send, from a key or from the panel's test form, filterable by key, status, format and day; the detail shows the steps and the collected replies. It never shows a message text |
+| Usage | Sent and failed messages per key and per day |
+| Test | A form per format, built from the format's description, that sends through the same engine, checks and pacing as the API and shows the equivalent `curl` |
+| Docs | Quick start, endpoints, an example per format, and the OpenAPI download (available even while the API is off) |
+
+**Password step-up.** Switching the API on, adding a plain-HTTP network, creating or duplicating a key, and any edit that widens access (a new right or recipient, the `known` / `anyone` modes, a wider or emptied IP list, a later or removed expiry) ask for the administrator password again. A login opens a 5-minute window in which nothing is asked; a confirmation renews it; each browser session has its own. Narrowing never asks: revoking, removing a right or recipient, switching the API off.
+
+**Settings.** The queue and quota defaults (`SEND_MIN_SPACING_MS`, `API_RATE_PER_MINUTE`, `API_RATE_PER_DAY`, `API_MAX_PENDING`, `API_QUEUE_MAX`, `API_QUEUE_EXPIRY_MIN`, `API_RETENTION_DAYS`, `API_REPLY_WINDOW_DAYS`) and three alerts (origin blocked, key used from a new address, queue paused) are on the Settings and Alerts pages. There is no setting that switches the API on. Keys, messages and the switch are never part of a backup, and a restore never re-enables the API or revives a revoked key.
+
 ## Security
 
-Password hashed with scrypt, 24 h idle / 7 day sessions, per-origin login throttling, CSRF and `Origin` checks, strict CSP with no third-party request, API keys encrypted at rest, secrets masked in every response and log, and off the network by default (`127.0.0.1`).
+Password hashed with scrypt, 24 h idle / 7 day sessions, per-origin login throttling, CSRF and `Origin` checks, strict CSP with no third-party request, API keys encrypted at rest, secrets masked in every response and log, and off the network by default (`127.0.0.1`). The messaging API has its own protections (HTTPS required, keys stored as a hash, password step-up, SSRF-safe URL downloads), described in [API.md](API.md).

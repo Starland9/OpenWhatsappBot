@@ -174,7 +174,7 @@ describe("SET-1: the ResolvedSetting list", () => {
   test("lists every catalog entry in the shape of settings-catalog.md 2.4", async () => {
     const answer = await get();
     assert.equal(answer.settings.length, catalog.entries.length);
-    assert.equal(answer.settings.length, 101);
+    assert.equal(answer.settings.length, 112);
     assert.deepEqual(
       answer.settings.map((s) => s.key),
       catalog.entries.map((e) => e.key),

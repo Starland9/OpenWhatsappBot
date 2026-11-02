@@ -11,6 +11,7 @@ A powerful and modern open-source community WhatsApp bot built with **Baileys v7
 - 👥 **Group Management** - Admin tools, welcome/goodbye, filters, anti-link, warnings
 - 👁️ **Auto Status Viewer** - Automatically view and react to WhatsApp statuses
 - 🖥️ **Admin Panel** - Web interface (on by default): live dashboard, hot-applied settings, WhatsApp pairing from the browser, per-group moderation, broadcasts, encrypted backups, safe self-update
+- 📨 **Messaging API** - Send WhatsApp messages from your own apps over HTTP: 13 formats (text, image, video, GIF, audio, voice note, document, sticker, location, contact, poll, buttons, list), keys with their own rights, recipients and limits, a paced and crash-safe queue, idempotency and an OpenAPI description. Off by default, managed from the admin panel: [docs/API.md](docs/API.md) (French)
 - 🗄️ **Database** - SQLite by default, PostgreSQL for production
 - 🔄 **Auto-Reconnection** - Reconnects on its own and keeps the session
 - 📊 **Production Ready** - PM2, Docker, Heroku and panel-host support, CPU optimized
@@ -72,6 +73,7 @@ Full reference (pages, hosting, Docker, backups, encryption key): [docs/ADMIN_PA
 | Document | What it covers |
 |----------|----------------|
 | [docs/ADMIN_PANEL.md](docs/ADMIN_PANEL.md) | Admin panel: pages, first start, reverse proxy, Docker, backups, security |
+| [docs/API.md](docs/API.md) | Messaging API user guide (French): enabling it, keys and rights, the 13 formats with `curl` examples, media by file or URL, statuses, quotas, idempotency, errors, security checklist |
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Environment variables, auto status viewer, AI auto-responder, security notes |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | PM2, Docker, VPS, Heroku, Koyeb, database, performance and monitoring |
 | [docs/PLUGINS.md](docs/PLUGINS.md) | Everyday commands and the 15 multimodal plugins |

@@ -14,17 +14,28 @@ const buttonRegistry = require("../lib/utils/buttonRegistry");
  * in the button registry, so that a reply "2" that quotes the message is turned
  * into the second id by the pipeline (research R8).
  *
- * Common options: { title, footer, quoted, mentions }
+ * Common options: { title, footer, quoted, mentions, messageId }
  *  - quoted: the message to quote (a WAMessage, e.g. message.data); it goes in the
  *    sendMessage options, never in the content
  *  - mentions: array of JIDs to mention in the text
+ *  - messageId: a pre-generated WhatsApp message id, forwarded in the send options
+ *
+ * Feature 004 (contracts/runtime.md 14.5) split the message building from the sending:
+ *  - buildQuickReplies / buildList return { kind, text, body, nativeButtons, ids }
+ *    (`numbered: true` adds the numbered text and the hint to `body`);
+ *  - sendPrepared sends such a prepared message once: no fallback, no registry record,
+ *    a failure is thrown (the messaging outbox decides what a failure means).
+ * sendQuickReplies and sendList call the builders and behave as before.
  */
 
 const MAX_BUTTONS_PER_MESSAGE = 3;
 const DEFAULT_FOOTER = "OpenWhatsappBot";
 
 function sendOptions(opts) {
-  return opts.quoted ? { quoted: opts.quoted } : {};
+  const options = {};
+  if (opts.quoted) options.quoted = opts.quoted;
+  if (opts.messageId) options.messageId = opts.messageId;
+  return options;
 }
 
 function mentionList(opts) {
@@ -88,6 +99,104 @@ async function sendNative(sock, jid, kind, payload, opts) {
   );
 }
 
+/**
+ * Build a quick-reply message without sending it.
+ * @param {string} text - Body text
+ * @param {Array<{id?:string,text?:string}>} buttons - 1-3 buttons
+ * @param {{ numbered?: boolean }} [options] - numbered: the body also lists "  n. label" lines and the hint
+ * @returns {{ kind: "buttons", text: string, body: string, nativeButtons: object[], ids: string[] }}
+ */
+function buildQuickReplies(text, buttons, { numbered = false } = {}) {
+  const safeButtons = Array.isArray(buttons)
+    ? buttons.slice(0, MAX_BUTTONS_PER_MESSAGE)
+    : [];
+
+  // The helper gives a button without id the id "quick_<n>"
+  const ids = safeButtons.map((b, i) => b.id || `quick_${i + 1}`);
+  const nativeButtons = safeButtons.map((b, i) => ({
+    name: "quick_reply",
+    buttonParamsJson: JSON.stringify({
+      display_text: b.text || `Button ${i + 1}`,
+      id: ids[i],
+    }),
+  }));
+
+  let body = text;
+  if (numbered) {
+    const lines = safeButtons
+      .map((b, i) => `  ${i + 1}. ${b.text || ""}`)
+      .join("\n");
+    body = `${text}\n\n${lines}\n\n_${getLang("plugins.buttons.reply_number")}_`;
+  }
+
+  return { kind: "buttons", text, body, nativeButtons, ids };
+}
+
+/**
+ * Build a single-select list message without sending it.
+ * @param {string} text
+ * @param {Array<{title:string,rows:Array<{id:string,title:string,description?:string}>}>} sections
+ * @param {{ buttonLabel?: string, numbered?: boolean }} [options] - numbered: the body also lists
+ *   "  n. title" lines (row titles only, rows flattened section by section) and the hint
+ * @returns {{ kind: "list", text: string, body: string, nativeButtons: object[], ids: string[] }}
+ */
+function buildList(text, sections, { buttonLabel, numbered = false } = {}) {
+  const buttonText = buttonLabel || getLang("plugins.buttons.open_menu");
+  // Rows flattened section by section: this is the numbering of the fallback
+  const rows = sections.flatMap((s) => s.rows);
+  const ids = rows.map((r) => r.id);
+  const nativeButtons = [
+    {
+      name: "single_select",
+      buttonParamsJson: JSON.stringify({
+        title: buttonText,
+        sections: sections.map((s) => ({
+          title: s.title,
+          rows: s.rows.map((r) => ({
+            id: r.id,
+            title: (r.title || "").slice(0, 24),
+            description: (r.description || "").slice(0, 72),
+            header: r.header,
+          })),
+        })),
+      }),
+    },
+  ];
+
+  let body = text;
+  if (numbered) {
+    const lines = rows.map((r, i) => `  ${i + 1}. ${r.title || ""}`).join("\n");
+    body = `${text}\n\n${lines}\n\n_${getLang("plugins.buttons.pick_list")}_`;
+  }
+
+  return { kind: "list", text, body, nativeButtons, ids };
+}
+
+/**
+ * Send a message built by buildQuickReplies / buildList: one attempt, no plain-text
+ * fallback and no button-registry record (the messaging API keeps the id mapping
+ * in its own table). The interactive message has no footer and no header. A failure
+ * is thrown.
+ * @param {object} sock - Baileys socket
+ * @param {string} jid
+ * @param {{ body: string, nativeButtons: object[] }} prepared
+ * @param {{ messageId?: string, quoted?: object }} [opts]
+ * @returns {Promise<object>} the WAMessage built by the helper
+ */
+async function sendPrepared(sock, jid, prepared, { messageId, quoted } = {}) {
+  return await sendInteractiveMessage(
+    sock,
+    jid,
+    {
+      interactiveMessage: {
+        body: { text: prepared.body },
+        nativeFlowMessage: { buttons: prepared.nativeButtons },
+      },
+    },
+    sendOptions({ messageId, quoted }),
+  );
+}
+
 /** Record the ids of a sent message; never throws */
 function recordIds(sent, ids) {
   try {
@@ -115,40 +224,22 @@ async function sendQuickReplies(sock, jid, text, buttons, opts = {}) {
     return await sendText(sock, jid, text, opts);
   }
 
-  // The helper gives a button without id the id "quick_<n>"
-  const ids = safeButtons.map((b, i) => b.id || `quick_${i + 1}`);
+  const { ids, nativeButtons } = buildQuickReplies(text, safeButtons);
 
   try {
     const sent = await sendNative(
       sock,
       jid,
       "buttons",
-      {
-        text,
-        quickButtons: safeButtons,
-        nativeButtons: safeButtons.map((b, i) => ({
-          name: "quick_reply",
-          buttonParamsJson: JSON.stringify({
-            display_text: b.text || `Button ${i + 1}`,
-            id: ids[i],
-          }),
-        })),
-      },
+      { text, quickButtons: safeButtons, nativeButtons },
       opts,
     );
     recordIds(sent, ids);
     return sent;
   } catch (err) {
     console.error("sendQuickReplies fallback:", safeLog(err));
-    const lines = safeButtons
-      .map((b, i) => `  ${i + 1}. ${b.text || ""}`)
-      .join("\n");
-    const sent = await sendText(
-      sock,
-      jid,
-      `${text}\n\n${lines}\n\n_${getLang("plugins.buttons.reply_number")}_`,
-      opts,
-    );
+    const { body } = buildQuickReplies(text, safeButtons, { numbered: true });
+    const sent = await sendText(sock, jid, body, opts);
     recordIds(sent, ids);
     return sent;
   }
@@ -168,37 +259,12 @@ async function sendList(sock, jid, text, sections, opts = {}) {
     return await sendText(sock, jid, text, opts);
   }
 
-  const buttonText = opts.buttonLabel || getLang("plugins.buttons.open_menu");
-  // Rows flattened section by section: this is the numbering of the fallback
-  const ids = sections.flatMap((s) => s.rows.map((r) => r.id));
+  const { ids, nativeButtons } = buildList(text, sections, {
+    buttonLabel: opts.buttonLabel,
+  });
 
   try {
-    const sent = await sendNative(
-      sock,
-      jid,
-      "list",
-      {
-        text,
-        nativeButtons: [
-          {
-            name: "single_select",
-            buttonParamsJson: JSON.stringify({
-              title: buttonText,
-              sections: sections.map((s) => ({
-                title: s.title,
-                rows: s.rows.map((r) => ({
-                  id: r.id,
-                  title: (r.title || "").slice(0, 24),
-                  description: (r.description || "").slice(0, 72),
-                  header: r.header,
-                })),
-              })),
-            }),
-          },
-        ],
-      },
-      opts,
-    );
+    const sent = await sendNative(sock, jid, "list", { text, nativeButtons }, opts);
     recordIds(sent, ids);
     return sent;
   } catch (err) {
@@ -299,5 +365,8 @@ module.exports = {
   sendList,
   sendConfirm,
   sendPaginatedList,
+  buildQuickReplies,
+  buildList,
+  sendPrepared,
   MAX_BUTTONS_PER_MESSAGE,
 };

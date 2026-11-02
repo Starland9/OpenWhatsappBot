@@ -44,6 +44,8 @@ const ROOT = fakes.ROOT;
 const CONTRACT = fs.readFileSync(path.join(ROOT, "specs", "002-admin-panel", "contracts", "admin-http-api.md"), "utf8");
 // feature 003 adds PERM-1..PERM-7 in a contract of its own (its "Machine-read format" section says how to parse it)
 const PERMISSIONS_CONTRACT = fs.readFileSync(path.join(ROOT, "specs", "003-command-permissions", "contracts", "admin-permissions-api.md"), "utf8");
+// feature 004 adds API-1..API-13 and AUTH-7 in a contract of its own (same machine-read format as the 003 one)
+const API_CONTRACT = fs.readFileSync(path.join(ROOT, "specs", "004-messaging-api", "contracts", "admin-api.md"), "utf8");
 const PASSWORD = "a long enough password";
 const OWNER = "111@s.whatsapp.net";
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
@@ -108,6 +110,7 @@ async function waitJob(id, timeout = 8000) {
 const SECTIONS = [
   { name: "002", text: CONTRACT, from: "## 2. Routes", to: "## 3. Live stream" },
   { name: "003", text: PERMISSIONS_CONTRACT, from: "## 2. Routes", to: "## 3. Changes to existing routes" },
+  { name: "004", text: API_CONTRACT, from: "## 2. Routes", to: "## 3. Changes to existing routes" },
 ];
 
 /** The text from the heading `from` up to the heading `to` of a contract, both searched as line starts */
@@ -206,6 +209,36 @@ describe("the route table", () => {
     }
     // nothing else in the file looks like a route row
     assert.equal(PERMISSIONS_CONTRACT.match(ROUTE_ROW).length, 7);
+  });
+
+  test("the messaging API contract (feature 004) documents API-1 to API-13 and AUTH-7, all registered with auth: session", () => {
+    const rows = [...routesSection(SECTIONS[2]).matchAll(ROUTE_ROW)].map((match) => `${match[1]} ${match[2]} ${match[3]}`);
+    assert.deepEqual(rows, [
+      "API-1 GET /admin/api/api",
+      "API-2 PUT /admin/api/api/state",
+      "API-3 GET /admin/api/api/catalog",
+      "API-4 GET /admin/api/api/keys",
+      "API-5 POST /admin/api/api/keys",
+      "API-6 PUT /admin/api/api/keys/:id",
+      "API-7 POST /admin/api/api/keys/:id/duplicate",
+      "API-8 POST /admin/api/api/keys/:id/revoke",
+      "API-9 GET /admin/api/api/messages",
+      "API-10 GET /admin/api/api/messages/:id",
+      "API-11 POST /admin/api/api/test",
+      "API-12 GET /admin/api/api/usage",
+      "API-13 GET /admin/api/api/openapi",
+      "AUTH-7 POST /admin/api/session/reauth",
+    ]);
+    const registered = new Map(t.admin.routes().map((route) => [keyOf(route), route]));
+    for (const row of rows) {
+      const [id, method, routePath] = row.split(" ");
+      assert.equal(registered.get(`${method} ${routePath}`)?.auth, "session", id);
+    }
+    // the auth column of the table agrees, and nothing else in the file looks like a route row
+    const auth = [...routesSection(SECTIONS[2]).matchAll(ROUTE_AUTH)];
+    assert.equal(auth.length, 14);
+    assert.ok(auth.every((match) => match[4] === "session"));
+    assert.equal(API_CONTRACT.match(ROUTE_ROW).length, 14);
   });
 
   test("no registered route is missing from the contract, and every route declares an auth level", () => {

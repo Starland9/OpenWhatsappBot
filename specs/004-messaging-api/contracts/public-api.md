@@ -1,6 +1,6 @@
 # Contract: public messaging API (`/api/v1`)
 
-Feature `004-messaging-api`. Inputs: [spec.md](../spec.md) (FR-001 to FR-094), [research.md](../research.md) (**authoritative**: U1-U15 and X1-X22 override the stream files), [research/a-http-security.md](../research/a-http-security.md) (A1-A10), [research/b-messaging-engine.md](../research/b-messaging-engine.md) (B1, B2, B4, B7 and its interfaces). Siblings: [../data-model.md](../data-model.md) (keys, messages, responses, `ApiState`), [runtime.md](runtime.md) (engine, outbox, boot wiring, settings), [admin-api.md](admin-api.md) (panel routes API-1..API-13 and AUTH-7, key lifecycle), [panel-ui.md](panel-ui.md).
+Feature `004-messaging-api`. Inputs: [spec.md](../spec.md) (FR-001 to FR-094), [research.md](../research.md) (**authoritative**: U1-U15, X1-X22 and Y1-Y17 override the stream files), [research/a-http-security.md](../research/a-http-security.md) (A1-A10), [research/b-messaging-engine.md](../research/b-messaging-engine.md) (B1, B2, B4, B7 and its interfaces). Siblings: [../data-model.md](../data-model.md) (keys, messages, responses, `ApiState`), [runtime.md](runtime.md) (engine, outbox, boot wiring, settings), [admin-api.md](admin-api.md) (panel routes API-1..API-13 and AUTH-7, key lifecycle), [panel-ui.md](panel-ui.md).
 
 This file is what an external caller and the API tests rely on. It describes the key-authenticated HTTP surface only; no panel route is described here and the panel session never opens it (FR-004). Server code: `lib/api/**` (HTTP layer) and `lib/messaging/**` (engine and formats); the HTTP layer never reaches WhatsApp itself, it hands accepted messages to the engine (`engine.submit`).
 
@@ -65,7 +65,7 @@ Response headers (every answer, errors and `404`s of claimed paths included):
 
 | Header | Value |
 |---|---|
-| `X-Request-Id` | 16 hex characters, also in `error.requestId` and in the operator's logs (FR-094); quote it in a support request |
+| `X-Request-Id` | 16 hex characters, also in `error.requestId` and in the operator's logs (FR-094); quote it in a support request. A log line names the calling key by its panel id and name, never by any part of the token (research.md Y9) |
 | `Cache-Control` | `no-store` |
 | `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` |
 | `X-Content-Type-Options` | `nosniff` |
@@ -431,7 +431,7 @@ Not HTTP errors: they appear only in `failure.code` of an already accepted messa
 | `group_announce_only` | `failed` | only administrators may write in the group and the bot is not one |
 | `media_conversion_failed` | `failed` | the media could not be converted (unreadable audio or image, ffmpeg unavailable) |
 | `payload_unavailable` | `failed` | the staged content disappeared (cleaned up); never sent as text only |
-| `whatsapp_rejected` | `failed` | WhatsApp refused the message after the relay (negative acknowledgement); a restricted account also pauses the queue for 15 minutes (research.md U5) |
+| `whatsapp_rejected` | `failed` | WhatsApp refused the message after the relay (negative acknowledgement, `463` included: one refusal fails only its own message); 3 restriction refusals within 10 minutes also pause the queue for 15 minutes (research.md Y7) |
 | `send_failed` | `failed` | the send was refused before leaving (content could not be built, upload to WhatsApp refused) |
 | `key_revoked` | `cancelled` | the key was revoked while the message waited |
 | `key_expired` | `cancelled` | the key expired while the message waited |
@@ -444,7 +444,7 @@ The set is open to additions in v1 (a client treats an unknown code as a generic
 
 ### 4.4 Responses of interactive messages (FR-072, research.md U2)
 
-Collected for `poll`, `buttons` and `list` during `API_REPLY_WINDOW_DAYS` (7) after `steps.sent`; a reply after that is consumed by the bot (no other feature reacts to it) but not recorded. A tap on a button or row, a reply by number quoting the message, and a poll vote are recorded; nothing else is read. A message holds at most 1,000 responses (more are ignored).
+Collected for `poll`, `buttons` and `list` during `API_REPLY_WINDOW_DAYS` (7) after `steps.sent` (after `endedAt` for an `unknown` message, which has no `sent` step; research.md Y16); a reply after that is consumed by the bot (no other feature reacts to it) but not recorded. A tap on a button or row, a reply by number quoting the message, and a poll vote are recorded; nothing else is read. A message holds at most 1,000 responses (more are ignored).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -649,7 +649,7 @@ The right `media.url` is required (`forbidden`, `right: "media.url"`, nothing fe
 | API switched off while running | the next request is not claimed; every queued message becomes `cancelled` with `api_disabled`; waits in progress end with that status; no timer or queue keeps running (FR-001, FR-002) |
 | Key revoked or expired | its next request is refused (`key_revoked` / `key_expired`); its queued messages become `cancelled` with `key_revoked` / `key_expired`; a revoked key is never reactivated and disappears with its history after `API_RETENTION_DAYS` (U10) |
 | WhatsApp disconnected | requests are still accepted (`202`); messages wait and `expired` after the expiry; not a `503` |
-| WhatsApp account restricted (negative acknowledgement 463) | accepted as usual; the queue pauses 15 minutes; messages that expire during the pause become `expired`; owners get the `api_paused` alert |
+| WhatsApp account restricted (3 negative acknowledgements `463` within 10 minutes; a single one only fails its message with `whatsapp_rejected`, research.md Y7) | accepted as usual; the queue pauses 15 minutes; messages that expire during the pause become `expired`; owners get the `api_paused` alert |
 | Restart of the bot | queued messages resume unless expired; a message that was being sent becomes `unknown` and is never resent (FR-038) |
 | Origin blocked (10 auth failures in 5 minutes) | `429 origin_blocked` for 15 minutes for every request of that origin; the budget is in memory and resets on restart. Behind a proxy without `PANEL_TRUST_PROXY` all callers share the proxy's address, so one misbehaving caller can block the rest: set the trusted proxy |
 

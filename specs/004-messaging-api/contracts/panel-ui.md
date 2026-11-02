@@ -2,7 +2,7 @@
 
 The "API" area of the admin SPA: the page that switches the messaging API on and off, manages keys, shows the history and usage, sends a test message and documents the API. Everything here is browser-side. Routes and answers are in [admin-api.md](admin-api.md) (API-1 to API-13 under `/admin/api/api`, and AUTH-7 `POST /admin/api/session/reauth`); the public surface is [public-api.md](public-api.md); the format registry and its `describe(name)` descriptors are produced by `runtime.md` (this folder); tables are in [../data-model.md](../data-model.md).
 
-Where [../research/d-panel-ui.md](../research/d-panel-ui.md) (stream D) disagrees with [../research.md](../research.md), research.md wins (U1, U2, U10, U11; X6 descriptor shape and key convention, X7 routes, X8 step-up, X9 alerts), then [admin-api.md](admin-api.md) for every route, shape and code, then this file. The points settled while writing are in [section 12](#12-points-settled-while-writing-this-contract).
+Where [../research/d-panel-ui.md](../research/d-panel-ui.md) (stream D) disagrees with [../research.md](../research.md), research.md wins (U1, U2, U10, U11; X6 descriptor shape and key convention, X7 routes, X8 step-up, X9 alerts; Y1-Y17 of section 2b), then [admin-api.md](admin-api.md) for every route, shape and code, then this file. The points settled while writing are in [section 12](#12-points-settled-while-writing-this-contract).
 
 Contents: [1 files](#1-files) / [2 API calls](#2-api-calls-per-file) / [3 data shapes](#3-data-shapes) / [4 api-logic.mjs](#4-api-logicmjs) / [5 api-form-logic.mjs](#5-api-form-logicmjs) / [6 step-up](#6-step-up-reauthmjs-and-the-password-dialog) / [7 screens](#7-screens-and-states) / [8 degraded states and deep links](#8-degraded-states-and-deep-links) / [9 render-loop guards](#9-render-loop-guards) / [10 CSP, CSS, accessibility](#10-csp-css-and-accessibility) / [11 panel texts](#11-panel-texts-fragments-merge-and-the-i18n-test) / [12 settled points](#12-points-settled-while-writing-this-contract) / [13 test obligations](#13-test-obligations)
 
@@ -113,7 +113,7 @@ Pure: no DOM, no network, no timer, no `t()`. A function that needs a text retur
 | `POLICY_MODES` / `POLICY_RANK` | `["list", "known", "anyone"]` / `{ list: 0, known: 1, anyone: 2 }` |
 | `REASONS` | `["enable", "create", "rights", "policy", "ip", "expiry", "plain_http"]`, the server order ([admin-api.md](admin-api.md) 1.5). Text key `api.reason_<code>`. |
 | `RIGHT_GROUPS` | `["send", "read", "media", "docs"]` (an unknown group sorts after them, alphabetically, text `api.right_group_other`). |
-| `DEFAULT_LIMITS` | the fallback when `catalog.limits` is missing: `{ keyNameMax: 64, rightsMax: 64, recipientsMax: 200, ipAllowMax: 50, plainHttpFromMax: 50, perMinute: [1, 1000], perDay: [1, 100000], maxPending: [1, 5000] }`. |
+| `DEFAULT_LIMITS` | the fallback when `catalog.limits` is missing: `{ keyNameMax: 64, rightsMax: 64, recipientsMax: 200, ipAllowMax: 50, plainHttpFromMax: 20, perMinute: [1, 1000], perDay: [1, 100000], maxPending: [1, 5000] }`. |
 | `POLL` | `{ fastMs: 2000, fastCount: 15, slowMs: 10000, maxPolls: 60 }` |
 | `STEP_UP_MARGIN_MS` | `2000` |
 
@@ -152,7 +152,7 @@ Pure: no DOM, no network, no timer, no `t()`. A function that needs a text retur
 
 ### 4.5 IP entries, expiry
 
-The grammar is the one of `lib/api/ipRules.js` ([runtime.md](runtime.md) 15.9; [admin-api.md](admin-api.md) 1.2 still calls the module `ipList.js`; [../data-model.md](../data-model.md) `ipAllow`), pinned for both sides by the shared fixture `test/fixtures/api-ip-entries.json`: an array of `{ "input": string, "ok": boolean, "value": string }` (`value` only when `ok`; `value` is the normalised text). `parseIpEntry` must give the fixture's verdict and `value` for every row, and `parseIpEntry(value).value === value` for every valid row (idempotent, so an unchanged saved entry never differs from itself). The fixture is created with `test/api-ip-rules.test.js` ([runtime.md](runtime.md) 15.9); if its row shape differs from this one, only the loader line of the two tests changes.
+The grammar is the one of `lib/api/ipRules.js` ([runtime.md](runtime.md) 15.9; [../data-model.md](../data-model.md) `ipAllow`; research.md Y11), pinned for both sides by the shared fixture `test/fixtures/api-ip-entries.json`: an array of `{ "input": string, "ok": boolean, "value": string }` (`value` only when `ok`; `value` is the normalised text). `parseIpEntry` must give the fixture's verdict and `value` for every row, and `parseIpEntry(value).value === value` for every valid row (idempotent, so an unchanged saved entry never differs from itself). The fixture is created with `test/api-ip-rules.test.js` ([runtime.md](runtime.md) 15.9) and has exactly the row shape above; the server tests and the view tests load the same file.
 
 | Function | Semantics |
 | -------- | --------- |
@@ -235,7 +235,7 @@ Pure. Drives the test form, the curl preview and the documentation from the desc
 
 ## 6. Step-up: `reauth.mjs` and the password dialog
 
-FR-021, US4.7, US4.8, research.md X8. The server decides ([admin-api.md](admin-api.md) 1.5); the SPA asks early when its mirror says the request widens access, and again when the server says so.
+FR-021, US4.7, US4.8, research.md X8. The server decides ([admin-api.md](admin-api.md) 1.5); the SPA asks early when its mirror says the request widens access, and again when the server says so. A successful login starts the 5-minute window (research.md Y8): `State.stepUp` of the first API-1 load already carries a `confirmedUntil`, so a widening action within 5 minutes of the login shows no password dialog; the view tests that need the dialog start from a `stepUp` whose `confirmedUntil` is `null`.
 
 ```
 reauthStore = createStore({ request: null })        // ui.mjs createStore; request = { id, reasons: [string], resolve }
@@ -311,9 +311,9 @@ The password lives in the input element and one `useState` only: never in the st
 
 ### 7.3 Plain-HTTP networks (U1)
 
-`NetworksCard({ state, onChanged })`, rendered below the keys table. Title `api.networks_title`, intro `api.networks_intro` (a program on the same Docker network can call over plain HTTP only from a listed private network; the default is empty = strict; widening needs the password), then `IpListEditor` with `privateOnly`, `max = catalog.limits.plainHttpFromMax`, hint `api.networks_hint`, placeholder `api.networks_placeholder`, and the empty text `api.networks_empty`.
+`NetworksCard({ state, onChanged })`, rendered below the keys table. Title `api.networks_title`, intro `api.networks_intro` (a program on the same Docker network can call over plain HTTP only from a listed private network; the default is empty = strict; widening needs the password), then `IpListEditor` with `privateOnly`, `max = catalog.limits.plainHttpFromMax` (20, research.md Y1), hint `api.networks_hint`, placeholder `api.networks_placeholder`, and the empty text `api.networks_empty`.
 
-- Draft rows start from `state.plainHttpFrom`; Save (`btn-primary`, label `api.networks_save`), disabled unless the normalised values differ from the stored list (set comparison) or while busy. Rows are parsed with `parseIpRows(rows, { privateOnly: true })`; an error blocks the request and shows `ipRowsError`.
+- Draft rows start from `state.plainHttpFrom`; Save (`btn-primary`, label `api.networks_save`), disabled unless the normalised values differ from the stored list (set comparison) or while busy. Rows are parsed with `parseIpRows(rows, { privateOnly: true, max })`; an error blocks the request and shows `ipRowsError`.
 - Save: `withStepUp(() => api("PUT", ...{ enabled: state.enabled, plainHttpFrom: values }), { needed: widenings(before, after).includes("plain_http"), reasons: ["plain_http"] })`. Removing or narrowing entries never asks. A server `422` (`plainHttpFrom` with `indices`, optionally `reason: "not_private"`) maps to the same row message. Toast `api.networks_saved`; reload.
 - Dirty guard `useUnsavedGuard("api-networks", dirty)`.
 
@@ -538,7 +538,7 @@ The tool checks the same placeholders in both languages and the same key set, so
 
 - `FRAGMENT_DIRS` (`:31`) gains `path.join(ROOT, "specs", "004-messaging-api", "i18n")`; the "fragments are valid" test gains the assertion that `panel-api.json` and `panel-api-server.json` of `004-messaging-api` are among the loaded fragments (an empty scan must not pass).
 - `AREAS` (`:60-63`) gains `"api"` after `"broadcasts"`: `nav.api` and `api.title` become expected keys.
-- `EXTRA_SERVER_CODES` (`:65`) gains `password_required`, `api_disabled` and every `MESSAGING_STATUS` code that is not an envelope code (per `lib/messaging/errors.js`; [runtime.md](runtime.md) 2 lists nine, `validation_failed` being an envelope code already, so eight are added: `recipient_not_allowed`, `chat_disabled`, `queue_full`, `pending_limit_reached`, `media_type_mismatch`, `media_too_large`, `url_forbidden`, `url_unreachable`; `daily_quota_exceeded` and `idempotency_conflict` belong to `API_STATUS`, not the panel). One more assertion: `Object.keys(MESSAGING_STATUS)` is inside `ENVELOPE_CODES` plus `EXTRA_SERVER_CODES`, so a code added to the engine cannot skip its panel text.
+- `EXTRA_SERVER_CODES` (`:65`) gains `password_required`, `api_disabled` and every `MESSAGING_STATUS` code that is not an envelope code (per `lib/messaging/errors.js`; [runtime.md](runtime.md) 2 lists nine, `validation_failed` being an envelope code already, so eight are added (research.md Y10: only the `MESSAGING_STATUS` codes get panel texts): `recipient_not_allowed`, `chat_disabled`, `queue_full`, `pending_limit_reached`, `media_type_mismatch`, `media_too_large`, `url_forbidden`, `url_unreachable`; `daily_quota_exceeded` and `idempotency_conflict` belong to `API_STATUS`, not the panel). One more assertion: `Object.keys(MESSAGING_STATUS)` is inside `ENVELOPE_CODES` plus `EXTRA_SERVER_CODES`, so a code added to the engine cannot skip its panel text.
 - The settings tests (`:198-201`: 101 entries, two texts each) move to 112 entries with [admin-api.md](admin-api.md) section 3 (the server side's edit); `THEMES` (`:58`) is unchanged (no new theme).
 - "dynamic key families used by the shell are complete" (`:415`) gains `api.msg_status.` (the nine statuses), `api.key_state.` (`active`, `expired`, `revoked`), `api.right_group.` (`send`, `read`, `media`, `docs`).
 - The literal and dynamic `t()` scans already cover the new modules. A dynamic call such as ``t(`api.right.${id}.label`)`` is checked for a non-empty static prefix only; the registry-driven families are completed by `test/api-panel-texts.test.js`.

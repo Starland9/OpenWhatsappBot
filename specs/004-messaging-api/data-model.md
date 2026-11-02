@@ -1,6 +1,6 @@
 # Phase 1: data model
 
-Feature `004-messaging-api`. Inputs: [spec.md](spec.md) (FR-001 to FR-094, SC-001 to SC-011, three Clarifications sessions), [research.md](research.md) (**authoritative**: owner decisions U1-U15 and arbitration X1-X22 override the stream files), research streams [A](research/a-http-security.md) (key format, quotas, idempotency), [B](research/b-messaging-engine.md) (status machine, receipts, replies, media) and [C](research/c-data-panel-backend.md) (models, backup, settings, retention, which owns the column names, X3). Other contracts: [public-api.md](contracts/public-api.md) (HTTP shapes of messages and responses), [runtime.md](contracts/runtime.md) (engine, queue, pacing, capture), [admin-api.md](contracts/admin-api.md) (panel routes and services), [panel-ui.md](contracts/panel-ui.md), [quickstart.md](quickstart.md).
+Feature `004-messaging-api`. Inputs: [spec.md](spec.md) (FR-001 to FR-094, SC-001 to SC-011, three Clarifications sessions), [research.md](research.md) (**authoritative**: owner decisions U1-U15, arbitration X1-X22 and alignment Y1-Y17 override the stream files), research streams [A](research/a-http-security.md) (key format, quotas, idempotency), [B](research/b-messaging-engine.md) (status machine, receipts, replies, media) and [C](research/c-data-panel-backend.md) (models, backup, settings, retention, which owns the column names, X3). Other contracts: [public-api.md](contracts/public-api.md) (HTTP shapes of messages and responses), [runtime.md](contracts/runtime.md) (engine, queue, pacing, capture), [admin-api.md](contracts/admin-api.md) (panel routes and services), [panel-ui.md](contracts/panel-ui.md), [quickstart.md](quickstart.md).
 
 Sequelize 6.37, SQLite (default) or Postgres (`DATABASE_URL` containing `postgres`). The four tables below are the contract of the model files `lib/database/models/{ApiKey,ApiMessage,ApiMessageResponse,ApiState}.js`. Every claim marked **(spike)** was run on SQLite through Sequelize 6.37.8 with draft models outside the repository (index names and lengths, NULL-distinct unique indexes, `silent` updates, CAS update counts, JSON read-back).
 
@@ -40,7 +40,7 @@ A JSON column read with `raw: true` is a **string** on SQLite and an object on P
 
 | Table | Writers | Readers |
 |---|---|---|
-| `api_keys` | configuration columns: the panel service `lib/admin/services/api.js` only (create, update, duplicate, revoke), under `withLock("api-keys")`. Usage columns (`lastUsedAt`, `lastIp`, `seenIps`): the key store `lib/api/keys.js` only, write-behind. Purge: housekeeping | the key store (cached, `api_keys`), the panel service (direct, always fresh), housekeeping |
+| `api_keys` | configuration columns: the panel service `lib/admin/services/api.js` only (create, update, duplicate, revoke), under `withLock("api-keys")`. Usage columns (`lastUsedAt`, `lastIp`, `seenIps`): the key store `lib/api/keyStore.js` only (Y2), write-behind. Purge: housekeeping | the key store (cached, `api_keys`), the panel service (direct, always fresh), housekeeping |
 | `api_messages` | the engine `lib/messaging` (insert at acceptance through `submit`, every status write, receipts, recovery), the API layer for the lazy idempotency release, housekeeping (idempotency release, transient columns, purge) | engine, API layer, panel service (history, detail, usage, test send), housekeeping |
 | `api_message_responses` | the reply-capture module (`lib/messaging/replies.js`, hook plugin `plugins/apireplies.js`), housekeeping | API layer (message detail), panel service |
 | `api_state` | `lib/utils/apiState.js` only, driven by panel route API-2 | `apiState` (cached in memory), nobody queries it directly |
@@ -58,11 +58,11 @@ A JSON column read with `raw: true` is a **string** on SQLite and an object on P
 | `id` | INTEGER PK autoincrement | | panel id, shown in the audit target and in `KeyView.id`; never part of the token |
 | `name` | STRING(64) | not null | trimmed, NFKC-normalised (the panel schema's `nfkc` rule), 1-64 code points, no control character (service validates code points, the model `notEmpty`). The case-insensitive uniqueness among non-revoked keys is carried by `nameKey` (1.5) |
 | `nameKey` | STRING(128) | **null** | `name.toLowerCase()` while the key is not revoked, **NULL once revoked** (1.5). Wider than `name` because lower-casing can lengthen a string |
-| `lookupId` | STRING(16) | not null | the 16 hexadecimal characters after `owbk_` in the token (64 random bits), `is: /^[0-9a-f]{16}$/`. Public identifier used for the in-memory lookup and in debug logs (A4) |
+| `lookupId` | STRING(16) | not null | the 16 hexadecimal characters after `owbk_` in the token (64 random bits), `is: /^[0-9a-f]{16}$/`. Public identifier used for the in-memory lookup (A4). Never logged: a log line names a key by its integer `id` and its `name` (Y9) |
 | `secretHash` | STRING(64) | not null | lower-case hex SHA-256 of the 43-character secret **string** as sent (not of its decoded bytes), `is: /^[0-9a-f]{64}$/`. No salt and no KDF: 256 random bits (A4). Also the HMAC key of `ApiMessage.requestHash` (2.4), so it never changes for a row |
 | `last4` | STRING(4) | not null | last 4 characters of the token: the only fragment ever displayed, and only in the panel |
 | `rights` | JSON | not null, `[]` | array of at most 64 distinct right ids, each `/^[a-z]+(\.[a-z0-9_]+)*$/` and at most 64 characters (`messages.send.text`, `messages.read`, `media.url`, `api.docs`...). The explicit list is the deny-by-default of FR-011: a right added by a new module is in no stored list. A stored id absent from the catalogue (module removed) is ignored at runtime, shown as an orphan, and can only be removed |
-| `policyMode` | STRING(8) | not null, `'list'` | `list` \| `known` \| `anyone` (`isIn`). The engine's `evaluatePolicy` input names the third mode `any`; the key store maps `anyone` to it |
+| `policyMode` | STRING(8) | not null, `'list'` | `list` \| `known` \| `anyone` (`isIn`); the same three names are used by the key store and the engine (Y14) |
 | `recipients` | JSON | not null, `[]` | at most 200 distinct normalised JIDs, each `/^[1-9]\d{7,14}@s\.whatsapp\.net$/` or `/^\d{5,25}(-\d+)?@g\.us$/`. A LID is never an entry. Read only in mode `list`; **kept** when the mode changes, so toggling `anyone` and back loses nothing |
 | `limitPerMinute` | INTEGER | null | NULL = follow `API_RATE_PER_MINUTE` (8.1). Bounds 1-1000 |
 | `limitPerDay` | INTEGER | null | NULL = follow `API_RATE_PER_DAY`. Bounds 1-100 000 |
@@ -104,7 +104,7 @@ Cross-field facts the model does not enforce (static `Model.update` runs partial
 | `expired` | `expiresAt IS NOT NULL AND expiresAt <= now` |
 | `active` | otherwise |
 
-Only `active` authenticates. `revoked` and `expired` are reported (`key_revoked`, `key_expired`) **only after the secret matched** (A2 step 8). An expired, non-revoked key stays in the table so the owner can extend it (C7); which edits the panel accepts on it is fixed in [admin-api.md](contracts/admin-api.md). Its queued messages are `cancelled` (reason `key_expired`) at their next claim attempt (B3 `keyGuard`); a revoked key's are cancelled by the revoke itself (1.6).
+Only `active` authenticates. `revoked` and `expired` are reported (`key_revoked`, `key_expired`) **only after the secret matched** (A2 step 8). An expired, non-revoked key stays in the table so the owner can extend it (C7): it is editable, extending its expiry is a widening that asks for the password, and duplicating it is refused (Y12, [admin-api.md](contracts/admin-api.md)). Its queued messages are `cancelled` (reason `key_expired`) at their next claim attempt (B3 `keyGuard`); a revoked key's are cancelled by the revoke itself (1.6).
 
 ### 1.5 Name uniqueness among non-revoked keys (U11)
 
@@ -155,7 +155,7 @@ Every writer of configuration columns calls `settingsCache.invalidate("api_keys"
 | `sentAt` | DATE | null | WhatsApp accepted the message (T3) |
 | `deliveredAt`, `readAt` | DATE | null | WhatsApp's receipt time (`messageTimestamp`), else the engine's `now`; private chats only |
 | `endedAt` | DATE | null | time of the transition into `failed`, `expired`, `cancelled` or `unknown`; cleared when `unknown` is upgraded by a receipt |
-| `repliesUntil` | DATE | null | set when the row leaves `sending` (`sentAt` or `endedAt` + `API_REPLY_WINDOW_DAYS`), **only for interactive formats**; reply capture records only while `now <= repliesUntil` |
+| `repliesUntil` | DATE | null | set when the row leaves `sending`: `sentAt + API_REPLY_WINDOW_DAYS` (Y16), or `endedAt + API_REPLY_WINDOW_DAYS` for an `unknown` row, which has no `sentAt`; **only for interactive formats**; reply capture records only while `now <= repliesUntil` |
 | `payload` | JSON | null | **transient content** (2.6), at most 128 KiB (validator; real size is bounded far lower by the format limits). NULLed in the same UPDATE that leaves `queued|sending` |
 | `choices` | JSON | null | `[{ id, label }]` of an interactive message, kept for the retention period (2.7) |
 | `replyData` | JSON | null | poll option digests (2.7); NULLed when `repliesUntil` passes |
@@ -231,7 +231,7 @@ Every transition is one conditional `UPDATE ... WHERE id = :id AND status = :fro
 | T8 | `sending` -> `unknown` | `timeout`, `connection_closed`, boot `recover()` (`interrupted`), housekeeping net (5) | | `endedAt errorCode`; `repliesUntil` if interactive | `payload` (reply material kept: the message may have left) |
 | T9 | `sent` or `unknown` -> `delivered` | receipt status 3, private chat | | `deliveredAt`; from `unknown`: `endedAt = NULL`, `errorCode = NULL` (`sentAt` stays NULL: nothing proves when WhatsApp accepted it) | |
 | T10 | `sent`, `delivered` or `unknown` -> `read` | receipt status 4 or 5, private chat | | `readAt`, `deliveredAt = COALESCE(deliveredAt, :t)`; from `unknown` as T9 | |
-| T11 | `sent` or `unknown` -> `failed` | asynchronous negative ack `messages.update` status 0 (`whatsapp_rejected`) | | `endedAt errorCode` | reply material as T7 |
+| T11 | `sent` or `unknown` -> `failed` | asynchronous negative ack `messages.update` status 0 (`whatsapp_rejected`); one `463` only fails its own message, three within 10 minutes also pause the queue (Y7, [runtime.md](contracts/runtime.md) 4.6) | | `endedAt errorCode` | reply material as T7 |
 
 After the UPDATE of T3-T8 commits, the engine removes the staging directory, then runs a second `UPDATE mediaPath = NULL` (best effort). A crash between leaves a terminal row holding `mediaPath`: the pointer of a pending deletion, finished by housekeeping step `apiTransient` (section 5).
 
@@ -267,21 +267,21 @@ payload = {
 - `input` is the fresh object produced by the format's strict validator, **without** the common fields (`to` is the `recipient` column; `quote`, `wait`, the idempotency key are request-level) and without `fileName` (moved to `media.fileName`, already sanitised by `broadcaster.sanitizeName`).
 - `media.source` only records how the file arrived. A URL given by the caller is **never stored** (it was fetched during the request, FR-061, and may carry a token); no cookie, header or remote metadata either. `media.mime` and `media.ext` come from the sniff (B10), never from the caller. The file itself is at `mediaPath`.
 - `quote` is resolved at acceptance (same key, same chat, row still present and holding a `waId`; otherwise `validation_failed` with `fields.quote = { code: "not_found" }`): a purge of the quoted row between acceptance and send cannot break the send. Nothing of the quoted content exists to store (U13: typed empty shell derived from `format`).
-- Field names below are those of the format modules and of the request bodies in [public-api.md](contracts/public-api.md); if the two files differ, public-api.md wins and this table is edited.
+- Field names below are those of the request bodies in [public-api.md](contracts/public-api.md) section 3, which the format modules and `payload.input` share (Y4); the values are stored in their normalised form (phone numbers and mentions as digit strings).
 
 | `format` | `input` | Media (`media`, `mediaPath`) | `choices` / `replyData` / `pollSecret` |
 |---|---|---|---|
-| `text` | `text` (1-4096), `mentions?` (<= 50 normalised PN JIDs, groups only), `linkPreview?` (boolean; true needs right `media.url`) | none | none |
+| `text` | `text` (1-4096), `mentions?` (<= 50 phone numbers as digit strings, groups only), `linkPreview?` (boolean; true needs right `media.url`) | none | none |
 | `image`, `video`, `gif` | `caption?` (<= 1024) | required | none |
 | `audio`, `voice`, `sticker` | `{}` | required | none |
 | `document` | `caption?` (<= 1024) | required; `media.fileName` | none |
 | `location` | `latitude`, `longitude`, `name?`, `address?` (<= 256) | none | none |
-| `contact` | `contacts`: 1-10 of `{ displayName, phones` (1-5 normalised digit strings)`, organization?, email? }` | none | none |
-| `poll` | `question` (<= 255), `options` (2-12 distinct, <= 100), `multiple` (boolean) | none | `choices`, `replyData`, `pollSecret` |
+| `contact` | `contacts`: 1-10 of `{ name, phones` (1-5 normalised digit strings)`, organization?, email? }` | none | none |
+| `poll` | `question` (<= 255), `options` (2-12 distinct, <= 100), `multiple?` (boolean, default false) | none | `choices`, `replyData`, `pollSecret` |
 | `buttons` | `text` (<= 1024), `buttons`: 1-3 of `{ id, label }` | none | `choices` |
-| `list` | `text` (<= 1024), `buttonLabel`, `rows`: 1-10 of `{ id, title, description? }` | none | `choices` |
+| `list` | `text` (<= 1024), `buttonLabel`, `choices`: 1-10 of `{ id, title, description? }` | none | `choices` |
 
-Button and row ids: `/^[A-Za-z0-9_.-]{1,64}$/`, no colon (B2). Payload size is bounded by these limits well under the 128 KiB validator (largest: 10 contact cards).
+Button and choice ids: `/^[A-Za-z0-9_.-]{1,64}$/`, no colon (B2). Payload size is bounded by these limits well under the 128 KiB validator (largest: 10 contact cards).
 
 ### 2.7 `choices`, `replyData`, `pollSecret` (U2, U15, X3)
 
@@ -289,7 +289,7 @@ All three are written by T2 (the build output), never at acceptance: a message t
 
 | Column | Shape | Lifetime |
 |---|---|---|
-| `choices` | `[{ "id": string, "label": string }]` in **display order**. `label` is 1-100 code points. buttons: `id` = caller id, `label` = button label (<= 20). list: `id` = caller row id, `label` = row **title** (<= 24; the description and the opener label are not kept); order = rows flattened section by section, so the 1-based numbered answer `n` maps to `choices[n-1]`. poll: `id` = the zero-based option index as a decimal string (`"0"`..`"11"`), `label` = the option text (<= 100); order = option order | with the row, until the retention purge (T7/T11 erase it for a message that did not leave) |
+| `choices` | `[{ "id": string, "label": string }]` in **display order**. `label` is 1-100 code points. buttons: `id` = caller id, `label` = button label (<= 20). list: `id` = caller choice id, `label` = the choice **title** (<= 24; the description and `buttonLabel` are not kept); order = the `choices` array of the request, so the 1-based numbered answer `n` maps to `choices[n-1]`. poll: `id` = the zero-based option index as a decimal string (`"0"`..`"11"`), `label` = the option text (<= 100); order = option order | with the row, until the retention purge (T7/T11 erase it for a message that did not leave) |
 | `replyData` | poll only: `{ "v": 1, "multi": boolean, "hashes": ["<64 hex>", ...] }`, one lower-case SHA-256 hex digest of each UTF-8 option name, same order and length as `choices`. NULL for buttons and list (their ids are in `choices`) | NULLed when `repliesUntil` passes (daily, with `pollSecret`) |
 | `pollSecret` | `enc:v1:<iv>:<tag>:<ciphertext>` of the 64-hex `messageSecret` (B2, B7). If `panel.key` is lost, new votes cannot be decoded and are silently not recorded (never an error to the caller) | with `replyData` |
 
@@ -327,9 +327,9 @@ Digests are not the text, but a very common option ("Yes") is guessable from its
 
 Recording rules (invariants of the module, pinned by `test/messaging-replies.test.js`):
 
-- A reply is recorded only if the message exists, `repliesUntil` is set and `now <= repliesUntil` (then it is consumed either way, US6.4-5), and the message holds fewer than **1000** response rows (the extra is ignored and counted in the log; research C over B's 5000).
+- A reply is recorded only if the message exists, `repliesUntil` is set and `now <= repliesUntil` (then it is consumed either way, US6.4-5), and the message holds fewer than **1000** response rows (Y16; the extra is ignored and counted in the log).
 - `choice`: append-only. One tap, or one numbered answer, is one row. The same person may answer twice; both rows are kept.
-- `vote`: `UPDATE ... SET choiceIds, sourceId, respondedAt WHERE messageId = :m AND voterKey = :v AND respondedAt <= :t`; 0 rows changed then `INSERT`; a unique violation on that INSERT means a concurrent or **newer** vote exists, stop (a stale redelivery never overwrites a newer vote). No lock is needed; research C's delete-then-insert under `withLock("api-responses")` is replaced by the unique index.
+- `vote`: `UPDATE ... SET choiceIds, sourceId, respondedAt WHERE messageId = :m AND voterKey = :v AND respondedAt <= :t`; 0 rows changed then `INSERT`; a unique violation on that INSERT means a concurrent or **newer** vote exists, stop (a stale redelivery never overwrites a newer vote). No lock is needed: the unique index is the arbiter.
 - A voter seen first as a LID and later as a PN in a group would produce two rows; in private chats `author` is forced to `recipient`, which removes the case there (residual group case: phone checklist, quickstart).
 - Totals per option are computed on read (`describeResponses`) by counting the current `choiceIds` of the vote rows (poll) or the ids of the choice rows (buttons, list); labels come from `ApiMessage.choices`. The HTTP shape of the answer is in [public-api.md](contracts/public-api.md) and [admin-api.md](contracts/admin-api.md).
 
@@ -362,7 +362,7 @@ Five steps appended to `housekeeping.run()` (each through `step()`, so one failu
 | `apiTransient` | in this order: (a) safety net: `sending` rows with `sendingAt < now - 15 min` become `unknown / interrupted` through T8 (boot `recover()` is the only other path out of `sending`, and a stuck row would inflate the per-key and global pending counts until the next restart; the settle UPDATE is `WHERE status = 'sending'`, so a late real settle is a harmless no-op, and a send is never repeated); (b) `payload = NULL` where `status NOT IN (queued, sending)` (belt and braces, I2); (c) for every row outside `queued|sending` still holding `mediaPath`: delete the directory, then `mediaPath = NULL`; (d) `replyData = NULL, pollSecret = NULL` where `repliesUntil < now` | FR-073, FR-075, FR-038 |
 | `apiMessages` | batches of ids with `acceptedAt < cutoff` and `status NOT IN (queued, sending)`: responses of those ids first, then the messages; then orphan responses (`messageId NOT IN (SELECT "id" FROM "api_messages")` via `DATABASE.literal`, the `pruneOnceBroadcasts` pattern) and responses with `respondedAt < cutoff`. `cutoff = min(now - API_RETENTION_DAYS, start of the current local day in TIMEZONE)`: with retention >= 1 day the second term only matters on a 25-hour day and guarantees that today's rows, which feed the day quota (A5), are never purged | FR-074, US3.6 |
 | `apiKeys` | delete revoked keys with `revokedAt < now - API_RETENTION_DAYS`, then `settingsCache.invalidate("api_keys")`. Their messages were all accepted before `revokedAt`, so step `apiMessages` already removed them. Expired, non-revoked keys stay | U10 |
-| `apiMedia` | `messaging.sweepMedia({ now })` (resolved lazily like `broadcaster.sweepMedia`, `optionalRequire("../messaging")`): remove each `data/api-media/<name>/` whose `<name>` is not the `publicId` of a `queued` or `sending` row, only when the directory is older than 1 h (grace for an acceptance in progress); also run once at engine `start()`. Reports `{ removed, freedBytes }`. Runs outside any lock the engine takes (B names the same function `sweepOrphans`) | FR-075 orphan sweep |
+| `apiMedia` | `messaging.sweepMedia({ now })` (resolved lazily like `broadcaster.sweepMedia`, `optionalRequire("../messaging")`): remove each `data/api-media/<name>/` whose `<name>` is not the `publicId` of a `queued` or `sending` row, only when the directory is older than 1 h (grace for an acceptance in progress); also run once at engine `start()`. Reports `{ removed, freedBytes }`. Runs outside any lock the engine takes (Y13) | FR-075 orphan sweep |
 
 Order matters: `apiTransient` before `apiMessages` (nothing purged still holds a file), `apiMessages` before `apiKeys` (a message never outlives its key's row except by logical link), `apiMedia` last.
 
@@ -398,19 +398,19 @@ Consequences: after moving to a new server the owner recreates the keys (quickst
 
 ## 7. Staged media (B10, FR-061, FR-075)
 
-Root `data/api-media/` (gitignored with `data/`), one directory per message named by `publicId` (validated against `^msg_[A-Za-z0-9_-]{22}$` before any path is built, then `safeFs.assertInside`), mode 0700, files 0600. This replaces research B's `data/api-outbox/<id>/` (B stored `payload.json` there; since U2/X3 the content lives in `ApiMessage.payload`, so the directory holds media only; research C's `api-media` name is kept, as the sibling of `broadcast-media`).
+Root `data/api-media/` (gitignored with `data/`), one directory per message named by `publicId` (validated against `^msg_[A-Za-z0-9_-]{22}$` before any path is built, then `safeFs.assertInside`), mode 0700, files 0600. The content of a queued message lives in the `ApiMessage.payload` column, never in a file (Y5), so the directory holds media only; `api-media` is the sibling of `broadcast-media`.
 
 | File | Content | Written by |
 |---|---|---|
-| `source` | the verified media exactly as received or downloaded (fixed name, no caller-controlled name on disk; the document name is `media.fileName` in the payload) | stream A: the pipeline streams the upload or the URL download into `data/tmp/api/<random>.part` under the byte cap, sniffs it, then `ctx.file.adopt(dest)` renames it here (same filesystem). Panel test form: copied from `data/admin-uploads` (purpose `api`) |
+| `source` | the verified media exactly as received or downloaded (fixed name, no caller-controlled name on disk; the document name is `media.fileName` in the payload) | the API pipeline streams the upload or the URL download into `data/tmp/api/<random>.part` under the byte cap and sniffs it; `messaging.submit({ media })` then **moves** it here (rename on the same filesystem, copy and unlink otherwise) after minting the `publicId` (Y3). Panel test form: `submit` **copies** it from `data/admin-uploads` (purpose `api`), the upload record is consumed after acceptance |
 | `prepared.<ext>` | the output of `prepare` (voice to Ogg/Opus, GIF to MP4, sticker to WebP) | the engine, at send time, while the row is still `queued` (B3 step 5) |
 
 `mediaPath` = `data/api-media/<publicId>/source` is written at T1.
 
 | Event | Directory |
 |---|---|
-| Acceptance refused after `adopt` (quota reserve fails, INSERT fails) | removed by the pipeline's `finally` (A6) |
-| Crash between `adopt` and the INSERT | orphan, removed by the daily sweep (older than 1 h, no `queued|sending` row) |
+| `submit` fails after the move (the INSERT fails, or an idempotency race is lost) | removed by `submit` itself; a refusal before the move leaves the temp file to the pipeline's `finally` (A6) |
+| Crash between the move and the INSERT | orphan, removed by the daily sweep (older than 1 h, no `queued|sending` row) |
 | T3-T8 committed | `fs.rm(dir, { recursive, force })` after the commit, then `mediaPath = NULL` |
 | Boot `recover()` | removes the directory of every row it moves to `unknown` |
 | A `queued` row whose directory vanished | failed as `payload_unavailable` at its next pick; never sent without its media (the `media_unavailable` rule of `broadcaster.js`) |
@@ -439,7 +439,7 @@ Eleven new `settingsCatalog.js` entries, all `env: null` (panel-only, like `BROA
 | `API_REPLY_WINDOW_DAYS` | int days, 7 | `int(1, 30)` | limits, immediate | snapshot into `repliesUntil` |
 | `ALERT_API_ORIGIN_BLOCKED` | bool, true | | alerts, immediate | alert type `api_origin_blocked` |
 | `ALERT_API_KEY_NEW_IP` | bool, **false** | | alerts, immediate | alert type `api_key_new_ip`; the `alert(key)` helper hard-codes `default: true`, so this entry takes a default argument or is built with `entry()` |
-| `ALERT_API_PAUSED` | bool, true | | alerts, immediate | alert type `api_paused` (U5, U12) |
+| `ALERT_API_PAUSED` | bool, true | | alerts, immediate | alert type `api_paused` (Y7, U12) |
 
 One cross validator beside `responderDelays`: `API_REPLY_WINDOW_DAYS <= API_RETENTION_DAYS` (`bound_conflict`). Capture-site rule: every reader takes `config.X` at call time; values copied into a row (`expiresAt`, `repliesUntil`) are snapshots, so a changed setting applies to the next message and never to rows already queued; `test/capture-sites.test.js` gets one block and a scan that `lib/api/**`, `lib/messaging/**` and `lib/utils/apiState.js` have no top-level `= config.`. The switch (`ApiState.enabled`) and `plainHttpFrom` are deliberately **not** settings (section 4).
 
@@ -477,7 +477,7 @@ One cross validator beside `responderDelays`: `API_REPLY_WINDOW_DAYS <= API_RETE
 | Rights catalogue, endpoint and format declarations | modules |
 | `ApiKey.status`, `kind` (private/group), `toName`, usage per day | derived at read time |
 
-Columns **never** present in any HTTP response, audit detail, log line or error body (the leak scan listed under "Test obligations" enumerates them): `ApiKey.secretHash`, `lookupId` (debug log field only), `seenIps` (its length may be shown as `seenIpCount`), `ApiMessage.pollSecret`, `payload`, `replyData`, `mediaPath`, `requestHash`, `idempotencyKey`. `recipient` appears in the panel history and detail and in the public API to the owning key only, masked in logs. The public API and the panel serialise through explicit field lists (`MessageRow`, `MessageDetail`, `KeyView`, the public message view), never `row.get()` or `toJSON()`.
+Columns **never** present in any HTTP response, audit detail, log line or error body (the leak scan listed under "Test obligations" enumerates them): `ApiKey.secretHash`, `lookupId` (Y9), `seenIps` (its length may be shown as `seenIpCount`), `ApiMessage.pollSecret`, `payload`, `replyData`, `mediaPath`, `requestHash`, `idempotencyKey`. `recipient` appears in the panel history and detail and in the public API to the owning key only, masked in logs. The public API and the panel serialise through explicit field lists (`MessageRow`, `MessageDetail`, `KeyView`, the public message view), never `row.get()` or `toJSON()`.
 
 ---
 

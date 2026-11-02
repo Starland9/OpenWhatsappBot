@@ -30,6 +30,7 @@ const format = require("../lib/admin/backup/format");
 const ROOT = path.resolve(__dirname, "..");
 const VIEWS = path.join(ROOT, "lib", "admin", "public", "js", "views");
 const FRAGMENT = path.join(ROOT, "specs", "002-admin-panel", "i18n", "panel-backup.json");
+const FRAGMENT_003 = path.join(ROOT, "specs", "003-command-permissions", "i18n", "panel-permissions.json");
 const load = (file) => import(pathToFileURL(path.join(VIEWS, file)).href);
 const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const placeholdersOf = (text) => (String(text).match(/\{[A-Za-z0-9_]+\}/g) || []).sort().join(",");
@@ -286,9 +287,14 @@ describe("panel-backup.json", () => {
     ];
     const catalog = readJson(path.join(ROOT, "lib", "admin", "public", "i18n", "en.json"));
     const catalogFr = readJson(path.join(ROOT, "lib", "admin", "public", "i18n", "fr.json"));
-    // A key is there when the 002 fragment or the merged catalogs carry it: `backup.model_PermissionRule` (003) lives in
-    // the 003 fragment and reaches the catalogs only through tools/merge-panel-i18n.js, never in panel-backup.json
-    for (const key of wanted) assert.ok((key in fragment.en || key in catalog) && (key in fragment.fr || key in catalogFr), key);
+    // Every key comes from a fragment (panel-backup.json, or panel-permissions.json of feature 003 for
+    // `backup.model_PermissionRule`) and is merged into both catalogs
+    const fragment003 = readJson(FRAGMENT_003);
+    for (const key of wanted) {
+      assert.ok(key in fragment.en || key in fragment003.en, `${key} (en fragment)`);
+      assert.ok(key in fragment.fr || key in fragment003.fr, `${key} (fr fragment)`);
+      assert.ok(key in catalog && key in catalogFr, `${key} (merged)`);
+    }
     for (const phase of logic.RESTORE_PHASES) assert.ok(catalog[`jobs.phase.${phase}`], `jobs.phase.${phase}`);
     for (const code of ["too_short", "too_long", "mismatch"]) assert.ok(catalog[`fields.${code}`], `fields.${code}`);
   });

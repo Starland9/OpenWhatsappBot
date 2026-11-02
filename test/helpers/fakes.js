@@ -317,6 +317,13 @@ function textOf(content) {
  * @param {string} [opts.subject]
  * @param {string} [opts.participantStatus="200"]  status returned by groupParticipantsUpdate
  * @param {boolean} [opts.strict=false]   true = unknown methods are undefined instead of recording no-ops
+ * @param {boolean} [opts.announce=false] group metadata `announce`: only administrators may write
+ * @param {Error|string|true} [opts.groupMetadataError]  `groupMetadata` rejects (an Error as is, else a generic one);
+ *                                        also settable later: `sock.groupMetadataError = err` (null to clear)
+ * @param {Function|*} [opts.onWhatsApp]  a function `(...jids) => result` replaces `onWhatsApp`, any other value
+ *                                        (e.g. `[{ jid, exists: false }]`) is returned as is; default: every jid exists
+ *
+ * `sendMessage(jid, content, { messageId })` records `messageId` as the key id (default `BOT<n>`).
  *
  * Recorders: `sock.sent` (every sendMessage), `sock.participantUpdates`, `sock.calls` (other methods),
  * `sock.groupMetadataCalls`. Mutators: `sock.setAdmin(user, bool)`.
@@ -356,6 +363,7 @@ function fakeSocket(opts = {}) {
     calls: [],
     participantUpdates: [],
     groupMetadataCalls: 0,
+    groupMetadataError: opts.groupMetadataError || null,
     ev: new EventEmitter(),
     ws: new EventEmitter(),
     logger: { level: "silent", info() {}, warn() {}, error() {}, debug() {}, trace() {}, fatal() {}, child() { return this; } },
@@ -375,7 +383,7 @@ function fakeSocket(opts = {}) {
     },
 
     async sendMessage(jid, content, options) {
-      const key = { remoteJid: jid, fromMe: true, id: `BOT${++counter}` };
+      const key = { remoteJid: jid, fromMe: true, id: options?.messageId || `BOT${++counter}` };
       sock.sent.push({
         jid,
         content,
@@ -419,6 +427,9 @@ function fakeSocket(opts = {}) {
 
     async groupMetadata(jid) {
       sock.groupMetadataCalls++;
+      if (sock.groupMetadataError) {
+        throw sock.groupMetadataError instanceof Error ? sock.groupMetadataError : new Error(String(sock.groupMetadataError));
+      }
       return {
         id: jid,
         subject: opts.subject || "Test group",
@@ -426,7 +437,7 @@ function fakeSocket(opts = {}) {
         owner: IDS.CREATOR_PN,
         creation: 1700000000,
         size: participants.length,
-        announce: false,
+        announce: opts.announce === true,
         restrict: false,
         participants: participants.map((p) => ({ ...p })),
       };
@@ -448,6 +459,8 @@ function fakeSocket(opts = {}) {
       return "FAKEINVITECODE";
     },
     async onWhatsApp(...jids) {
+      if (typeof opts.onWhatsApp === "function") return await opts.onWhatsApp(...jids);
+      if (opts.onWhatsApp !== undefined) return opts.onWhatsApp;
       return jids.flat().map((jid) => ({ jid, exists: true }));
     },
     async profilePictureUrl() {
@@ -542,7 +555,14 @@ function fakeClient(sock = fakeSocket()) {
   };
   client.restartStatus = "open";
   client.getSocket = () => sock;
-  client.ready = () => true;
+  // `client.setReady(false)` simulates a disconnection (ready() false, isReady false); true by default
+  client.fakeReady = true;
+  client.ready = () => client.fakeReady !== false;
+  client.setReady = (value) => {
+    client.fakeReady = value !== false;
+    client.isReady = client.fakeReady;
+    return client;
+  };
   client.getState = () => ({ ...client.fakeState });
   client.setState = (changes) => {
     client.fakeState = { ...client.fakeState, ...changes, since: Date.now() };

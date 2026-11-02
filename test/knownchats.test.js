@@ -284,3 +284,68 @@ test("onGroupParticipants: other actions and other chats change nothing; the bot
   await plugin.onGroupParticipants({ id: G(71), action: "remove", participants: [PN(999)] }, client);
   assert.ok((await db.KnownChat.findByPk(G(71))).leftAt);
 });
+
+// ---------------------------------------------------------------------------
+// Feature 004: isKnown(jid) (contracts/runtime.md section 14.2), the recipient policy "known" of the messaging API
+// ---------------------------------------------------------------------------
+
+const knownRow = (over) => ({ kind: "private", pnJid: null, name: null, firstSeenAt: new Date(T0), lastSeenAt: new Date(T0), leftAt: null, ...over });
+
+test("isKnown: a private chat is known by its jid", async () => {
+  await db.KnownChat.bulkCreate([knownRow({ jid: PN(101), pnJid: PN(101) }), knownRow({ jid: PN(102) })]);
+  assert.equal(await knownChats.isKnown(PN(101)), true);
+  assert.equal(await knownChats.isKnown(PN(102)), true, "a row without pnJid matches by jid");
+  assert.equal(await knownChats.isKnown(PN(103)), false, "unknown");
+});
+
+test("isKnown: a person recorded under a LID is known by the phone-number form too (pnJid)", async () => {
+  await db.KnownChat.bulkCreate([knownRow({ jid: "88000000001@lid", pnJid: PN(201) })]);
+  assert.equal(await knownChats.isKnown(PN(201)), true, "found through pnJid");
+  assert.equal(await knownChats.isKnown("88000000001@lid"), true, "found through jid");
+  assert.equal(await knownChats.isKnown(PN(202)), false);
+  assert.equal(await knownChats.isKnown("88000000002@lid"), false);
+});
+
+test("isKnown: a group is known only while the bot is in it (leftAt IS NULL)", async () => {
+  await db.KnownChat.bulkCreate([
+    knownRow({ jid: G(1), kind: "group", name: "in" }),
+    knownRow({ jid: G(2), kind: "group", name: "out", leftAt: new Date(T0) }),
+  ]);
+  assert.equal(await knownChats.isKnown(G(1)), true);
+  assert.equal(await knownChats.isKnown(G(2)), false, "a left group is not known");
+  assert.equal(await knownChats.isKnown(G(3)), false, "an unknown group");
+  await db.KnownChat.update({ leftAt: null }, { where: { jid: G(2) } });
+  assert.equal(await knownChats.isKnown(G(2)), true, "back in the group");
+});
+
+test("isKnown: anything that is not a chat JID is false and costs no query", async () => {
+  const queries = mock.method(db.DATABASE, "query");
+  try {
+    for (const jid of [undefined, null, "", 5, {}, "status@broadcast", "123@newsletter", "hello", "123@broadcast"]) {
+      assert.equal(await knownChats.isKnown(jid), false, String(jid));
+    }
+    assert.equal(queries.mock.callCount(), 0);
+  } finally {
+    queries.mock.restore();
+  }
+});
+
+test("isKnown: one indexed query per call, for a private chat and for a group", async () => {
+  await db.KnownChat.bulkCreate([knownRow({ jid: PN(301), pnJid: PN(301) }), knownRow({ jid: G(4), kind: "group" })]);
+  for (const jid of [PN(301), PN(302), G(4), G(5)]) {
+    const queries = mock.method(db.DATABASE, "query");
+    try {
+      await knownChats.isKnown(jid);
+      assert.equal(queries.mock.callCount(), 1, `${jid}: ${queries.mock.callCount()} queries`);
+    } finally {
+      queries.mock.restore();
+    }
+  }
+});
+
+test("isKnown leaves assertDestinations untouched (still by jid only)", async () => {
+  await db.KnownChat.bulkCreate([knownRow({ jid: "88000000009@lid", pnJid: PN(401) })]);
+  assert.equal(await knownChats.isKnown(PN(401)), true);
+  await assert.rejects(knownChats.assertDestinations([PN(401)]), { code: "invalid_destination" });
+  assert.deepEqual(await knownChats.assertDestinations(["88000000009@lid"]), ["88000000009@lid"]);
+});

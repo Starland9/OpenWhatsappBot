@@ -250,3 +250,58 @@ test("the registry checks happen before execute: a refused call never reaches th
   }
   assert.equal(calls.length, before, `execute ran: ${JSON.stringify(calls.slice(before))}`);
 });
+
+// ---------------------------------------------------------------------------
+// Feature 004: parsePhoneNumber, the number branch of parsePerson moved to lib/utils/permissions.js
+// (contracts/runtime.md section 14.1). The 003 service keeps calling it: parsePerson answers are unchanged.
+// ---------------------------------------------------------------------------
+
+test("parsePhoneNumber: typed numbers become { digits, pn }, anything else { error: invalid_phone }", () => {
+  const { parsePhoneNumber } = require("../lib/utils/permissions");
+  assert.equal(typeof parsePhoneNumber, "function");
+
+  const good = {
+    "+237 6 90-00-00-03": "237690000003",
+    "00237690000003": "237690000003",
+    "(237) 690.000.003": "237690000003",
+    "237690000003": "237690000003",
+    "  +237 690 000 003 ": "237690000003",
+    "12345678": "12345678",
+    "123456789012345": "123456789012345",
+  };
+  for (const [input, digits] of Object.entries(good)) {
+    assert.deepEqual(parsePhoneNumber(input), { digits, pn: `${digits}@s.whatsapp.net` }, JSON.stringify(input));
+  }
+
+  const bad = ["1234567", "1234567890123456", "0690000003", "0023", "abc", "", "237.690.000.00a", "+0237690000001", "00", "0", "237 690 000 0o3"];
+  for (const input of bad) {
+    assert.deepEqual(parsePhoneNumber(input), { error: "invalid_phone" }, JSON.stringify(input));
+  }
+  // a seven-digit and a sixteen-digit number are the explicit boundaries of the 8..15 rule
+  assert.deepEqual(parsePhoneNumber("2376900"), { error: "invalid_phone" });
+  assert.deepEqual(parsePhoneNumber("2376900000003000"), { error: "invalid_phone" });
+});
+
+test("parsePhoneNumber: a non-string input is invalid, never a throw", () => {
+  const { parsePhoneNumber } = require("../lib/utils/permissions");
+  for (const input of [undefined, null, {}, [], false]) {
+    assert.deepEqual(parsePhoneNumber(input), { error: "invalid_phone" }, String(input));
+  }
+  assert.deepEqual(parsePhoneNumber(237690000003), { digits: "237690000003", pn: "237690000003@s.whatsapp.net" });
+});
+
+test("parsePhoneNumber agrees with the number branch of parsePerson (003 unchanged)", () => {
+  const { parsePhoneNumber, normalizeJid } = require("../lib/utils/permissions");
+  const { parsePerson } = require("../lib/admin/services/permissions");
+  const inputs = ["+237 6 90-00-00-03", "00237690000003", "(237) 690.000.003", "1234567", "1234567890123456", "0690000003", "abc", "", "12345678", "123456789012345"];
+  for (const input of inputs) {
+    const typed = parsePhoneNumber(input);
+    const person = parsePerson(input, normalizeJid);
+    if (typed.error) assert.deepEqual(person, { error: "invalid_phone" }, JSON.stringify(input));
+    else assert.deepEqual(person, { pn: typed.pn, lid: null }, JSON.stringify(input));
+  }
+  // JIDs still go through the JID branch
+  assert.deepEqual(parsePerson("237690000001:7@s.whatsapp.net", normalizeJid), { pn: "237690000001@s.whatsapp.net", lid: null });
+  assert.deepEqual(parsePerson("99000000011@lid", normalizeJid), { pn: null, lid: "99000000011@lid" });
+  assert.deepEqual(parsePerson("status@broadcast", normalizeJid), { error: "invalid_jid" });
+});

@@ -82,3 +82,21 @@
 ### W2 checkpoint (T146), clean worktree at `c0acedb`
 
 - fr 4,459 tests / 4,450 pass / **1 fail** / 8 skipped; en 4,451 / 4,442 / 1 / 8. The one failure is the expected red (`admin-integration`: AUTH-7 registered, not yet in a parsed contract; fixed by H-PANEL T141). New skip: "no argument: apireplies.js" (hook-only plugin, as designed). `0 unused dependencies`. H-PANEL (W3) started early, in parallel with E-OUT session 2, on disjoint files.
+
+### W3 H-PANEL (T052, T069-T071, T089, T095, T103-T104, T116-T118, T135, T140-T141)
+
+- Tests: admin-api-state 34, admin-api-keys 63 (the 67 widening rows through the pure predicate and the real routes), admin-api-messages 61 (part against the real facade via `messagingKit`), admin-api-leak 5, admin-uploads 23, admin-integration 12 (the expected red is green), admin-security 51. Mutation checks: secret logged, recipient in a creation audit, key-update step-up removed (re-run); revoke confirm and API-11 audit detail (not re-run after the final edits).
+- Deviations: key names NFC (admin-api.md, not data-model's NFKC); API-11 follows the public pipeline order (`resolveRecipient` first), `submit` gets `media.mode` `copy` (upload) / `move` (URL) and `source`; `State.settings.settingKeys.alerts` nested; API-2 `enabled: true` refused 409 under a registry failure; a disable calls `messaging.disable()` then `apiState.setState` (re-enables on write failure); `orphanRights: []` under a registry failure; upload kind `animated` for GIF, `audio` for `video/webm`; `confirm` schema without `unique`.
+- Panel texts added and merged: `errors.api_disabled`, eight engine refusal codes, `fields.not_found`. `main` fixed the `routes/uploads.js` header (`purpose=backup|broadcast|api`).
+- For I-UI: shapes exactly as admin-api.md; a `PUT /keys/:id` with no change returns `changed: false` and the same `version`; API-11 `to` is a bare number or a group id, not a JID.
+- For J-DOC: list `routes/api.js`, `services/api.js`, upload purpose `api`, the `stepUp` column of `admin.routes()` in `docs/ADMIN_PANEL.md` and `CLAUDE.md`.
+
+### W3 F-PUB (T050, T051, T068, T079, T086, T088, T094, T124, T130, T134, T138, T139), commit `564a18b`; Request fix `f7ed151`
+
+- Tests: api-contract 26, api-security 25, api-messages 109, api-formats-contract 39, api-openapi 22, api-leak-scan 13 (mutation: a recipient log in `messagesGet.js` turns it red), api-availability 10. Harness `test/helpers/apiHarness.js` (real `createApi`, engine via `messagingKit`, endpoints, key store, quotas, formats behind the real `createPanelServer`).
+- **Defect found and fixed by `main`** (Request to D-HTTP's file): the bound `submit` of `guardMessaging` did not hand the key's policy and limits to the engine, so a key's own pending limit above the default was refused inside the engine (the policy was already enforced at pipeline step 13). `lib/api/pipeline.js` now fills `policy` and `limits.maxPending` from the key unless set; the former `todo` test is a normal test. `lib/api/index.js` exposes `openapi` in `env`, so PUB-4 serves the registry that is serving.
+- Findings kept as is: a replay skips query validation (`messagesCreate` re-validates `wait`); a queued poll shows `responses.totals = null` until it is built (options become `choices` at the claim); the 4,096-character composed-body refusal is unreachable over HTTP with the contract limits; PUB-2 with any query parameter answers 422 `$unknown`; `response.openapi` is an addition to the endpoint shape.
+
+### W3 checkpoint (T147), clean worktree at `f7ed151`
+
+- fr and en: **4,892 tests / 4,884 pass / 0 fail / 8 skipped / 0 todo**; `0 unused dependencies`; `admin-integration` green (14 routes, `auth: "session"`, the `stepUp` set). I-UI (W4) started at `c7ac1e1`, in parallel with F-PUB, on disjoint files.

@@ -91,14 +91,38 @@ describe("route registration", () => {
     assert.throws(() => router.route({ ...ok, path: "/admin/api/c", mutates: true }), /must not mutate/);
   });
 
-  test("touch defaults to true; the table lists method, path, auth, csrf, mutates, touch", () => {
+  test("touch defaults to true; the table lists method, path, auth, csrf, mutates, touch, stepUp", () => {
     const router = createRouter();
     router.route(ok);
     router.route({ ...ok, path: "/admin/api/y", touch: false });
     const [a, b] = router.routes();
-    assert.deepEqual(Object.keys(a).sort(), ["auth", "csrf", "db", "method", "mutates", "path", "touch"]);
+    assert.deepEqual(Object.keys(a).sort(), ["auth", "csrf", "db", "method", "mutates", "path", "stepUp", "touch"]);
+    assert.equal(a.stepUp, false, "no option, no step-up");
     assert.equal(a.touch, true);
     assert.equal(b.touch, false);
+  });
+
+  test("stepUp: true or \"conditional\" on an unsafe session route only; anything else throws like csrf", () => {
+    const router = createRouter();
+    const post = { ...ok, method: "POST", path: "/admin/api/s" };
+    assert.doesNotThrow(() => router.route({ ...post, path: "/admin/api/s1", stepUp: true }));
+    assert.doesNotThrow(() => router.route({ ...post, path: "/admin/api/s2", stepUp: "conditional" }));
+    for (const method of ["PUT", "PATCH", "DELETE"]) {
+      assert.doesNotThrow(() => router.route({ ...post, method, path: "/admin/api/s3", stepUp: true }), method);
+    }
+    for (const bad of [false, "yes", "always", 1, 0, null, {}, []]) {
+      assert.throws(() => router.route({ ...post, path: "/admin/api/s4", stepUp: bad }), /stepUp/, String(JSON.stringify(bad)));
+    }
+    // a safe method has nothing to confirm; a public or setup route has no session to confirm
+    assert.throws(() => router.route({ ...ok, path: "/admin/api/s5", stepUp: true }), /stepUp/);
+    assert.throws(() => router.route({ ...ok, path: "/admin/api/s5", stepUp: "conditional" }), /stepUp/);
+    assert.throws(() => router.route({ ...post, path: "/admin/api/s6", auth: "public", stepUp: true }), /stepUp/);
+    assert.throws(() => router.route({ ...post, path: "/admin/api/s7", auth: "setup", stepUp: "conditional" }), /stepUp/);
+    const byPath = Object.fromEntries(router.routes().map((r) => [r.path, r.stepUp]));
+    assert.equal(byPath["/admin/api/s1"], true);
+    assert.equal(byPath["/admin/api/s2"], "conditional");
+    assert.equal(byPath["/admin/api/s3"], true);
+    assert.ok(!("/admin/api/s4" in byPath), "a refused registration leaves no row");
   });
 
   test("a duplicate route throws", () => {
@@ -123,6 +147,158 @@ describe("route registration", () => {
     assert.throws(() => router.route({ ...ok, path: "/admin/*", method: "POST", auth: "public" }), /wildcard/);
     assert.throws(() => router.route({ ...ok, path: "/admin/api/w", handler: null }), /handler/);
     assert.throws(() => router.route({ ...ok, path: "/admin/api/v", db: "required" }), /db must be/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Step-up option (contracts/admin-api.md 1.5): the gate runs after validation and before the touch
+// ---------------------------------------------------------------------------
+
+describe("step-up option at run time", () => {
+  let t;
+  let seen;
+  let auth;
+
+  function stepRoutes({ router }) {
+    router.route({
+      method: "POST",
+      path: "/admin/api/t/gated",
+      auth: "session",
+      stepUp: true,
+      schema: { name: { type: "string", required: true, maxLength: 10 } },
+      handler: (ctx) => {
+        seen.handler += 1;
+        return { ok: true, hasStepUp: typeof ctx.stepUp };
+      },
+    });
+    router.route({
+      method: "PUT",
+      path: "/admin/api/t/maybe",
+      auth: "session",
+      stepUp: "conditional",
+      schema: { widen: { type: "boolean" } },
+      handler: (ctx) => {
+        seen.handler += 1;
+        if (ctx.body.widen) ctx.stepUp(["rights", "policy"]);
+        return { ok: true };
+      },
+    });
+    router.route({
+      method: "POST",
+      path: "/admin/api/t/free",
+      auth: "session",
+      handler: (ctx) => {
+        seen.handler += 1;
+        ctx.stepUp(["rights"]); // no option: a programming error
+        return { ok: true };
+      },
+    });
+  }
+
+  before(async () => {
+    auth = createStubAuth();
+    auth.addSession("fresh", { recent: true });
+    auth.addSession("stale", { recent: false });
+    seen = { handler: 0, gate: [] };
+    auth.requireRecent = (session, at) => {
+      seen.gate.push({ id: session.id, at });
+      if (!session.recent) throw new AdminError("password_required", { params: { windowMs: 300000 } });
+    };
+    t = await startStubAdmin({ extraRoutes: [stepRoutes], auth });
+  });
+  after(async () => {
+    await t.close();
+  });
+
+  const reset = () => {
+    seen.handler = 0;
+    seen.gate.length = 0;
+    auth.calls.touch.length = 0;
+  };
+
+  test("true: a confirmed session reaches the handler; the gate got the session and the request time", async () => {
+    reset();
+    const res = await t.send("POST", "/admin/api/t/gated", { body: { name: "a" }, name: "fresh" });
+    assert.equal(res.status, 200);
+    assert.equal(seen.handler, 1);
+    assert.equal(seen.gate.length, 1);
+    assert.equal(seen.gate[0].id, "session-fresh");
+    assert.equal(seen.gate[0].at, t.clock.now());
+    assert.equal(res.json.hasStepUp, "function", "ctx.stepUp exists (and throws on a route that did not ask for it)");
+  });
+
+  test("true: an unconfirmed session is a 403 password_required before the touch and the handler", async () => {
+    reset();
+    const res = await t.send("POST", "/admin/api/t/gated", { body: { name: "a" }, name: "stale" });
+    assert.equal(res.status, 403);
+    assert.equal(res.json.error.code, "password_required");
+    assert.deepEqual(res.json.error.params, { windowMs: 300000 });
+    assert.equal(seen.handler, 0);
+    assert.deepEqual(auth.calls.touch, [], "a refused request does not extend the session");
+  });
+
+  test("true: the gate runs after the body validation, so a 422 is never asked for a password", async () => {
+    reset();
+    for (const body of [{}, { name: "x".repeat(40) }, { name: "a", extra: 1 }]) {
+      const res = await t.send("POST", "/admin/api/t/gated", { body, name: "stale" });
+      assert.equal(res.status, 422, JSON.stringify(body));
+      assert.equal(res.json.error.code, "validation_failed");
+    }
+    assert.equal(seen.gate.length, 0, "requireRecent was never called");
+    const unauthenticated = await t.raw({ method: "POST", path: "/admin/api/t/gated", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(unauthenticated.status, 401, "authentication still comes first");
+  });
+
+  test("conditional: nothing automatic; ctx.stepUp(reasons) calls the same gate and adds the reasons to the params", async () => {
+    reset();
+    const quiet = await t.send("PUT", "/admin/api/t/maybe", { body: { widen: false }, name: "stale" });
+    assert.equal(quiet.status, 200);
+    assert.equal(seen.gate.length, 0);
+
+    const asked = await t.send("PUT", "/admin/api/t/maybe", { body: { widen: true }, name: "stale" });
+    assert.equal(asked.status, 403);
+    assert.equal(asked.json.error.code, "password_required");
+    assert.deepEqual(asked.json.error.params, { windowMs: 300000, reasons: ["rights", "policy"] });
+
+    const confirmed = await t.send("PUT", "/admin/api/t/maybe", { body: { widen: true }, name: "fresh" });
+    assert.equal(confirmed.status, 200);
+  });
+
+  test("a route without the option: ctx.stepUp is a plain Error (a logged 500), the table cannot understate it", async () => {
+    reset();
+    const res = await t.send("POST", "/admin/api/t/free", { body: {}, name: "fresh" });
+    assert.equal(res.status, 500);
+    assert.equal(res.json.error.code, "internal_error");
+    assert.equal(seen.gate.length, 0);
+    assert.ok(t.logger.lines.some((l) => l.level === "error"), "the failure is logged");
+  });
+
+  test("routes() reports true, conditional and false", () => {
+    const byPath = Object.fromEntries(t.admin.routes().map((r) => [`${r.method} ${r.path}`, r.stepUp]));
+    assert.equal(byPath["POST /admin/api/t/gated"], true);
+    assert.equal(byPath["PUT /admin/api/t/maybe"], "conditional");
+    assert.equal(byPath["POST /admin/api/t/free"], false);
+  });
+
+  test("an auth without requireRecent fails closed: the route answers password_required", async () => {
+    const bare = createStubAuth();
+    bare.addSession("good");
+    assert.equal(bare.requireRecent, undefined);
+    const closed = await startStubAdmin({ extraRoutes: [stepRoutes], auth: bare });
+    try {
+      reset();
+      const res = await closed.send("POST", "/admin/api/t/gated", { body: { name: "a" } });
+      assert.equal(res.status, 403);
+      assert.equal(res.json.error.code, "password_required");
+      assert.deepEqual(res.json.error.params, { windowMs: 300000 });
+      assert.equal(seen.handler, 0);
+
+      const cond = await closed.send("PUT", "/admin/api/t/maybe", { body: { widen: true } });
+      assert.equal(cond.status, 403);
+      assert.deepEqual(cond.json.error.params, { windowMs: 300000, reasons: ["rights", "policy"] });
+    } finally {
+      await closed.close();
+    }
   });
 });
 

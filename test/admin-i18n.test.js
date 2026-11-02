@@ -63,7 +63,8 @@ const AREAS = [
   "backup", "maintenance", "texts", "alerts", "logs", "stats", "audit",
 ];
 // codes the server sends that the contract table of 1.9 does not list (the boot window of runtime.md section 15)
-const EXTRA_SERVER_CODES = ["starting"];
+// (+ password_required of the step-up, feature 004, admin-api.md 1.4)
+const EXTRA_SERVER_CODES = ["starting", "password_required"];
 // codes only the browser produces (no server answer carries them)
 const CLIENT_ERROR_CODES = ["unknown", "network_error", "invalid_response", "aborted"];
 const CLIENT_FIELD_CODES = ["unknown", "mismatch"];
@@ -294,6 +295,10 @@ test("panel fragments are valid and complete (en and fr: same keys, same placeho
     fragments.some((f) => f.dir === "004-messaging-api" && f.file === "panel-api-server.json" && !f.error),
     "specs/004-messaging-api/i18n/panel-api-server.json is among the loaded fragments",
   );
+  assert.ok(
+    fragments.some((f) => f.dir === "004-messaging-api" && f.file === "panel-api.json" && !f.error),
+    "specs/004-messaging-api/i18n/panel-api.json is among the loaded fragments",
+  );
   const problems = [];
   const seen = new Map();
   for (const fragment of fragments) {
@@ -455,6 +460,18 @@ test("dynamic key families used by the shell are complete", () => {
     for (const name of names) for (const lang of LANGS) if (typeof catalogs[lang][`${prefix}${name}`] !== "string") problems.push(`${prefix}${name} missing in ${lang}.json`);
   }
   assertNone(problems, "dynamic key families:");
+});
+
+test("errors.password_required exists in both languages and uses only the parameters its envelope can carry", () => {
+  // 403 { code, params: { windowMs, reasons? }, requestId } + the helpers of tError (admin-api.md 1.4, 1.5)
+  const allowed = new Set(["windowMs", "reasons", "code", "retryAfter", "requestId"]);
+  const problems = [];
+  for (const lang of LANGS) {
+    const text = catalogs[lang]["errors.password_required"];
+    if (typeof text !== "string") problems.push(`errors.password_required missing in ${lang}.json`);
+    else for (const token of text.match(/\{[A-Za-z0-9_]+\}/g) || []) if (!allowed.has(token.slice(1, -1))) problems.push(`${lang}: ${token} is not a parameter of password_required`);
+  }
+  assertNone(problems, "errors.password_required:");
 });
 
 // ---------------------------------------------------------------------------

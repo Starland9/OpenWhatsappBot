@@ -21,7 +21,8 @@
     "settings.ALERT_API_KEY_NEW_IP.label": "Alert: API key used from a new address",
     "settings.ALERT_API_KEY_NEW_IP.desc": "Tell the owners when a key is used from an address it has not been seen on before. Off by default; the first use of a key never raises it.",
     "settings.ALERT_API_PAUSED.label": "Alert: API sending paused",
-    "settings.ALERT_API_PAUSED.desc": "Tell the owners when the API queue pauses for 15 minutes because WhatsApp restricted the account. At most one every 15 minutes."
+    "settings.ALERT_API_PAUSED.desc": "Tell the owners when the API queue pauses for 15 minutes because WhatsApp restricted the account. At most one every 15 minutes.",
+    "errors.password_required": "Confirm your password to continue: this change widens what the API can do."
   },
   "fr": {
     "settings.SEND_MIN_SPACING_MS.label": "Espacement minimal entre deux envois",
@@ -45,6 +46,7 @@
     "settings.ALERT_API_KEY_NEW_IP.label": "Alerte : clé d'API utilisée depuis une nouvelle adresse",
     "settings.ALERT_API_KEY_NEW_IP.desc": "Prévient les propriétaires quand une clé est utilisée depuis une adresse encore jamais vue pour elle. Désactivée par défaut ; la première utilisation d'une clé ne la déclenche jamais.",
     "settings.ALERT_API_PAUSED.label": "Alerte : envois de l'API en pause",
-    "settings.ALERT_API_PAUSED.desc": "Prévient les propriétaires quand la file de l'API se met en pause pendant 15 minutes parce que WhatsApp a restreint le compte. Au plus une alerte toutes les 15 minutes."
+    "settings.ALERT_API_PAUSED.desc": "Prévient les propriétaires quand la file de l'API se met en pause pendant 15 minutes parce que WhatsApp a restreint le compte. Au plus une alerte toutes les 15 minutes.",
+    "errors.password_required": "Confirmez votre mot de passe pour continuer : cette modification élargit ce que l'API peut faire."
   }
 }

@@ -275,6 +275,67 @@ describe("the api_keys cache", () => {
   });
 });
 
+describe("L4: a failing reload serves the old keys for a while, then fails closed", () => {
+  const MIN = 60 * 1000;
+  /** Age the cache entry by `ms` of real time, as the passing of time would (the cache stamps with Date.now) */
+  const age = (cache, ms) => {
+    cache.cache.get("api_keys").timestamp -= ms;
+  };
+
+  test("within twice the TTL the previous map answers; past it the answer is unavailable, never ok; recovery is immediate", async () => {
+    const { store, cache, clock } = harness();
+    const { token } = await makeKey(store);
+    assert.equal((await store.lookup(token)).status, "ok");
+    const spy = mock.method(db.ApiKey, "findAll", async () => {
+      throw new Error("database is gone");
+    });
+    try {
+      age(cache, 6 * MIN); // the entry expired (TTL 5 min): every lookup tries to reload and fails
+      clock.t = T0 + 6 * MIN;
+      assert.equal((await store.lookup(token)).status, "ok", "6 minutes old: the previous map is better than nothing");
+      clock.t = T0 + 9 * MIN;
+      assert.equal((await store.lookup(token)).status, "ok", "still inside twice the TTL");
+      clock.t = T0 + 11 * MIN;
+      assert.deepEqual(await store.lookup(token), { status: "unavailable" }, "a revoked key could be served from a map this old");
+      clock.t = T0 + 3 * 60 * MIN;
+      assert.deepEqual(await store.lookup(token), { status: "unavailable" }, "and it stays unavailable for as long as the table cannot be read");
+    } finally {
+      spy.mock.restore();
+    }
+    assert.equal((await store.lookup(token)).status, "ok", "the table is back: loaded again");
+  });
+
+  test("a map the cache still considers fresh is never questioned, however far the injected clock has moved", async () => {
+    const { store, clock } = harness();
+    const { token } = await makeKey(store);
+    assert.equal((await store.lookup(token)).status, "ok");
+    clock.t = T0 + 3 * 60 * MIN; // the cache (real time) did not expire: no reload was tried, nothing failed
+    assert.equal((await store.lookup(token)).status, "ok");
+  });
+
+  test("a successful reload restarts the clock: the map is as old as its last good load, not its first", async () => {
+    const { store, cache, clock } = harness();
+    const { token } = await makeKey(store);
+    await store.lookup(token);
+    age(cache, 6 * MIN);
+    clock.t = T0 + 6 * MIN;
+    assert.equal((await store.lookup(token)).status, "ok"); // reloaded fine at +6 min
+    const spy = mock.method(db.ApiKey, "findAll", async () => {
+      throw new Error("database is gone");
+    });
+    try {
+      age(cache, 6 * MIN);
+      clock.t = T0 + 14 * MIN; // 8 minutes after the last good load
+      assert.equal((await store.lookup(token)).status, "ok");
+      age(cache, 6 * MIN);
+      clock.t = T0 + 17 * MIN; // 11 minutes after it
+      assert.equal((await store.lookup(token)).status, "unavailable");
+    } finally {
+      spy.mock.restore();
+    }
+  });
+});
+
 describe("usage write-behind", () => {
   async function setup(over = {}) {
     const h = harness();

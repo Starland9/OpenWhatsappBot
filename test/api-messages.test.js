@@ -141,6 +141,43 @@ describe("part 1: PUB-1 POST /api/v1/messages", () => {
       assert.equal((await h.row(rows[0].publicId)).status, "sent");
     });
 
+    test("L1: a failure of the wait or of the read after the submit still answers 202 with the queued message, and the quota stays used", async () => {
+      const once = await h.createKey({ name: "once a day", limits: { perDay: 2 } });
+      const original = h.messaging.waitFor;
+      h.messaging.waitFor = () => {
+        throw new Error("database is gone");
+      };
+      let waited;
+      try {
+        waited = await h.request("POST", "/api/v1/messages?wait=2", { key: once, body: TEXT });
+      } finally {
+        h.messaging.waitFor = original;
+      }
+      assert.equal(waited.status, 202, "the message is queued: the answer says so, not 500");
+      assert.equal(waited.json.message.status, "queued");
+      assert.equal(waited.headers.location, `/api/v1/messages/${waited.json.message.id}`);
+      assert.equal((await h.row(waited.json.message.id)).status, "queued");
+
+      // an interactive message reads its responses after the submit: that read failing is the same
+      const originalGet = h.messaging.get;
+      h.messaging.get = async () => {
+        throw new Error("database is gone");
+      };
+      let poll;
+      try {
+        poll = await h.send(once, { format: "poll", to: TO, question: "Why?", options: ["a", "b"] });
+      } finally {
+        h.messaging.get = originalGet;
+      }
+      assert.equal(poll.status, 202);
+      assert.equal(poll.json.message.format, "poll");
+      assert.equal((await h.row(poll.json.message.id)).status, "queued");
+
+      // both messages were queued, so both used the quota of 2 a day (the failed reads refunded nothing)
+      const third = await h.send(once, TEXT);
+      assert.deepEqual([third.status, third.json.error.code], [429, "daily_quota_exceeded"]);
+    });
+
     test("31, true, -1 and 1.5 are refused, the Prefer header is ignored", async () => {
       const count = await h.db.ApiMessage.count();
       const over = await h.request("POST", "/api/v1/messages?wait=31", { key, body: TEXT });

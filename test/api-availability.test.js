@@ -90,7 +90,9 @@ describe("an API that is not claimed answers like any unknown URL", () => {
     h = await createApiHarness({ endpointsDir: brokenDir() });
     assert.equal(h.api.state().failure.code, "registry_failed");
     assert.equal(h.api.state().failure.endpoint, "bad.get");
-    const key = await h.createKey({});
+    // with the registry failed `api.rights()` is empty: the key is given the send right by hand, because the engine
+    // re-reads the rights of the key at the pick (L7) and would cancel a message whose key may not send it
+    const key = await h.createKey({ rights: ["messages.send.text"] });
     await assertUnclaimed(h, key);
     assert.deepEqual(h.api.routes(), []);
     assert.deepEqual(h.api.catalog().endpoints, []);

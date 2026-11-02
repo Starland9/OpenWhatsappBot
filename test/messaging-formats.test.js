@@ -1112,7 +1112,12 @@ describe("vcard.buildVCard (3.8, FR-055)", () => {
   });
 
   test("`\\`, `;` and `,` are escaped; CR/LF become \\n; other control characters are dropped", () => {
-    assert.equal(lines(buildVCard({ name: "A\\B;C,D", phones: [] }))[2], "FN:A\\\\B\;C\\,D");
+    assert.equal(lines(buildVCard({ name: "A\\B;C,D", phones: [] }))[2], "FN:A\\\\B\\;C\\,D", "vCard 3.0 text: backslash-backslash, backslash-semicolon, backslash-comma");
+    // L5: the escaped semicolon is a backslash then a semicolon (two characters), not a bare semicolon
+    const escaped = lines(buildVCard({ name: "a;b", organization: "x;y,z\\w", email: "q@r.st", phones: [] }));
+    assert.equal(escaped[2], "FN:a\\;b");
+    assert.equal(escaped[2].length, "FN:a;b".length + 1);
+    assert.equal(escaped[3], "ORG:x\\;y\\,z\\\\w");
     assert.equal(lines(buildVCard({ name: "one\ntwo\r\nthree\rfour", phones: [] }))[2], "FN:one\\ntwo\\nthree\\nfour");
     assert.equal(lines(buildVCard({ name: "a\u0000b\u0007c\u001bd\u007fe\u0009f", phones: [] }))[2], "FN:abcdef");
     assert.equal(lines(buildVCard({ name: "x\u0085y z w", phones: [] }))[2], "FN:x\\ny\\nz\\nw", "Unicode line breaks too");

@@ -108,6 +108,43 @@ describe("createSendGate: ready, waitMs, reserve", () => {
   });
 });
 
+describe("createSendGate: release (a reservation nothing was sent for)", () => {
+  test("release restores the previous reference and jitter; a gate that never reserved is ready again", () => {
+    const draws = [0.1, 0.5, 0.9];
+    const gate = createSendGate({ random: () => draws.shift(), config: configWith(2000) });
+    const token = gate.reserve(T0);
+    assert.equal(gate.ready(T0), false);
+    assert.equal(gate.release(token), true);
+    assert.equal(gate.lastSendAt(), null);
+    assert.equal(gate.ready(T0), true);
+
+    gate.reserve(T0); // jitter 0.5 * 0.2: gap 2200
+    const second = gate.reserve(T0 + 5000); // jitter 0.9 * 0.2
+    assert.equal(gate.release(second), true);
+    assert.equal(gate.lastSendAt(), T0, "back to the first reservation");
+    assert.equal(gate.ready(T0 + 2199), false, "and to its jitter");
+    assert.equal(gate.ready(T0 + 2200), true);
+  });
+
+  test("release is a no-op once another reservation or seed followed, and a token works once", () => {
+    const gate = createSendGate({ random: () => 0, config: configWith(2000) });
+    const mine = gate.reserve(T0);
+    gate.reserve(T0 + 100); // someone else (the broadcaster) took the slot
+    assert.equal(gate.release(mine), false);
+    assert.equal(gate.lastSendAt(), T0 + 100, "their slot is kept");
+
+    const again = gate.reserve(T0 + 5000);
+    gate.seed(T0 + 9000);
+    assert.equal(gate.release(again), false);
+    assert.equal(gate.lastSendAt(), T0 + 9000);
+
+    const once = gate.reserve(T0 + 20000);
+    assert.equal(gate.release(once), true);
+    assert.equal(gate.release(once), false);
+    assert.equal(gate.release(null), false);
+  });
+});
+
 describe("createSendGate: seed", () => {
   test("seed keeps the maximum", () => {
     const gate = createSendGate({ random: () => 0, config: configWith(2000) });

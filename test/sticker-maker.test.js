@@ -18,6 +18,7 @@ const fakes = require("./helpers/fakes");
 const config = fakes.setupEnv();
 
 const sticker = require("../lib/utils/stickerMaker");
+const { samples } = require("./helpers/messagingKit");
 
 let png;
 let sharp;
@@ -94,6 +95,34 @@ describe("imageToWebp", () => {
 
   test("a buffer that is not an image rejects (the caller turns it into media_conversion_failed)", async () => {
     await assert.rejects(sticker.imageToWebp(Buffer.from("not an image at all")));
+  });
+
+  test("M3: a decompression bomb (a small file declaring 49 million pixels) is refused by the pixel limit, not decoded", async () => {
+    const bomb = samples.bombPng(7000, 7000);
+    assert.ok(bomb.length < 200 * 1024, `the file is small (${bomb.length} bytes)`);
+    assert.equal((await sharp(bomb).metadata()).width, 7000, "a valid image for sharp's own default limit");
+    await assert.rejects(sticker.imageToWebp(bomb), /pixel limit/i);
+  });
+
+  test("M3: the limit is 25 million pixels and is passed to sharp on every encode; an image under it still converts", async () => {
+    assert.equal(sticker.MAX_INPUT_PIXELS, 25000000);
+    const sharpPath = require.resolve("sharp");
+    const original = require.cache[sharpPath].exports;
+    const options = [];
+    const fake = (input, opts) => {
+      options.push(opts);
+      const chain = { rotate: () => chain, resize: () => chain, webp: () => chain, toBuffer: async () => Buffer.alloc(10) };
+      return chain;
+    };
+    require.cache[sharpPath].exports = fake;
+    try {
+      assert.ok(await sticker.imageToWebp(png));
+    } finally {
+      require.cache[sharpPath].exports = original;
+    }
+    assert.deepEqual(options, [{ limitInputPixels: 25000000 }]);
+    const wide = await sharp({ create: { width: 4000, height: 3000, channels: 3, background: { r: 10, g: 10, b: 10 } } }).png().toBuffer(); // 12 million
+    assert.ok(await sticker.imageToWebp(wide));
   });
 
   test("null when no quality fits, after trying 80, 60 and 40 once each", async () => {

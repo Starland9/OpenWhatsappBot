@@ -7,7 +7,7 @@
  *
  *   const kit = await createEngineKit({ config, sockOptions, enabled, realTime, clear, sharedClock, models, deps })
  *   kit.messaging / kit.db / kit.sock / kit.client / kit.clock / kit.gate / kit.config / kit.alerts (recorded raise calls)
- *   kit.key(over)                  an ApiKey row (live, rights/policy irrelevant to the engine)
+ *   kit.key(over)                  an ApiKey row (live; every send right, media.url and policy `anyone` unless `over` says otherwise)
  *   kit.request(over)              a `submit` request (text to 237690000001 by the first key, policy anyone)
  *   kit.send(over)                 await messaging.submit(kit.request(over))
  *   kit.start()                    await messaging.start(client) (recovery, gate seed, enable when the switch is on)
@@ -18,6 +18,7 @@
  *   kit.setEnabled(bool)           flip the fake switch and notify the listeners like apiState does
  *   kit.file(bytes, name)          a file on disk as the pipeline hands it over: { path, size, name, sha256 } (a temp file)
  *   samples.png() / pdf() / exe() / text() / wav()   small real files of those types (png is generated with sharp)
+ *   samples.bombPng(w, h)          a small valid PNG declaring w x h pixels (default 49 million): a decompression bomb
  *   kit.banned                     the Set of disabled chats the engine reads
  *   kit.close()                    stop the engine, restore the clock, remove the temporary root
  *
@@ -51,6 +52,28 @@ const samples = {
   pdf: () => Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"),
   exe: () => Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00]), Buffer.alloc(64)]),
   text: () => Buffer.from("name,amount\nAwa,1200\n"),
+  /**
+   * A valid grayscale PNG that declares (and decodes to) width x height pixels: a decompression bomb. Built by hand
+   * (the deflate of a run of zeros is a few KiB for 49 million pixels), so nothing big is held once it is built.
+   */
+  bombPng: (width = 7000, height = 7000) => {
+    const zlib = require("node:zlib");
+    const chunk = (type, data) => {
+      const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+      const out = Buffer.alloc(12 + data.length);
+      out.writeUInt32BE(data.length, 0);
+      body.copy(out, 4);
+      out.writeUInt32BE(zlib.crc32(body), 8 + data.length);
+      return out;
+    };
+    const ihdr = Buffer.alloc(13);
+    ihdr.writeUInt32BE(width, 0);
+    ihdr.writeUInt32BE(height, 4);
+    ihdr[8] = 8; // bit depth 8; colour type 0 (grayscale); compression, filter, interlace 0
+    const rows = Buffer.alloc((width + 1) * height); // a filter byte 0 and zero pixels per row
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    return Buffer.concat([signature, chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(rows, { level: 9 })), chunk("IEND", Buffer.alloc(0))]);
+  },
 };
 
 /** Empty the tables the engine touches (the database module is shared by the whole test file) */
@@ -149,6 +172,15 @@ async function createEngineKit(options = {}) {
     ...options.deps,
   });
 
+  /** Every `messages.send.<format>` right (none when the registry cannot load: a test that breaks it on purpose) */
+  const sendRights = () => {
+    try {
+      return messaging.formats.rights();
+    } catch {
+      return [];
+    }
+  };
+
   let keySeq = 0;
   const keys = [];
   async function key(over = {}) {
@@ -160,6 +192,9 @@ async function createEngineKit(options = {}) {
       lookupId: n.toString(16).padStart(16, "0"),
       secretHash: n.toString(16).padStart(64, "0"),
       last4: "abcd",
+      // the engine re-reads the key at the pick (L7): a test key may send every format, to anyone, unless a test narrows it
+      rights: [...sendRights(), "media.url"],
+      policyMode: "anyone",
       ...over,
     });
     keys.push(row);

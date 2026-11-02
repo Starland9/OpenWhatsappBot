@@ -171,6 +171,22 @@ describe("submit: the steps in order, the first failure answers and nothing is w
     await refuses(kit.send({ source: "panel", apiKeyId: null, policy: null, limits: null, to: "237690000002" }), "chat_disabled");
   });
 
+  test("L6: an API request without a policy is refused (the engine never fails open); the panel is the only source without one", async () => {
+    const { toApiHttpError } = require("../lib/api/errors");
+    for (const policy of [null, undefined]) {
+      await refuses(kit.send({ policy }), "policy_missing", (err) => {
+        // not a typed refusal: the HTTP layer answers 500 internal_error and logs it
+        assert.deepEqual([toApiHttpError(err).status, toApiHttpError(err).code, toApiHttpError(err).typed], [500, "internal_error", false]);
+        assert.ok(!JSON.stringify(err).includes("237690000001"));
+      });
+    }
+    assert.equal(await count(), 0, "nothing was written");
+    // the panel keeps working without one, and an API request with a policy is untouched
+    await kit.send({ source: "panel", apiKeyId: null, policy: null, limits: null });
+    await kit.send({ policy: { mode: "anyone", entries: [] } });
+    assert.equal(await count(), 2);
+  });
+
   test("a group target accepts mentions and stores them as digit strings", async () => {
     const { message } = await kit.send({ to: GROUP, fields: { text: "hi @x", mentions: ["+237 690-000-002", "237690000002"] } });
     assert.equal(message.chatType, "group");
@@ -656,6 +672,16 @@ describe("fetchMedia: the guarded fetcher, then the same inspection (9, 10.2)", 
     assert.match(staged.sha256, /^[0-9a-f]{64}$/);
     assert.ok(fs.existsSync(staged.path));
     assert.ok(!JSON.stringify(staged).includes("SECRET"), "the URL is never part of the result");
+  });
+
+  test("M4: the caller's onBytes reaches the fetcher (the pipeline counts the download against the disk bound); none is invented", async () => {
+    const png = await samples.png();
+    const fetcher = await withFetcher(png);
+    const onBytes = () => {};
+    await kit.messaging.fetchMedia("image", "https://files.example.com/a.png", { onBytes });
+    await kit.messaging.fetchMedia("image", "https://files.example.com/b.png");
+    assert.equal(fetcher.calls[0].onBytes, onBytes);
+    assert.equal(fetcher.calls[1].onBytes, undefined);
   });
 
   test("a download that turns out to be of the wrong type is deleted and refused media_type_mismatch", async () => {

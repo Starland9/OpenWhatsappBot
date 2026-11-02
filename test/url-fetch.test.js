@@ -593,6 +593,40 @@ describe("the body is counted while it streams", () => {
     await refused(fetcher({ handler: () => reply({ body: Buffer.concat([body, Buffer.from("b")]) }) }).fetchMedia("https://example.com/a", { maxBytes: 1000 }), "media_too_large");
   });
 
+  test("M4: onBytes sees every chunk as it arrives (the in-flight download is countable against the disk bound)", async () => {
+    const seen = [];
+    const body = Buffer.alloc(3000, 0x61);
+    const f = fetcher({ handler: () => reply({ chunks: [body.subarray(0, 1000), body.subarray(1000, 2500), body.subarray(2500)] }) });
+    const out = await f.fetchMedia("https://example.com/a", { onBytes: (n) => seen.push(n) });
+    assert.ok(seen.length >= 1 && seen.every((n) => n > 0), "one call per chunk read");
+    assert.equal(seen.reduce((a, b) => a + b, 0), 3000, "every byte written to the disk is counted, once");
+    assert.equal(out.size, 3000);
+  });
+
+  test("M4: an onBytes that refuses (the disk bound) ends the download at once and removes the file", async () => {
+    let body;
+    let total = 0;
+    const f = fetcher({
+      handler: () => {
+        body = endless();
+        return reply({ stream: body });
+      },
+    });
+    await refused(
+      f.fetchMedia("https://example.com/a", {
+        onBytes: (n) => {
+          total += n;
+          if (total > 100000) throw new MessagingError("queue_full", { params: { scope: "disk", retryAfterMs: 5000 } });
+        },
+      }),
+      "queue_full",
+      { scope: "disk", retryAfterMs: 5000 },
+    );
+    assert.ok(body.served() <= 100000 + 3 * 65536, `stopped soon after the bound (${body.served()} bytes pulled)`);
+    assert.equal(body.destroyed, true);
+    noPartFiles();
+  });
+
   test("the cap is min(caller cap, createUrlFetcher maxBytes, MAX_UPLOAD MB read at call time)", async () => {
     const config = require("../config");
     const original = config.MAX_UPLOAD;

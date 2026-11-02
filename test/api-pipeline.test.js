@@ -10,7 +10,7 @@ const { test, describe, before, after, mock } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
-const { createApiKit, OWN_NUMBER } = require("./helpers/apiHttpKit");
+const { createApiKit, FIXTURES, OWN_NUMBER } = require("./helpers/apiHttpKit");
 const { MessagingError } = require("./helpers/../../lib/messaging/errors");
 
 const PN = (digits) => `${digits}@s.whatsapp.net`;
@@ -648,6 +648,133 @@ describe("steps 17-18: validation and media", () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+describe("M4: media.url downloads share the upload caps and the disk bound", () => {
+  const URL_BODY = (to) => ({ format: "image", to, media: { url: "https://files.example.com/a.png" } });
+  const URL_RIGHTS = ["messages.send.image", "media.url"];
+  const settle = (ms = 80) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  /** A fetchMedia that parks every call until `release()`, and records the onBytes it was given */
+  function parkedFetcher(engine, before = () => {}) {
+    const original = engine.fetchMedia;
+    const parked = [];
+    let started = 0;
+    engine.fetchMedia = async (format, url, opts = {}) => {
+      started += 1;
+      before(opts, started);
+      await new Promise((resolve) => parked.push(resolve));
+      return original(format, url, opts);
+    };
+    return {
+      started: () => started,
+      release: () => parked.splice(0).forEach((resolve) => resolve()),
+      restore: () => {
+        engine.fetchMedia = original;
+      },
+    };
+  }
+
+  test("at most 2 downloads in flight per key: the third is 429 rate_limited, scope uploads, and the engine is not called for it", async () => {
+    const { token } = await kit.makeKey({ rights: URL_RIGHTS });
+    const park = parkedFetcher(kit.engine);
+    try {
+      const calls = ["237690000101", "237690000102", "237690000103"].map((to) => send(token, URL_BODY(to)));
+      await settle(150); // the arrival order is not the call order: two are parked, one is already answered
+      assert.equal(park.started(), 2, "only two downloads started");
+      park.release();
+      const results = await Promise.all(calls);
+      const refused = results.filter((r) => r.status === 429);
+      assert.deepEqual(results.map((r) => r.status).sort(), [202, 202, 429]);
+      assert.deepEqual([err(refused[0]).code, err(refused[0]).params], ["rate_limited", { scope: "uploads", limit: 2, retryAfterMs: 5000 }]);
+      assert.equal(refused[0].headers["retry-after"], "5");
+      // the slots are back
+      const again = send(token, URL_BODY("237690000104"));
+      await settle();
+      park.release();
+      assert.equal((await again).status, 202);
+    } finally {
+      park.restore();
+    }
+  });
+
+  test("at most 4 in all, uploads and URL downloads together: the fifth key is refused with limit 4", async () => {
+    const tokens = [];
+    for (let i = 0; i < 5; i += 1) tokens.push((await kit.makeKey({ rights: URL_RIGHTS })).token);
+    const park = parkedFetcher(kit.engine);
+    try {
+      const calls = tokens.map((token, i) => send(token, URL_BODY(`23769000020${i}`)));
+      await settle(150);
+      assert.equal(park.started(), 4);
+      park.release();
+      const results = await Promise.all(calls);
+      assert.deepEqual(results.map((r) => r.status).sort(), [202, 202, 202, 202, 429]);
+      const fifth = results.find((r) => r.status === 429);
+      assert.deepEqual([err(fifth).code, err(fifth).params.scope, err(fifth).params.limit], ["rate_limited", "uploads", 4]);
+    } finally {
+      park.restore();
+    }
+  });
+
+  test("a refused or failed download gives its slot back", async () => {
+    const { token } = await kit.makeKey({ rights: URL_RIGHTS });
+    kit.engine.staged = new MessagingError("url_forbidden", { params: { reason: "host" } });
+    try {
+      for (let i = 0; i < 5; i += 1) {
+        const res = await send(token, URL_BODY(`23769000030${i}`));
+        assert.deepEqual([res.status, err(res).code], [422, "url_forbidden"], `call ${i}`);
+      }
+    } finally {
+      kit.engine.staged = null;
+    }
+    assert.equal((await send(token, URL_BODY("237690000310"))).status, 202);
+  });
+
+  test("the bytes of a download in flight count against the disk bound of the uploads (2 x MAX_UPLOAD)", async () => {
+    const small = await createApiKit({ config: { MAX_UPLOAD: 1 } }); // the bound is 2 MiB
+    try {
+      const { token } = await small.makeKey({ rights: URL_RIGHTS });
+      const { token: other } = await small.makeKey({ rights: URL_RIGHTS });
+      const post = (t, body) => small.post("/api/v1/messages", t, body);
+      const park = parkedFetcher(small.engine, (opts, n) => {
+        assert.equal(typeof opts.onBytes, "function", "the pipeline hands the byte counter to the engine");
+        if (n === 1) opts.onBytes(1.5 * 1048576); // the first download has received 1.5 MiB so far
+        else opts.onBytes(1048576); // the second one wants 1 MiB more: 2.5 MiB > 2 MiB
+      });
+      try {
+        const first = post(token, URL_BODY("237690000401"));
+        await settle();
+        const second = await post(other, URL_BODY("237690000402"));
+        assert.deepEqual([second.status, err(second).code, err(second).params.scope], [503, "queue_full", "disk"]);
+        assert.equal(second.headers["retry-after"], "5");
+        park.release();
+        assert.equal((await first).status, 202);
+      } finally {
+        park.restore();
+      }
+
+      // once the first is over its bytes are given back: a download of the same size is fine again
+      const park2 = parkedFetcher(small.engine, (opts) => opts.onBytes(1.5 * 1048576));
+      try {
+        const again = post(token, URL_BODY("237690000403"));
+        await settle();
+        park2.release();
+        assert.equal((await again).status, 202, "the counter did not leak");
+      } finally {
+        park2.restore();
+      }
+
+      // the engine's pending media bytes are counted too: refused before any connection
+      small.engine.mediaBytes = 3 * 1048576;
+      const before = small.engine.count("fetchMedia");
+      const full = await post(token, URL_BODY("237690000404"));
+      assert.deepEqual([full.status, err(full).code, err(full).params.scope], [503, "queue_full", "disk"]);
+      assert.equal(small.engine.count("fetchMedia"), before, "no connection was opened");
+    } finally {
+      await small.close();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 describe("steps 19-20: reserve, handler, what a handler sees", () => {
   test("a request failing after the reserve does not count; a lost race answered as a replay does not count either", async () => {
     const { token } = await kit.makeKey({ limitPerMinute: 1 });
@@ -766,5 +893,96 @@ describe("connection and logs", () => {
     const dump = JSON.stringify(kit.logLines);
     assert.ok(!dump.includes(token.slice(22)) && !dump.includes(token.slice(5, 21)));
     assert.ok(!dump.includes("237690000019") && !dump.includes("hello"));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+describe("L1, L2: a failure after the submit keeps the quota; a failing reply path leaves nothing behind", () => {
+  const RESPONSE = JSON.stringify(require("node:path").join(__dirname, "..", "lib", "admin", "http", "response.js"));
+  const endpoints = {
+    ...FIXTURES,
+    // submits for real, then fails the way a post-submit read would
+    "commit.js": `"use strict";
+module.exports = {
+  id: "commit.post",
+  method: "POST",
+  path: "/api/v1/commit",
+  right: "commit.write",
+  body: { kinds: ["json"], schema: {} },
+  quota: { messages: true },
+  doc: { summary: "Submits, then throws" },
+  async handle(ctx) {
+    await ctx.services.messaging.submit({ source: "api", apiKeyId: ctx.key.id, format: "text", to: "237690000999", fields: { text: "x" } });
+    throw new Error("the read after the submit failed");
+  },
+};
+`,
+    // a body JSON cannot serialise: the reply path itself throws
+    "bigint.js": `"use strict";
+const { reply } = require(${RESPONSE});
+module.exports = {
+  id: "bigint.get",
+  method: "GET",
+  path: "/api/v1/bigint",
+  right: "bigint.read",
+  doc: { summary: "A reply that cannot be written" },
+  async handle() {
+    return reply(200, { n: 10n });
+  },
+};
+`,
+  };
+  let local;
+  before(async () => {
+    local = await createApiKit({ endpoints });
+  });
+  after(async () => {
+    await local.close();
+  });
+
+  test("L1: an exception after a successful submit does not release the quota reservation (the message is queued)", async () => {
+    const { token } = await local.makeKey({ rights: ["commit.write"], limitPerDay: 1 });
+    const first = await local.post("/api/v1/commit", token, {});
+    assert.equal(first.status, 500);
+    assert.equal(local.engine.count("submit"), 1, "the message was queued");
+    const second = await local.post("/api/v1/commit", token, {});
+    assert.deepEqual([second.status, err(second).code], [429, "daily_quota_exceeded"], "the failed read refunded nothing");
+    assert.equal(local.engine.count("submit"), 1, "and nothing more was queued");
+  });
+
+  test("L1: a refusal before the submit still gives the reservation back", async () => {
+    const { token } = await local.makeKey({ rights: ["commit.write"], limitPerDay: 1 });
+    const original = local.engine.submit;
+    local.engine.submit = async () => {
+      throw new MessagingError("queue_full", { params: { scope: "global", retryAfterMs: 2000 } });
+    };
+    try {
+      const refused = await local.post("/api/v1/commit", token, {});
+      assert.equal(refused.status, 503);
+    } finally {
+      local.engine.submit = original;
+    }
+    const ok = await local.post("/api/v1/commit", token, {});
+    assert.equal(ok.status, 500, "the quota was free again: the handler ran (and failed after its submit)");
+  });
+
+  test("L2: a reply that cannot be written is no unhandled rejection and leaves no in-flight entry", async () => {
+    const { token } = await local.makeKey({ rights: ["bigint.read"] });
+    const seen = [];
+    const spy = (reason) => seen.push(reason);
+    process.on("unhandledRejection", spy);
+    try {
+      const res = await local.get("/api/v1/bigint", token);
+      assert.equal(res.status, 503, "the last line of defence answers");
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.deepEqual(seen.map((r) => (r && r.message) || String(r)), []);
+    } finally {
+      process.off("unhandledRejection", spy);
+    }
+    // nothing is left to wait for: stop() returns at once and never aborts a finished request
+    const started = Date.now();
+    await local.api.stop();
+    assert.ok(Date.now() - started < 500);
   });
 });

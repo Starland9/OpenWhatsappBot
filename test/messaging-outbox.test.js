@@ -194,6 +194,99 @@ describe("SC-005: pacing", () => {
     assert.equal(kit.sock.sent.length, 2);
   });
 
+  test("M1: a slow recipient check does not shorten the gap: the gate is reserved at the real send time, not at the pass start", async () => {
+    let slow = false;
+    await boot({
+      sockOptions: {
+        onWhatsApp: (jid) => {
+          if (slow) kit.clock.set(kit.now() + 1500); // the lookup takes 1.5 s
+          return [{ jid, exists: true }];
+        },
+      },
+    });
+    const at = async (ms) => {
+      kit.clock.set(kit.T0 + ms); // set, not advance: only the explicit passes run
+      await kit.messaging.tick(kit.now());
+    };
+    await kit.send({ to: "237690000001", fields: { text: "one" } });
+    await kit.send({ to: "237690000002", fields: { text: "two" } });
+    await kit.send({ to: "237690000003", fields: { text: "three" } });
+    await at(0);
+    assert.deepEqual(kit.times, [kit.T0]);
+
+    slow = true;
+    await at(2000); // the pass starts at +2000, the lookup ends and the message leaves at +3500
+    assert.deepEqual(kit.times, [kit.T0, kit.T0 + 3500]);
+    assert.equal(kit.gate.lastSendAt(), kit.T0 + 3500, "reserved at the real send time");
+    const second = (await kit.rows())[1];
+    assert.equal(second.sendingAt.getTime(), kit.T0 + 3500, "sendingAt is the claim time");
+    assert.ok(second.sentAt.getTime() >= second.sendingAt.getTime(), "sentAt never precedes sendingAt");
+
+    slow = false;
+    await at(4000); // 2000 after the pass start of the previous message, 500 after its real send
+    assert.equal(kit.times.length, 2, "still inside the 2 s floor of the real send");
+    await at(5400);
+    assert.equal(kit.times.length, 2);
+    await at(5500);
+    assert.equal(kit.times.length, 3);
+    for (let i = 1; i < kit.times.length; i += 1) assert.ok(kit.times[i] - kit.times[i - 1] >= 2000, `gap ${kit.times[i] - kit.times[i - 1]} at ${i}`);
+  });
+
+  test("M1: a broadcaster tick that slips in during the recipient check is not followed by an API send inside the gap", async () => {
+    let hook = null;
+    const gate = createSendGate({ clock: () => kit.clock.now(), random: () => 0, config: { SEND_MIN_SPACING_MS: 2000 } });
+    await boot({
+      gate,
+      sockOptions: {
+        onWhatsApp: async (jid) => {
+          if (hook) await hook();
+          return [{ jid, exists: true }];
+        },
+      },
+    });
+    const engine = createBroadcaster({
+      rootDir: kit.tmp,
+      config: { TIMEZONE: "Europe/Paris", MAX_UPLOAD: 1, BROADCAST_DELAY_MS: 5000 },
+      clock: () => kit.clock.now(),
+      random: () => 0,
+      timers: kit.clock.timers,
+      settingsStore: { onChange: () => () => {} },
+      gate,
+    });
+    engine.start(kit.client);
+    try {
+      const jid = "237600000200@s.whatsapp.net";
+      await kit.db.KnownChat.create({ jid, kind: "private", pnJid: jid, name: "chat", firstSeenAt: new Date(kit.T0), lastSeenAt: new Date(kit.T0) });
+      await kit.send({ to: "237690000001", fields: { text: "one" } });
+      await kit.send({ to: "237690000002", fields: { text: "two" } });
+      kit.clock.set(kit.T0);
+      await kit.messaging.tick(kit.now());
+      assert.deepEqual(kit.times, [kit.T0]);
+
+      hook = async () => {
+        hook = null;
+        kit.clock.set(kit.T0 + 3500); // the lookup is slow; a broadcast falls due and leaves meanwhile
+        await engine.createOnce({ text: "broadcast", targets: [jid], spacingMs: 60000 }, { now: kit.clock.now() });
+        const result = await engine.tick(kit.clock.now());
+        assert.equal(result.sent, 1, "the broadcaster found the gate free");
+      };
+      kit.clock.set(kit.T0 + 2000);
+      await kit.messaging.tick(kit.now());
+      assert.deepEqual(kit.times, [kit.T0, kit.T0 + 3500], "only the broadcast left: the API message waits");
+      const queued = await kit.rows();
+      assert.deepEqual(queued.map((r) => r.status), ["sent", "queued"]);
+      assert.equal(queued[1].waId, null, "the row is back in the queue untouched (no claim)");
+      assert.equal(kit.gate.lastSendAt(), kit.T0 + 3500, "the broadcast's reservation was not overwritten");
+
+      kit.clock.set(kit.T0 + 5500);
+      await kit.messaging.tick(kit.now());
+      assert.deepEqual(kit.times, [kit.T0, kit.T0 + 3500, kit.T0 + 5500]);
+    } finally {
+      engine.stop();
+      for (const name of ["BroadcastTarget", "BroadcastRun", "Broadcast"]) await kit.db[name].destroy({ where: {} }); // the kit does not clear them
+    }
+  });
+
   test("a broadcast and API messages interleaved on one shared gate stay 2000 ms apart; a 60 s broadcast is not starved", async () => {
     const gate = createSendGate({ clock: () => kit.clock.now(), random: () => 0, config: { SEND_MIN_SPACING_MS: 2000 } });
     await boot({ gate });
@@ -408,6 +501,73 @@ describe("the pick step: key guard, disabled chat, own number, unreadable payloa
     await kit.tick(3 * SEC);
     assert.equal(kit.sock.sent.length, 1);
     assert.equal((await rowsByStatus("cancelled")).length, 1);
+  });
+
+  describe("L7: a key narrowed after acceptance does not send what it may no longer send", () => {
+    const narrow = (changes) => kit.db.ApiKey.update(changes, { where: { id: key.id } });
+    const cancelledAs = async (publicId) => {
+      const row = await kit.row(publicId);
+      return [row.status, row.errorCode, row.payload, row.waId];
+    };
+
+    test("the send right of the format was removed: cancelled key_revoked, nothing sent, nothing reserved", async () => {
+      await boot();
+      const { message } = await kit.send();
+      await narrow({ rights: ["messages.send.image"] });
+      await kit.tick();
+      assert.deepEqual(await cancelledAs(message.publicId), ["cancelled", "key_revoked", null, null]);
+      assert.equal(kit.sock.sent.length, 0);
+      assert.equal(kit.gate.lastSendAt(), null);
+    });
+
+    test("a key that still has the right sends; the right of another format does not count", async () => {
+      await boot();
+      const { message } = await kit.send();
+      await narrow({ rights: ["messages.send.text"] });
+      await kit.tick();
+      assert.equal((await kit.row(message.publicId)).status, "sent");
+      const more = await kit.send({ fields: { text: "again" } });
+      await narrow({ rights: ["messages.send.poll", "media.url"] });
+      await kit.tick(3 * SEC);
+      assert.deepEqual((await cancelledAs(more.message.publicId)).slice(0, 2), ["cancelled", "key_revoked"]);
+    });
+
+    test("media.url was removed: a message whose file came from a URL (or a link preview) is cancelled, an uploaded one is not", async () => {
+      await boot();
+      const fromUrl = await kit.send({ format: "image", fields: {}, media: { ...kit.file(await samples.png()), source: "url" } });
+      const uploaded = await kit.send({ format: "image", to: "237690000002", fields: {}, media: kit.file(await samples.png()) });
+      const preview = await kit.send({ to: "237690000003", fields: { text: "see https://a.example/x", linkPreview: true } });
+      const plain = await kit.send({ to: "237690000004", fields: { text: "plain" } });
+      await narrow({ rights: ["messages.send.text", "messages.send.image"] });
+      await kit.run(10 * SEC, SEC);
+      assert.deepEqual((await cancelledAs(fromUrl.message.publicId)).slice(0, 2), ["cancelled", "key_revoked"]);
+      assert.deepEqual((await cancelledAs(preview.message.publicId)).slice(0, 2), ["cancelled", "key_revoked"]);
+      assert.equal((await kit.row(uploaded.message.publicId)).status, "sent");
+      assert.equal((await kit.row(plain.message.publicId)).status, "sent");
+      assert.equal(fs.existsSync(path.join(kit.stage.rootDir(), fromUrl.message.publicId)), false, "the staged file of a cancelled row goes");
+    });
+
+    test("the recipient policy was narrowed: list without the recipient, or known without a known chat, cancels; a list with it does not", async () => {
+      await boot();
+      const a = await kit.send({ to: "237690000001", fields: { text: "a" } });
+      const b = await kit.send({ to: "237690000002", fields: { text: "b" } });
+      const c = await kit.send({ to: "237690000003", fields: { text: "c" } });
+      await narrow({ policyMode: "list", recipients: [PN2] });
+      await kit.tick();
+      assert.deepEqual((await cancelledAs(a.message.publicId)).slice(0, 2), ["cancelled", "key_revoked"], "not in the list any more");
+      assert.equal((await kit.row(b.message.publicId)).status, "sent", "a cancellation does not use up the pass: the next candidate went out");
+      await narrow({ policyMode: "known" });
+      await kit.tick(3 * SEC);
+      assert.deepEqual((await cancelledAs(c.message.publicId)).slice(0, 2), ["cancelled", "key_revoked"], "no known chat for it");
+      assert.equal(kit.sock.sent.length, 1);
+    });
+
+    test("the panel has no key and nothing to narrow", async () => {
+      await boot();
+      const { message } = await kit.send({ source: "panel", apiKeyId: null, policy: null, limits: null, fields: { text: "panel" } });
+      await kit.tick();
+      assert.equal((await kit.row(message.publicId)).status, "sent");
+    });
   });
 
   test("a ban after acceptance gives failed / chat_disabled and reserves nothing", async () => {
@@ -1498,6 +1658,19 @@ describe("media messages", () => {
     } finally {
       sticker.prepare = realPrepare;
     }
+  });
+
+  test("M3: a sticker whose picture is a decompression bomb is failed / media_conversion_failed before the claim (real sharp, 25 Mpx limit)", async () => {
+    await boot();
+    const bomb = samples.bombPng(7000, 7000); // a few KiB declaring 49 million pixels
+    assert.ok(bomb.length < 200 * 1024);
+    const accepted = await kit.send({ format: "sticker", fields: {}, media: kit.file(bomb) });
+    await kit.tick();
+    const row = await kit.row(accepted.message.publicId);
+    assert.deepEqual([row.status, row.errorCode, row.waId, row.mediaPath], ["failed", "media_conversion_failed", null, null]);
+    assert.equal(fs.existsSync(dirOf(accepted.message.publicId)), false);
+    assert.equal(kit.sock.sent.length, 0);
+    assert.equal(kit.gate.lastSendAt(), null, "nothing reserved");
   });
 
   test("a directory that vanished fails the row as payload_unavailable: the caption is never sent as a text-only message", async () => {

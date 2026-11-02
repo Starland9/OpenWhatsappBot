@@ -246,6 +246,23 @@ describe("API-2 PUT /admin/api/api/state", () => {
     assert.deepEqual(await kit.audits("api."), []);
   });
 
+  test("L3: a disable that fails midway restarts the engine too: the switch stays on, nothing is written or audited", async () => {
+    await boot();
+    await kit.apiState.setState({ enabled: true }, { now: kit.clock.now() });
+    const before = await kit.snapshot();
+    kit.messaging.disable = async (opts) => {
+      kit.messaging.calls.disable.push(opts);
+      throw new Error("database is gone"); // the queue could not be cancelled; the timer and the listener are already off
+    };
+    const res = await put({ enabled: false, confirm: true });
+    assert.equal(res.status, 500);
+    assert.equal(errorOf(res).code, "internal_error");
+    assert.equal(kit.messaging.calls.enable, 1, "the engine was restarted: it is not left stopped under a switch that is on");
+    assert.equal(kit.apiState.isEnabled(), true);
+    assert.deepEqual(await kit.snapshot(), before);
+    assert.deepEqual(await kit.audits("api."), []);
+  });
+
   test("the same state is changed: false, no write, no audit, no row created, the engine untouched", async () => {
     await boot();
     const off = await put({ enabled: false });

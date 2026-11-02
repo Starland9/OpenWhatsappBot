@@ -406,7 +406,8 @@ module.exports = {
     const harness = await createApiHarness({ endpointsDir: dir });
     try {
       assert.equal(harness.api.state().failure.endpoint, "bad.get");
-      const own = await harness.createKey({ name: "survivor" });
+      // `api.rights()` is empty under a failed registry: the send right is given by hand (the engine re-reads it at the pick, L7)
+      const own = await harness.createKey({ name: "survivor", rights: ["messages.send.text"] });
       const row = await harness.messaging.submit(harness.engine.request({ apiKeyId: own.id }));
       await harness.tick(2 * SEC);
       assert.equal((await harness.row(row.message.publicId)).status, "sent", "the engine keeps working");

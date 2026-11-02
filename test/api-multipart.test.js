@@ -412,6 +412,79 @@ describe("upload.receive", () => {
     assert.deepEqual(leftovers(), []);
   });
 
+  test("M2: eight concurrent receive() calls of one key: exactly 2 are accepted (the counters move before any await)", async () => {
+    const up = uploader({ idleMs: 5000 });
+    const release = [];
+    let accepted = 0;
+    const call = () => {
+      let gate;
+      const wait = new Promise((resolve) => (gate = resolve));
+      release.push(gate);
+      const part = {
+        stream: (async function* () {
+          accepted += 1; // the stream is only pulled once the caps let the upload through
+          yield PNG.subarray(0, 50);
+          await wait;
+        })(),
+      };
+      // a slow disk-usage query: every call is parked on it, all in the same tick
+      return up.receive(part, opts({ keyId: 7, pendingBytes: async () => (await new Promise((r) => setTimeout(r, 30)), 0) })).then(
+        (result) => result,
+        (err) => err,
+      );
+    };
+    const calls = Array.from({ length: 8 }, call);
+    await new Promise((r) => setTimeout(r, 120));
+    assert.equal(accepted, 2, "only two uploads of one key are in flight");
+    release.forEach((gate) => gate());
+    const results = await Promise.all(calls);
+    const refused = results.filter((r) => r instanceof Error);
+    assert.equal(refused.length, 6);
+    for (const err of refused) {
+      assert.equal(err.code, "rate_limited");
+      assert.deepEqual(err.params, { scope: "uploads", limit: 2, retryAfterMs: 5000 });
+    }
+    for (const result of results) if (!(result instanceof Error)) fs.rmSync(result.path, { force: true });
+
+    // the slots are given back: a new upload of the key is accepted again
+    const after = await up.receive(partOf([PNG]), opts({ keyId: 7 }));
+    fs.rmSync(after.path);
+    assert.deepEqual(leftovers(), []);
+  });
+
+  test("M2: eight concurrent receive() calls of eight keys: at most 4 in all", async () => {
+    const up = uploader({ idleMs: 5000 });
+    const release = [];
+    let accepted = 0;
+    const calls = Array.from({ length: 8 }, (_, i) => {
+      let gate;
+      const wait = new Promise((resolve) => (gate = resolve));
+      release.push(gate);
+      const part = { stream: (async function* () { accepted += 1; yield PNG.subarray(0, 50); await wait; })() };
+      return up.receive(part, opts({ keyId: 100 + i, pendingBytes: async () => (await new Promise((r) => setTimeout(r, 20)), 0) })).then((r) => r, (e) => e);
+    });
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(accepted, 4);
+    release.forEach((gate) => gate());
+    const results = await Promise.all(calls);
+    const refused = results.filter((r) => r instanceof Error);
+    assert.deepEqual([refused.length, refused[0].code, refused[0].params.limit], [4, "rate_limited", 4]);
+    for (const result of results) if (!(result instanceof Error)) fs.rmSync(result.path, { force: true });
+    assert.deepEqual(leftovers(), []);
+  });
+
+  test("M2: a refusal on the disk bound gives its slot back (the counters never leak)", async () => {
+    const small = { MAX_UPLOAD: 1 };
+    const up = uploader({ config: small });
+    for (let i = 0; i < 5; i += 1) {
+      const err = await up.receive(partOf([PNG]), opts({ keyId: 9, pendingBytes: async () => 2 * 1048576 })).catch((e) => e);
+      assert.equal(err.code, "queue_full", `call ${i}`);
+    }
+    const fine = await up.receive(partOf([PNG]), opts({ keyId: 9, pendingBytes: async () => 0 }));
+    fs.rmSync(fine.path);
+    assert.deepEqual(leftovers(), []);
+  });
+
   test("a pause of 30 s (idleMs) without a byte ends the upload and deletes the file", async () => {
     const part = { stream: (async function* () { yield PNG; await new Promise((r) => setTimeout(r, 2000)); })() };
     const started = Date.now();

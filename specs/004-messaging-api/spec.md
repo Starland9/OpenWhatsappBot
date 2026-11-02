@@ -41,6 +41,22 @@ Quatre risques encadrent la fonctionnalité :
 
 - Q: Faut-il retaper le mot de passe du panel avant une action sensible sur l'API ? → A: Oui. Le mot de passe est redemandé pour activer l'API, créer ou dupliquer une clé, élargir ses droits, passer sa politique à « n'importe qui » ou élargir ses restrictions d'IP. La confirmation vaut 5 minutes. Révoquer, restreindre ou couper l'API reste immédiat, sans mot de passe.
 
+### Session 2026-11-02 (plan, après la recherche)
+
+- Q: Un programme sur le même réseau Docker que le bot peut-il l'appeler en HTTP clair ? → A: Oui, si son réseau figure dans un réglage de réseaux privés autorisés en HTTP clair. Le réglage est vide par défaut (donc strict), et le modifier redemande le mot de passe.
+- Q: Le contenu d'un message en attente et les libellés des choix peuvent-ils être gardés ? → A: Oui, dans deux limites. Le contenu d'un message en attente est gardé seulement jusqu'à son statut final (envoyé, échec, expiré, annulé, incertain), puis effacé, pour que la file survive à un redémarrage. Les libellés courts des boutons, des choix de liste et des options de sondage (100 caractères au plus) sont gardés avec les réponses pendant la durée de conservation. Jamais la question, le texte, la légende ni le média.
+- Décisions prises sans question (sécurité ou cohérence avec les réponses précédentes) :
+  - le quota journalier est un jour calendaire dans le fuseau du bot ;
+  - une file qui ne pourrait pas envoyer un nouveau message avant son expiration le refuse tout de suite ;
+  - la file se met en pause 15 minutes si WhatsApp signale une restriction du compte ;
+  - les documents acceptés sont ceux des diffusions (pas d'exécutables) ;
+  - le bot refuse de s'écrire à lui-même ;
+  - lire la documentation par l'API exige un droit dédié ;
+  - la documentation de l'API est en anglais ;
+  - les sauvegardes n'emportent ni les clés, ni l'historique, ni l'interrupteur ;
+  - une clé révoquée ne se réactive pas et disparaît de la liste après la durée de conservation ;
+  - deux clés actives ne peuvent pas porter le même nom.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Envoyer un texte depuis un programme externe (Priority: P1)
@@ -202,6 +218,8 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 - **Nom de domaine qui change d'adresse entre la vérification et le téléchargement** : l'adresse est vérifiée au moment de la connexion, à chaque redirection (3 au plus).
 - **Citation d'un message** : seul un message envoyé par l'API dans la même discussion, encore dans l'historique, peut être cité ; sinon refus.
 - **Aperçu de lien demandé** : il exige le droit « média par URL » et passe par les mêmes protections que le téléchargement d'une URL.
+- **Programme sur le même réseau Docker que le bot, en HTTP clair** : refusé, sauf si son réseau privé figure dans le réglage des réseaux autorisés en HTTP clair.
+- **Compte WhatsApp restreint** : la file se met en pause 15 minutes et les propriétaires sont prévenus ; les messages qui expirent pendant la pause passent à « expiré ».
 - **Appel depuis le navigateur d'un site tiers** : refusé ; l'API n'est pas faite pour être appelée depuis une page web, où la clé serait visible.
 - **Cookie de session du panel présenté à l'API, ou clé d'API présentée au panel** : sans effet ; les deux accès sont séparés.
 
@@ -213,7 +231,7 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 
 - **FR-001**: L'API MUST être désactivée par défaut et ne s'activer que depuis le panel, par un propriétaire, avec confirmation du mot de passe (FR-021). Désactivée, chacun de ses endpoints MUST répondre comme une adresse inexistante, et aucune file ni minuterie de l'API ne MUST tourner.
 - **FR-002**: Couper l'API MUST refuser immédiatement toute nouvelle requête et faire passer les messages en file à « annulé ».
-- **FR-003**: L'API MUST refuser une clé reçue sur une connexion non chiffrée, sauf si la requête vient de la machine elle-même. Derrière un proxy de confiance (même réglage que le panel), elle MUST se fier à ce que le proxy déclare du chiffrement.
+- **FR-003**: L'API MUST refuser une clé reçue sur une connexion non chiffrée, sauf si la requête vient de la machine elle-même ou d'un réseau privé listé dans le réglage des réseaux autorisés en HTTP clair. Ce réglage est vide par défaut, n'accepte que des plages privées, et l'élargir redemande le mot de passe (FR-021). Derrière un proxy de confiance (même réglage que le panel), elle MUST se fier à ce que le proxy déclare du chiffrement.
 - **FR-004**: L'API MUST être réservée aux appels de programme à programme : aucune autorisation d'appel depuis une page web d'un autre site. Une session du panel MUST NOT donner accès à l'API, et une clé d'API MUST NOT donner accès au panel.
 - **FR-005**: L'API MUST être versionnée : un changement incompatible MUST passer par une nouvelle version, et la version en cours MUST continuer de fonctionner.
 - **FR-006**: Pendant le démarrage du bot et pendant une restauration de sauvegarde, l'API MUST répondre « indisponible » avec un délai conseillé, sans rien mettre en file.
@@ -222,17 +240,17 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 #### Clés et droits
 
 - **FR-010**: Un propriétaire MUST pouvoir créer depuis le panel une clé nommée. Son secret MUST être aléatoire, d'au moins 256 bits, et commencer par un préfixe fixe que les outils de détection de secrets savent reconnaître. Il MUST être affiché une seule fois, puis conservé sous une forme irréversible. Le panel MUST ensuite n'en montrer que le nom et les 4 derniers caractères.
-- **FR-011**: Chaque clé MUST porter une liste de droits, un par endpoint et, pour l'envoi, un par format, plus un droit distinct « média par URL ». Les droits MUST suivre le principe du refus par défaut : une clé neuve n'en a aucun, et un endpoint ou un format ajouté plus tard n'est accordé à aucune clé existante.
+- **FR-011**: Chaque clé MUST porter une liste de droits, un par endpoint et, pour l'envoi, un par format, plus un droit distinct « média par URL » et un droit « lire la documentation ». Les droits MUST suivre le principe du refus par défaut : une clé neuve n'en a aucun, et un endpoint ou un format ajouté plus tard n'est accordé à aucune clé existante.
 - **FR-012**: Chaque clé MUST porter une politique de destinataires : « liste » (numéros et groupes nommés), « discussions connues du bot » (groupes où il est membre et contacts qui lui ont déjà écrit) ou « n'importe qui ». La politique d'une clé neuve MUST être « liste » vide, et « n'importe qui » MUST exiger une confirmation après un avertissement sur le risque de bannissement.
 - **FR-013**: Chaque clé MUST pouvoir porter une liste facultative d'adresses ou de plages IP autorisées, et une date d'expiration facultative.
-- **FR-014**: La révocation d'une clé MUST prendre effet à la requête suivante. Les messages en file de cette clé MUST passer à « annulé ».
+- **FR-014**: La révocation d'une clé MUST prendre effet à la requête suivante. Les messages en file de cette clé MUST passer à « annulé ». Une clé révoquée MUST NOT pouvoir être réactivée ; elle MUST quitter la liste, avec son historique, après la durée de conservation. Deux clés non révoquées MUST NOT porter le même nom.
 - **FR-015**: Un propriétaire MUST pouvoir dupliquer une clé : même nom suivi d'un suffixe, mêmes droits, politique, limites et restrictions, nouveau secret affiché une fois. L'ancienne clé reste valide jusqu'à sa révocation.
 - **FR-016**: La clé MUST être lue uniquement dans l'en-tête prévu. Une requête qui porte une clé dans l'adresse MUST être refusée sans que la clé soit utilisée.
 - **FR-017**: Le secret d'une clé MUST NOT apparaître dans les journaux, l'historique, l'audit, les messages d'erreur ou les réponses de l'API. Seuls ses 4 derniers caractères peuvent être affichés, et seulement dans le panel.
 - **FR-018**: Après 10 échecs d'authentification en 5 minutes depuis la même origine, l'API MUST bloquer cette origine pendant 15 minutes et le signaler aux propriétaires (alerte « origine bloquée », activable).
-- **FR-019**: Le panel MUST montrer pour chaque clé la date de sa dernière utilisation et la dernière IP. Une alerte facultative MUST pouvoir prévenir les propriétaires quand une clé sert depuis une IP jamais vue pour elle.
+- **FR-019**: Le panel MUST montrer pour chaque clé la date de sa dernière utilisation et la dernière IP. Une alerte facultative, désactivée par défaut, MUST pouvoir prévenir les propriétaires quand une clé sert depuis une IP jamais vue pour elle.
 - **FR-020**: L'activation et la désactivation de l'API, ainsi que la création, la modification, la duplication et la révocation d'une clé, MUST produire chacune une entrée d'audit sans secret.
-- **FR-021**: Le panel MUST redemander le mot de passe du propriétaire avant d'enregistrer une action qui élargit l'accès : activer l'API, créer ou dupliquer une clé, lui ajouter un droit, passer sa politique de destinataires à un mode plus large ou ajouter des destinataires, élargir ou retirer ses restrictions d'IP, repousser ou retirer son expiration. Une confirmation réussie MUST valoir 5 minutes pour la session qui l'a obtenue. Les mauvais mots de passe MUST être limités comme les tentatives de connexion au panel. Les actions qui restreignent l'accès (révoquer, retirer un droit, réduire une liste, couper l'API) MUST rester possibles sans mot de passe.
+- **FR-021**: Le panel MUST redemander le mot de passe du propriétaire avant d'enregistrer une action qui élargit l'accès : activer l'API, créer ou dupliquer une clé, lui ajouter un droit, passer sa politique de destinataires à un mode plus large ou ajouter des destinataires, élargir ou retirer ses restrictions d'IP, repousser ou retirer son expiration, ajouter un réseau autorisé en HTTP clair. Une confirmation réussie MUST valoir 5 minutes pour la session qui l'a obtenue. Les mauvais mots de passe MUST être limités comme les tentatives de connexion au panel. Les actions qui restreignent l'accès (révoquer, retirer un droit, réduire une liste, couper l'API) MUST rester possibles sans mot de passe.
 
 #### Envoi : règles communes à tous les formats
 
@@ -242,19 +260,21 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 - **FR-033**: Une requête acceptée MUST recevoir aussitôt un identifiant de message impossible à deviner et le statut « en file ». Avec l'option « attendre le résultat », la réponse MUST arriver dès que le message est envoyé ou en échec, et au plus tard 30 secondes après, avec le statut du moment.
 - **FR-034**: Une requête MUST pouvoir porter une clé d'idempotence. Pendant 24 heures, la même clé d'API avec la même clé d'idempotence MUST renvoyer le message déjà créé sans renvoyer de message. Avec un contenu différent, la requête MUST être refusée avec `idempotency_conflict`.
 - **FR-035**: La file MUST espacer d'au moins 2 secondes, plus un aléa de 0 à 20 %, deux envois automatiques, API et diffusions du panel confondus. L'espacement MUST être réglable vers le haut uniquement.
-- **FR-036**: Chaque clé MUST avoir un quota par minute (30 par défaut), un quota par jour (1 000 par défaut) et un nombre maximal de messages en attente (100 par défaut), réglables dans le panel. La file entière MUST être plafonnée à 500 messages en attente (réglable). Au-delà, la requête MUST être refusée avec le délai à attendre.
+- **FR-036**: Chaque clé MUST avoir un quota par minute (30 par défaut), un quota par jour (1 000 par défaut) et un nombre maximal de messages en attente (100 par défaut), réglables dans le panel. La file entière MUST être plafonnée à 500 messages en attente (réglable). Le quota journalier MUST porter sur le jour calendaire dans le fuseau horaire du bot. Une requête MUST aussi être refusée quand l'attente estimée de la file (messages en attente multipliés par l'espacement) dépasse le délai d'expiration. Dans tous ces cas, le refus MUST indiquer le délai à attendre.
 - **FR-037**: Un message non envoyé 10 minutes (réglable) après son acceptation MUST passer à « expiré » et ne jamais partir ensuite.
 - **FR-038**: Les messages en file MUST survivre à un redémarrage du bot. Un message dont l'envoi était en cours à l'arrêt MUST passer à « incertain » et ne jamais être renvoyé : aucun message n'est envoyé deux fois.
 - **FR-039**: Le bot MUST NOT interpréter un message envoyé par l'API comme une commande, comme une réponse à un bouton ou comme un message à traiter, quel que soit son contenu.
 - **FR-040**: Avant d'envoyer à un numéro inconnu du bot, celui-ci MUST vérifier qu'il utilise WhatsApp ; sinon l'envoi passe à « échec » avec `not_on_whatsapp`. Un groupe où le bot ne peut pas écrire MUST donner un échec avec un code qui le dit.
 - **FR-041**: Un envoi vers une discussion désactivée dans le bot MUST être refusé avec `chat_disabled`.
 - **FR-042**: Un texte MUST pouvoir mentionner des participants par leur numéro (dans un groupe), et citer un message envoyé par l'API dans la même discussion et encore présent dans l'historique.
-- **FR-043**: L'aperçu de lien MUST être désactivé par défaut. Demandé, il MUST exiger le droit « média par URL » et passer par les protections de FR-060.
+- **FR-043**: L'aperçu de lien MUST être désactivé par défaut, et aucun lien présent dans un texte ne MUST déclencher de téléchargement. Demandé, il MUST exiger le droit « média par URL » et passer par les protections de FR-060.
+- **FR-044**: Un envoi au numéro du bot lui-même MUST être refusé.
+- **FR-045**: Si WhatsApp signale une restriction du compte en réponse à un envoi, la file MUST se mettre en pause 15 minutes, sans changer l'expiration des messages en attente. Les propriétaires MUST être prévenus par une alerte (activée par défaut).
 
 #### Formats
 
 - **FR-050**: **Texte** : 1 à 4 096 caractères.
-- **FR-051**: **Médias** : image, vidéo, GIF (lu en boucle), audio (fichier), note vocale (convertie au format vocal de WhatsApp), document (nom de fichier assaini) et sticker (converti depuis une image). Image, vidéo, GIF et document MUST accepter une légende de 1 024 caractères au plus.
+- **FR-051**: **Médias** : image, vidéo, GIF (lu en boucle), audio (fichier), note vocale (convertie au format vocal de WhatsApp), document (nom de fichier assaini ; mêmes types que les diffusions du panel : PDF, bureautique, archive zip, texte, CSV ; jamais un exécutable) et sticker (converti depuis une image). Image, vidéo, GIF et document MUST accepter une légende de 1 024 caractères au plus.
 - **FR-052**: Le type réel d'un média MUST être déterminé d'après son contenu, jamais d'après ce que déclare l'appelant. Un contenu qui ne correspond pas au format MUST être refusé avec `media_type_mismatch`.
 - **FR-053**: Un média MUST respecter la limite de taille des médias du bot (réglage existant) et la limite propre à son format. La réception MUST s'arrêter dès que la limite est dépassée.
 - **FR-054**: **Localisation** : latitude entre -90 et 90, longitude entre -180 et 180, nom et adresse facultatifs de 256 caractères au plus.
@@ -279,7 +299,8 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 - **FR-070**: Chaque message MUST avoir un statut parmi « en file », « en cours », « envoyé », « distribué », « lu », « échec » (avec un code), « expiré », « annulé » et « incertain ». L'heure de chaque changement est conservée. « Distribué » et « lu » ne concernent que les discussions privées, et ne sont renseignés que si WhatsApp les communique.
 - **FR-071**: Une clé MUST pouvoir lire le statut de ses propres messages, un par un ou en liste paginée filtrable par statut, format et période. Le message d'une autre clé MUST être traité comme inexistant.
 - **FR-072**: Pour les boutons, les listes et les sondages, le suivi MUST exposer les réponses reçues pendant 7 jours après l'envoi : identifiant du choix, auteur, heure ; pour un sondage, le dernier vote de chaque votant et le total par option.
-- **FR-073**: L'historique MUST conserver uniquement des métadonnées : clé ou source « panel », destinataire, format, taille, statut et heures, code d'échec, identifiant WhatsApp. Il MUST NOT conserver le texte, la légende ni le média. Le destinataire MUST être masqué dans les journaux.
+- **FR-073**: L'historique MUST conserver uniquement des métadonnées : clé ou source « panel », destinataire, format, taille, statut et heures, code d'échec, identifiant WhatsApp. Il MUST NOT conserver le texte, la légende ni le média. Seules exceptions : le contenu d'un message en attente est gardé jusqu'à son statut final, puis effacé dans la même écriture ; et les libellés courts des boutons, des choix de liste et des options de sondage (100 caractères au plus) sont gardés avec les réponses. Rien de ce contenu ne MUST apparaître dans les journaux ou l'audit. Le destinataire MUST être masqué dans les journaux.
+- **FR-076**: Les sauvegardes du panel MUST NOT contenir les clés d'API, l'historique des envois ni l'état de l'interrupteur. Une restauration ne MUST ni ressusciter une clé révoquée ni réactiver l'API.
 - **FR-074**: L'historique et les réponses MUST être supprimés après 30 jours (réglable) par le nettoyage quotidien.
 - **FR-075**: Le fichier d'un média en attente MUST être supprimé dès que son message est envoyé, en échec, expiré ou annulé. Le nettoyage quotidien MUST supprimer tout fichier orphelin.
 
@@ -292,7 +313,7 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 - **FR-081**: Le panel MUST afficher l'historique des envois filtrable par clé, statut, format et période. Le détail d'un envoi MUST montrer les étapes de son statut et ses réponses.
 - **FR-082**: Le panel MUST offrir un formulaire d'essai. Il couvre chaque format déclaré et se construit à partir de la description du format. Il envoie avec le même moteur, les mêmes contrôles de contenu et le même espacement que l'API, sous la session du propriétaire et avec la source « panel », et chaque essai produit une entrée d'audit.
 - **FR-083**: Le panel MUST afficher, par clé et par jour, le nombre d'envois et d'échecs.
-- **FR-084**: Le panel MUST permettre de télécharger la description lisible par machine de l'API, avec un exemple de requête par format.
+- **FR-084**: Le panel MUST permettre de télécharger la description lisible par machine de l'API, avec un exemple de requête par format. Cette description est en anglais ; une clé qui a le droit « lire la documentation » peut aussi l'obtenir par l'API.
 - **FR-085**: Tous les textes ajoutés au panel et au bot MUST exister en français et en anglais.
 
 #### Modularité
@@ -306,8 +327,8 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 ### Key Entities
 
 - **Clé d'API** : un accès nommé pour un programme externe. Attributs : nom, empreinte irréversible du secret, 4 derniers caractères, droits (endpoints, formats, média par URL), politique de destinataires (mode et liste), quotas (par minute, par jour, en attente), restrictions d'IP, expiration, état (active, révoquée), dates de création et de dernière utilisation, dernière IP, IP déjà vues.
-- **Message de l'API** : un envoi demandé par une clé ou par le formulaire d'essai. Attributs : identifiant public, clé ou source « panel », clé d'idempotence, destinataire, format, taille, statut et heure de chaque étape, code d'échec, identifiant WhatsApp, heure d'acceptation et d'expiration. Aucun contenu.
-- **Réponse reçue** : un choix fait par un destinataire sur un message à boutons, à liste ou à sondage. Attributs : message concerné, auteur, identifiant(s) du choix, heure. Pour un sondage, le dernier vote d'un votant remplace le précédent.
+- **Message de l'API** : un envoi demandé par une clé ou par le formulaire d'essai. Attributs : identifiant public, clé ou source « panel », clé d'idempotence, destinataire, format, taille, statut et heure de chaque étape, code d'échec, identifiant WhatsApp, heure d'acceptation et d'expiration. Son contenu n'est gardé que tant qu'il attend, puis effacé au statut final.
+- **Réponse reçue** : un choix fait par un destinataire sur un message à boutons, à liste ou à sondage. Attributs : message concerné, auteur, identifiant(s) du choix et leur libellé court, heure. Pour un sondage, le dernier vote d'un votant remplace le précédent.
 - **Média en attente** : le fichier d'un message en file, déjà vérifié et prêt à partir. Il est supprimé à la fin du message.
 - **Endpoint** et **Format** : des déclarations de modules (pas des données en base). Elles alimentent la documentation, la liste des droits, les filtres et le formulaire d'essai.
 - **Réglages de l'API** : interrupteur, espacement minimal, quotas par défaut, délai d'expiration en file, durée de conservation de l'historique, alertes.
@@ -336,7 +357,7 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 - **Pas de SDK ni d'outil en ligne de commande** : la description lisible par machine permet d'en générer un dans n'importe quel langage.
 - **HTTPS** : le chiffrement est assuré par l'hébergeur ou un proxy, comme pour le panel. Le bot ne gère pas de certificat.
 - **Média par URL** : le téléchargement se fait pendant la requête, qui peut donc durer jusqu'à 30 secondes ; le texte et l'envoi de fichier restent rapides.
-- **Citation** : seuls les messages envoyés par l'API peuvent être cités ; citer un message reçu viendra avec l'endpoint de lecture.
+- **Citation** : seuls les messages envoyés par l'API peuvent être cités ; citer un message reçu viendra avec l'endpoint de lecture. Comme le texte n'est pas gardé, la bulle de citation peut s'afficher sans le texte cité ; la liste de contrôle sur téléphone le vérifie.
 - **Boutons natifs** : WhatsApp ne les affiche pas sur tous les téléphones ; la version texte numérotée existante du bot sert de repli, et une réponse par numéro cité compte comme un choix.
 - **Limites des formats** : longueurs du texte et des légendes, nombre de boutons et de choix, et nombre d'options d'un sondage reprennent les limites courantes de WhatsApp. Les limites de taille par format suivent celles de WhatsApp, plafonnées par le réglage existant de taille des médias.
 - **Durées** : historique et réponses conservés 30 jours ; réponses collectées 7 jours après l'envoi ; expiration en file après 10 minutes ; idempotence valable 24 heures. Toutes réglables sauf l'idempotence.

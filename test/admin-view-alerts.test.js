@@ -35,7 +35,7 @@ const SETTINGS = [
   { key: "ALERT_NEW_ORIGIN", version: 7, value: true },
 ];
 
-test("the six types come in the order of the contract, whatever the server sent, with their setting", async () => {
+test("the nine types come in the order of the contract, whatever the server sent, with their setting (three added by feature 004)", async () => {
   const { ALERT_TYPES, buildRows } = await load("alerts-logic.mjs");
   assert.deepEqual(
     ALERT_TYPES.map(({ type, settingKey }) => [type, settingKey]),
@@ -46,6 +46,9 @@ test("the six types come in the order of the contract, whatever the server sent,
       ["login_blocked", "ALERT_LOGIN_BLOCKED"],
       ["new_origin", "ALERT_NEW_ORIGIN"],
       ["update_available", "ALERT_UPDATE"],
+      ["api_origin_blocked", "ALERT_API_ORIGIN_BLOCKED"],
+      ["api_key_new_ip", "ALERT_API_KEY_NEW_IP"],
+      ["api_paused", "ALERT_API_PAUSED"],
     ],
   );
   assert.deepEqual(buildRows(ALR1, SETTINGS).map((row) => row.type), ALERT_TYPES.map((x) => x.type));
@@ -69,7 +72,7 @@ test("the rows join ALR-1 with the SET-1 versions; a type the server omitted is 
   assert.equal(rows.key_refused.lastSentAt, null);
   assert.equal(rows.key_refused.pending, 0);
   // nothing loaded yet
-  assert.equal(buildRows(null, null).length, 6);
+  assert.equal(buildRows(null, null).length, 9);
 });
 
 test("a toggle answered by SET-2 wins over the loaded row until the next load", async () => {
@@ -106,7 +109,7 @@ test("versionsOf keeps only the ALERT_* settings that carry a version", async ()
 
 test("summarize counts the enabled types and the alerts waiting", async () => {
   const { buildRows, summarize } = await load("alerts-logic.mjs");
-  assert.deepEqual(summarize(buildRows(ALR1, SETTINGS)), { total: 6, enabled: 5, pending: 2 });
+  assert.deepEqual(summarize(buildRows(ALR1, SETTINGS)), { total: 9, enabled: 8, pending: 2 });
   assert.deepEqual(summarize(null), { total: 0, enabled: 0, pending: 0 });
 });
 

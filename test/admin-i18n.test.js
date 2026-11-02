@@ -59,7 +59,7 @@ const BANNER_IDS = [
 const THEMES = ["general", "behavior", "api-keys", "responder", "moderation", "limits", "advanced", "boot", "alerts", "inactive"];
 const STATUSES = ["idle", "connecting", "qr", "open", "reconnecting", "restarting", "stopped", "logged_out"];
 const AREAS = [
-  "dashboard", "settings", "commands", "groups", "pairing", "data", "broadcasts",
+  "dashboard", "settings", "commands", "groups", "pairing", "data", "broadcasts", "api",
   "backup", "maintenance", "texts", "alerts", "logs", "stats", "audit",
 ];
 // codes the server sends that the contract table of 1.9 does not list (the boot window of runtime.md section 15)
@@ -480,6 +480,10 @@ test("dynamic key families used by the shell are complete", () => {
     "jobs.phase.": ["stop", "settings", "start", "ready", "fetch", "merge", "install", "verify", "maintenance", "pre_backup", "database", "session", "finalize", "restarting"],
     "account.language_": ["fr", "en"],
     "account.theme_": ["auto", "light", "dark"],
+    // feature 004, contracts/panel-ui.md 11.3: message statuses, key states, rights groups (api-logic.mjs, api-keys.mjs, api-rights.mjs)
+    "api.msg_status.": ["queued", "sending", "sent", "delivered", "read", "failed", "expired", "cancelled", "unknown"],
+    "api.key_state.": ["active", "expired", "revoked"],
+    "api.right_group.": ["send", "read", "media", "docs"],
   };
   const problems = [];
   for (const [prefix, names] of Object.entries(families)) {
@@ -610,4 +614,23 @@ test("the real panel catalogs are in the canonical merged form (a merge with no 
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Feature 004, W4: the alert titles of the three API alerts and the audit prefix (contracts/panel-ui.md 11.3, 11.5)
+// ---------------------------------------------------------------------------
+
+test("the six alerts.type_api_* texts live in the 002 panel-alerts fragment and in both catalogs; audit.prefix_api exists; French says panel d'administration, never panneau", () => {
+  const fragment = readJson(path.join(ROOT, "specs", "002-admin-panel", "i18n", "panel-alerts.json"));
+  const keys = ["api_origin_blocked", "api_key_new_ip", "api_paused"].flatMap((type) => [`alerts.type_${type}`, `alerts.type_${type}_desc`]);
+  const problems = [];
+  for (const l of LANGS) {
+    for (const key of keys) {
+      if (typeof fragment[l][key] !== "string" || fragment[l][key].trim() === "") problems.push(`${key} missing in panel-alerts.json (${l})`);
+      if (catalogs[l][key] !== fragment[l][key]) problems.push(`${key} (${l}) differs between the fragment and the catalog: merge the 002 fragments`);
+    }
+    if (typeof catalogs[l]["audit.prefix_api"] !== "string") problems.push(`audit.prefix_api missing in ${l}.json`);
+  }
+  assert.doesNotMatch(JSON.stringify(keys.map((key) => catalogs.fr[key])), /panneau/i);
+  assertNone(problems, "feature 004 alert titles and audit prefix:");
 });

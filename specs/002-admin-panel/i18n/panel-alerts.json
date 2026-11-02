@@ -40,7 +40,13 @@
     "alerts.type_new_origin": "Login from a new origin",
     "alerts.type_new_origin_desc": "Someone logged in to the panel from an address that had never logged in before.",
     "alerts.type_update_available": "Update available",
-    "alerts.type_update_available_desc": "A newer version of the bot exists. Announced once per version."
+    "alerts.type_update_available_desc": "A newer version of the bot exists. Announced once per version.",
+    "alerts.type_api_origin_blocked": "API origin blocked",
+    "alerts.type_api_origin_blocked_desc": "A network address was blocked after too many refused API calls. Announced at most once every 15 minutes per address.",
+    "alerts.type_api_key_new_ip": "API key used from a new address",
+    "alerts.type_api_key_new_ip_desc": "A key was used from an address it had never used before. Off by default; at most once a day per key and address.",
+    "alerts.type_api_paused": "API sending paused",
+    "alerts.type_api_paused_desc": "WhatsApp refused several messages in a row, so sending is paused for 15 minutes. Messages stay in the queue."
   },
   "fr": {
     "alerts.intro": "Le bot envoie un message WhatsApp à chaque propriétaire quand l'un de ces événements se produit. Désactivez ceux dont vous ne voulez pas. Chaque type a sa propre limite, donc une mauvaise heure ne remplit jamais votre téléphone.",
@@ -83,6 +89,12 @@
     "alerts.type_new_origin": "Connexion depuis une nouvelle origine",
     "alerts.type_new_origin_desc": "Quelqu'un s'est connecté au panel depuis une adresse qui ne s'était jamais connectée.",
     "alerts.type_update_available": "Mise à jour disponible",
-    "alerts.type_update_available_desc": "Une version plus récente du bot existe. Annoncée une seule fois par version."
+    "alerts.type_update_available_desc": "Une version plus récente du bot existe. Annoncée une seule fois par version.",
+    "alerts.type_api_origin_blocked": "Origine de l'API bloquée",
+    "alerts.type_api_origin_blocked_desc": "Une adresse réseau a été bloquée après trop d'appels refusés à l'API. Annoncée au plus une fois toutes les 15 minutes par adresse.",
+    "alerts.type_api_key_new_ip": "Clé d'API utilisée depuis une nouvelle adresse",
+    "alerts.type_api_key_new_ip_desc": "Une clé a été utilisée depuis une adresse qu'elle n'avait jamais utilisée. Désactivée par défaut ; au plus une fois par jour pour une clé et une adresse.",
+    "alerts.type_api_paused": "Envois de l'API en pause",
+    "alerts.type_api_paused_desc": "WhatsApp a refusé plusieurs messages de suite : les envois sont suspendus pendant 15 minutes. Les messages restent dans la file."
   }
 }

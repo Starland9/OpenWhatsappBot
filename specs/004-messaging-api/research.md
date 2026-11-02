@@ -65,6 +65,28 @@ Decisions taken without a question (security, or a direct consequence of earlier
 | X21 | Key cache | — | **A4**: `settingsCache` key `api_keys`; every key writer calls `settingsCache.invalidate("api_keys")`; usage columns (`lastUsedAt`, `lastIp`, `seenIps` <= 20) are written behind and never bump `version` |
 | X22 | IP grammar | — | **A2**: IPv4, IPv4/n, IPv6, IPv6/n, normalised, <= 50 entries, compiled to `net.BlockList`; shared fixture `test/fixtures/api-ip-entries.json` used by the server parser and `api-logic.mjs` |
 
+## 2b. Phase 1 alignment (orchestrator, after the five design files)
+
+| # | Topic | Decision |
+| --- | --- | --- |
+| Y1 | List caps | `ApiState.plainHttpFrom` <= 20 entries; `ApiKey.ipAllow` <= 50 entries |
+| Y2 | Key store file | `lib/api/keyStore.js` (also the usage write-behind) |
+| Y3 | Media hand-off | `messaging.submit({ media })` moves the API temp file (copies a panel upload) into `data/api-media/<publicId>/source`; the engine mints `publicId`; no `adopt()` on the HTTP side |
+| Y4 | Request field names | `contracts/public-api.md` wins everywhere (`contacts[].name`, `choices`...) |
+| Y5 | Staging | `data/api-media/`; queued content in the `payload` column, never a file |
+| Y6 | `api_paused` alert | payload `{ resumesAt }`, slot 15 min |
+| Y7 | WhatsApp `463` | Baileys rc14 documents it as "missing privacy token, usually account restricted" and can come from one contact: a single `463` fails that message (`whatsapp_rejected`); **3 within 10 minutes** pause the queue 15 minutes and raise `api_paused` (spec FR-045 updated; replaces U5's "any 463") |
+| Y8 | Login and step-up | A successful login sets the step-up confirmation (window starts at login, US4.7); AUTH-7 renews it |
+| Y9 | Logging a key | integer `ApiKey.id` + name; never `lookupId`, never the secret |
+| Y10 | Panel test send | no key quota applies (source `panel`): `rate_limited`, `daily_quota_exceeded`, `pending_limit_reached` never reach the panel; only the `MESSAGING_STATUS` codes get panel texts |
+| Y11 | IP module | `lib/api/ipRules.js` |
+| Y12 | Expired keys | editable (extending the expiry is a widening: password); API-7 refuses a revoked or expired source |
+| Y13 | Media sweep | `messaging.sweepMedia({ now })` |
+| Y14 | Policy modes | `list`, `known`, `anyone` |
+| Y15 | Group failures | `not_in_group`, `group_announce_only` |
+| Y16 | Replies | window counted from `sentAt`; at most 1,000 response rows per message |
+| Y17 | `media_type_mismatch` | params `{ expected }` only, never the detected type |
+
 ## 3. Risks that only a real phone can settle
 
 Listed in [quickstart.md](quickstart.md), section "Phone checklist" (SC-004):

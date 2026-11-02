@@ -269,7 +269,7 @@ Six mois plus tard, le propriétaire (ou un développeur) veut ajouter un endpoi
 - **FR-042**: Un texte MUST pouvoir mentionner des participants par leur numéro (dans un groupe), et citer un message envoyé par l'API dans la même discussion et encore présent dans l'historique.
 - **FR-043**: L'aperçu de lien MUST être désactivé par défaut, et aucun lien présent dans un texte ne MUST déclencher de téléchargement. Demandé, il MUST exiger le droit « média par URL » et passer par les protections de FR-060.
 - **FR-044**: Un envoi au numéro du bot lui-même MUST être refusé.
-- **FR-045**: Si WhatsApp signale une restriction du compte en réponse à un envoi, la file MUST se mettre en pause 15 minutes, sans changer l'expiration des messages en attente. Les propriétaires MUST être prévenus par une alerte (activée par défaut).
+- **FR-045**: Un envoi que WhatsApp refuse pour restriction MUST passer à « échec » avec `whatsapp_rejected`. Après 3 refus de ce type en 10 minutes, la file MUST se mettre en pause 15 minutes, sans changer l'expiration des messages en attente, et les propriétaires MUST être prévenus par une alerte (activée par défaut).
 
 #### Formats
 

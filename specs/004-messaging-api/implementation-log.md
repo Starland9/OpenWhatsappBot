@@ -100,3 +100,9 @@
 ### W3 checkpoint (T147), clean worktree at `f7ed151`
 
 - fr and en: **4,892 tests / 4,884 pass / 0 fail / 8 skipped / 0 todo**; `0 unused dependencies`; `admin-integration` green (14 routes, `auth: "session"`, the `stepUp` set). I-UI (W4) started at `c7ac1e1`, in parallel with F-PUB, on disjoint files.
+
+### W4 I-UI (T053-T055, T072-T073, T090, T096, T105-T107, T119-T121, T136, T142), commit `1738990`
+
+- 17 views `lib/admin/public/js/views/api*.mjs`, shell edits (`router.mjs`, `app.mjs` mounts `<ReauthDialog />`, `components/index.mjs`, icons `i-api`/`i-copy`, `.code-block`), audit and alerts logic, six `alerts.type_api_*` titles in the 002 fragment `panel-alerts.json`. Tests: admin-view-api 37, admin-view-api-messages 15, admin-view-api-test 30, admin-view-api-guards 5, admin-frontend 41 (contract test 11 with API-1..13 and AUTH-7), admin-i18n 24, admin-view-alerts 12, admin-view-logs-stats 27; each view test file about 1-1.6 s, no guard trip. Mutations caught: step-up removed in `saveKey`, secret in a toast, the 3-error poller stop removed, a re-render loop.
+- Deviations: `RepeatedItems` gets a label heading and `data-list/add/remove` attributes; `TestTab`/`DocsTab` accept an optional `deps` prop; `useMessage` treats "no answer yet" as not settled; `saveKey` returns an outcome object; a registry failure with `endpoint: null` shows `?`. A 14th synthetic format renders in Test, Docs and the key editor without SPA edit.
+- W4 also runs J-DOC (docs, memory modes) and, in parallel, the read-only review R-REV (T154) since the code is complete.

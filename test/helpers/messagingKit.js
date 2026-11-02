@@ -16,11 +16,14 @@
  *   kit.row(publicId) / kit.rows() fresh ApiMessage rows (model instances)
  *   kit.check()                    assertMessageInvariants on every row
  *   kit.setEnabled(bool)           flip the fake switch and notify the listeners like apiState does
+ *   kit.file(bytes, name)          a file on disk as the pipeline hands it over: { path, size, name, sha256 } (a temp file)
+ *   samples.png() / pdf() / exe() / text() / wav()   small real files of those types (png is generated with sharp)
  *   kit.banned                     the Set of disabled chats the engine reads
  *   kit.close()                    stop the engine, restore the clock, remove the temporary root
  *
  * `realTime: true` uses Date.now and real timers (the pipeline's `sentIds.has` reads the real clock).
  * `realConfig: true` uses the real config module instead of a plain object (a test changes it through the settings store).
+ * `stageWrap: (stage) => stage` wraps the engine's staging area (a removal that fails).
  * `autoKick: true` lets an accept run a pass at once (the default is off: every pass is an explicit `tick`, so a test
  * decides which rows a pass sees). Rows inserted straight into the table are announced with
  * `kit.messaging.outbox.reseed()`.
@@ -30,6 +33,7 @@
  * The caller calls fakes.setupEnv() before requiring this file's consumers (the bot modules are required lazily).
  */
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -40,6 +44,14 @@ const { assertMessageInvariants } = require("./apiInvariants");
 const T0 = Date.UTC(2026, 2, 10, 8, 0, 0);
 const OWN_NUMBER = "237690000099";
 const TABLES = ["ApiMessageResponse", "ApiMessage", "ApiKey", "KnownChat", "BannedChat", "AlertOutbox", "AlertState"];
+
+/** Small real files: the type is detected from the bytes, never from the name */
+const samples = {
+  png: async () => require("sharp")({ create: { width: 16, height: 16, channels: 3, background: { r: 200, g: 30, b: 30 } } }).png().toBuffer(),
+  pdf: () => Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"),
+  exe: () => Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01, 0x01, 0x00]), Buffer.alloc(64)]),
+  text: () => Buffer.from("name,amount\nAwa,1200\n"),
+};
 
 /** Empty the tables the engine touches (the database module is shared by the whole test file) */
 async function clearTables(db) {
@@ -127,7 +139,7 @@ async function createEngineKit(options = {}) {
     apiState,
     gate,
     alerts,
-    stage: createStage({ rootDir: tmp, dataDir }),
+    stage: options.stageWrap ? options.stageWrap(createStage({ rootDir: tmp, dataDir })) : createStage({ rootDir: tmp, dataDir }),
     secretBox: createSecretBox({ dir: dataDir }),
     bannedChats: () => banned,
     autoKick: options.autoKick === true,
@@ -171,6 +183,15 @@ async function createEngineKit(options = {}) {
       now: now(),
       ...over,
     };
+  }
+
+  let fileSeq = 0;
+  function file(bytes, name = null) {
+    const dir = path.join(tmp, "incoming");
+    fs.mkdirSync(dir, { recursive: true });
+    const target = path.join(dir, `upload-${++fileSeq}.part`);
+    fs.writeFileSync(target, bytes);
+    return { path: target, size: bytes.length, name, sha256: crypto.createHash("sha256").update(bytes).digest("hex") };
   }
 
   const send = (over) => messaging.submit(request(over));
@@ -225,6 +246,7 @@ async function createEngineKit(options = {}) {
     now,
     key,
     request,
+    file,
     send,
     start,
     rows,
@@ -240,4 +262,4 @@ async function createEngineKit(options = {}) {
   };
 }
 
-module.exports = { createEngineKit, clearTables, T0, OWN_NUMBER };
+module.exports = { createEngineKit, clearTables, samples, T0, OWN_NUMBER };

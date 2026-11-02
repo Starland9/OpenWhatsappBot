@@ -2,7 +2,7 @@
 /**
  * The accept path of the messaging engine (feature 004, contracts/runtime.md 4.2, 4.5, 1 and RT-10 to RT-14, RT-40
  * to RT-43). Part 1: the nine steps in order, the INSERT of T1, the quote rule, the lost-race replay, the admission
- * table and its atomicity. The media branch (part 2) and `get`/`list` (part 3) are appended in Phases 4 and 5.
+ * table and its atomicity. Part 2: media (inspect, fetch, stage adoption, RT-42, disk admission). Part 3: `get`/`list`.
  *
  * Real facade over the in-memory database with a fake clock, a fake socket and a fake switch (test/helpers/
  * messagingKit.js). `assertMessageInvariants` runs after every scenario.
@@ -540,5 +540,439 @@ describe("validateInput and resolveRecipient: the building blocks the HTTP pipel
     assert.ok(kit.messaging.formats && typeof kit.messaging.formats.get === "function");
     assert.equal(kit.messaging.mask(PN), "237...01");
     assert.deepEqual(kit.messaging.parseRecipient(GROUP), { kind: "group", jid: GROUP, number: null });
+  });
+});
+
+// =====================================================================================================================
+// Part 2: media (runtime.md 4.2 steps 5-8, 10.2-10.4; data-model 7)
+// =====================================================================================================================
+
+const fs = require("node:fs");
+const path = require("node:path");
+const { samples } = require("./helpers/messagingKit");
+
+/** The models with `ApiMessage.create` made to fail (a database refusing the INSERT) */
+function failingCreate(db, error = new Error("database is locked")) {
+  const wrapped = new Proxy(db.ApiMessage, {
+    get(target, prop) {
+      if (prop === "create") return async () => Promise.reject(error);
+      const value = target[prop];
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  return { ...db, ApiMessage: wrapped };
+}
+
+describe("inspectMedia: the type comes from the bytes, the cap from the format (10.2)", () => {
+  test("a PNG for image: kind, detected mime and extension, size", async () => {
+    const png = await samples.png();
+    const info = await kit.messaging.inspectMedia("image", kit.file(png, "photo.jpg"), { name: "photo.jpg" });
+    assert.deepEqual(info, { kind: "image", mime: "image/png", ext: "png", size: png.length });
+  });
+
+  test("a declared type and a file name never decide: a PDF called .png for image is media_type_mismatch with the expected kinds only", async () => {
+    const staged = { ...kit.file(samples.pdf(), "receipt.png"), mime: "image/png" };
+    await refuses(kit.messaging.inspectMedia("image", staged, { name: "receipt.png" }), "media_type_mismatch", (err) => {
+      assert.deepEqual(err.params, { expected: ["image"] });
+      assert.ok(!JSON.stringify(err).includes("pdf"), "the detected type is never echoed");
+    });
+    await refuses(kit.messaging.inspectMedia("document", kit.file(samples.exe(), "run.pdf"), { name: "run.pdf" }), "media_type_mismatch", (err) => {
+      assert.deepEqual(err.params, { expected: ["document"] });
+    });
+  });
+
+  test("a plain text and a CSV are documents (by content), a script is not", async () => {
+    assert.equal((await kit.messaging.inspectMedia("document", kit.file(samples.text(), "data.csv"), { name: "data.csv" })).mime, "text/csv");
+    assert.equal((await kit.messaging.inspectMedia("document", kit.file(samples.text(), "notes.txt"), { name: "notes.txt" })).mime, "text/plain");
+    await refuses(kit.messaging.inspectMedia("document", kit.file(Buffer.from("#!/bin/sh\nrm -rf /\n"), "x.txt"), { name: "x.txt" }), "media_type_mismatch");
+  });
+
+  test("a format without media gives fields.file = not_allowed", async () => {
+    await refuses(kit.messaging.inspectMedia("text", kit.file(samples.text()), {}), "validation_failed", (err) => assert.equal(err.fields.file.code, "not_allowed"));
+    await refuses(kit.messaging.inspectMedia("poll", kit.file(samples.text()), {}), "validation_failed", (err) => assert.equal(err.fields.file.code, "not_allowed"));
+  });
+
+  test("over the effective cap: media_too_large with maxBytes (min of the format cap and MAX_UPLOAD)", async () => {
+    await kit.close();
+    const sniff = { ...require("../lib/messaging/sniff"), effectiveMax: (format) => (format.name === "image" ? 100 : 1e9) };
+    kit = await createEngineKit({ deps: { sniff: { ...sniff, effectiveMax: () => 100 } } });
+    key = await kit.key();
+    const png = await samples.png();
+    assert.ok(png.length > 100);
+    await refuses(kit.messaging.inspectMedia("image", kit.file(png)), "media_too_large", (err) => assert.deepEqual(err.params, { maxBytes: 100 }));
+  });
+
+  test("the real cap follows MAX_UPLOAD at call time", async () => {
+    const config = require("../config");
+    const png = await samples.png();
+    const previous = config.MAX_UPLOAD;
+    try {
+      config.MAX_UPLOAD = 1;
+      assert.equal((await kit.messaging.inspectMedia("image", kit.file(png))).size, png.length, "16 x 16 PNG is far below 1 MB");
+      config.MAX_UPLOAD = 0.00003; // about 31 bytes
+      await refuses(kit.messaging.inspectMedia("image", kit.file(png)), "media_too_large", (err) => assert.equal(err.params.maxBytes, Math.floor(0.00003 * 1048576)));
+    } finally {
+      config.MAX_UPLOAD = previous;
+    }
+  });
+});
+
+describe("fetchMedia: the guarded fetcher, then the same inspection (9, 10.2)", () => {
+  /** A fetcher that "downloads" the given bytes and records how it was called */
+  function fakeFetcher(bytes) {
+    const calls = [];
+    return {
+      calls,
+      async fetchMedia(url, opts) {
+        calls.push({ url, ...opts });
+        const staged = kit.file(bytes);
+        return { path: staged.path, size: staged.size, contentType: "application/octet-stream", sha256: staged.sha256 };
+      },
+    };
+  }
+
+  async function withFetcher(bytes) {
+    await kit.close();
+    const fetcher = fakeFetcher(bytes);
+    kit = await createEngineKit({ deps: { urlFetch: fetcher } });
+    key = await kit.key();
+    return fetcher;
+  }
+
+  test("the format's cap and kinds go to the fetcher with the caller's signal; the result is a StagedFile marked as from a URL", async () => {
+    const png = await samples.png();
+    const fetcher = await withFetcher(png);
+    const signal = new AbortController().signal;
+    const staged = await kit.messaging.fetchMedia("image", "https://files.example.com/a.png?token=SECRET", { signal });
+    assert.equal(fetcher.calls.length, 1);
+    assert.equal(fetcher.calls[0].url, "https://files.example.com/a.png?token=SECRET");
+    assert.deepEqual(fetcher.calls[0].kinds, ["image"]);
+    assert.ok(fetcher.calls[0].maxBytes > 0 && fetcher.calls[0].maxBytes <= 16 * 1048576);
+    assert.equal(fetcher.calls[0].signal, signal);
+    assert.deepEqual(
+      { size: staged.size, name: staged.name, mime: staged.mime, ext: staged.ext, kind: staged.kind, source: staged.source },
+      { size: png.length, name: null, mime: "image/png", ext: "png", kind: "image", source: "url" },
+    );
+    assert.match(staged.sha256, /^[0-9a-f]{64}$/);
+    assert.ok(fs.existsSync(staged.path));
+    assert.ok(!JSON.stringify(staged).includes("SECRET"), "the URL is never part of the result");
+  });
+
+  test("a download that turns out to be of the wrong type is deleted and refused media_type_mismatch", async () => {
+    const fetcher = await withFetcher(samples.pdf());
+    let leftover = null;
+    const original = fetcher.fetchMedia.bind(fetcher);
+    fetcher.fetchMedia = async (...args) => {
+      const result = await original(...args);
+      leftover = result.path;
+      return result;
+    };
+    await refuses(kit.messaging.fetchMedia("image", "https://files.example.com/a.png"), "media_type_mismatch", (err) => assert.deepEqual(err.params, { expected: ["image"] }));
+    assert.ok(leftover && !fs.existsSync(leftover), "the temporary file is removed on a refusal");
+  });
+
+  test("a format without media refuses before any connection; a refusal of the fetcher passes through untouched", async () => {
+    const fetcher = await withFetcher(await samples.png());
+    await refuses(kit.messaging.fetchMedia("text", "https://files.example.com/a.png"), "validation_failed", (err) => assert.equal(err.fields.media.code, "not_allowed"));
+    assert.equal(fetcher.calls.length, 0);
+
+    const { MessagingError } = require("../lib/messaging/errors");
+    fetcher.fetchMedia = async () => {
+      throw new MessagingError("url_forbidden", { params: { reason: "host" } });
+    };
+    await refuses(kit.messaging.fetchMedia("image", "https://localhost/a.png"), "url_forbidden", (err) => assert.deepEqual(err.params, { reason: "host" }));
+  });
+});
+
+describe("submit with a file: stage adoption, mediaPath, admission and RT-42 (4.2 steps 5-8, 10.3, data-model 7)", () => {
+  const dirOf = (publicId) => path.join(kit.stage.rootDir(), publicId);
+
+  test("an API file is MOVED into data/api-media/<publicId>/source (0600 in a 0700 directory) and the row points at it", async () => {
+    const png = await samples.png();
+    const staged = kit.file(png, "photo.png");
+    const { message } = await kit.send({ format: "image", fields: { caption: "Your receipt" }, media: staged });
+    assert.equal(fs.existsSync(staged.path), false, "moved: the temporary file is gone");
+
+    const row = await kit.row(message.publicId);
+    assert.equal(row.mediaPath, `data/api-media/${message.publicId}/source`, "repo-relative, forward slashes");
+    const file = path.join(dirOf(message.publicId), "source");
+    assert.deepEqual(fs.readFileSync(file), png);
+    assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+    assert.equal(fs.statSync(dirOf(message.publicId)).mode & 0o777, 0o700);
+    assert.equal(row.size, png.length);
+    assert.deepEqual(row.payload, {
+      v: 1,
+      input: { caption: "Your receipt" },
+      media: { source: "upload", mime: "image/png", ext: "png", size: png.length, fileName: null },
+      quote: null,
+    });
+    assert.equal(message.format, "image");
+    assert.equal(message.size, png.length);
+  });
+
+  test("a panel file is COPIED: the upload record still has its file (it is consumed after acceptance)", async () => {
+    const staged = { ...kit.file(await samples.png(), "photo.png"), mode: "copy" };
+    const { message } = await kit.send({ source: "panel", apiKeyId: null, policy: null, limits: null, format: "image", fields: {}, media: staged });
+    assert.equal(fs.existsSync(staged.path), true);
+    assert.deepEqual(fs.readFileSync(path.join(dirOf(message.publicId), "source")), fs.readFileSync(staged.path));
+    assert.equal((await kit.row(message.publicId)).source, "panel");
+  });
+
+  test("the type is detected again at submit: the declared mime and name are ignored, the stored mime is the detected one", async () => {
+    const staged = { ...kit.file(await samples.png(), "photo.pdf"), mime: "application/pdf" };
+    const { message } = await kit.send({ format: "image", fields: {}, media: staged });
+    assert.equal((await kit.row(message.publicId)).payload.media.mime, "image/png");
+    assert.equal((await kit.row(message.publicId)).payload.media.ext, "png");
+  });
+
+  test("a document keeps its sanitised name in payload.media.fileName, never in payload.input", async () => {
+    const { message } = await kit.send({ format: "document", fields: { caption: "Invoice", fileName: "../../etc/invoice 2026.pdf" }, media: kit.file(samples.pdf(), "ignored.bin") });
+    const row = await kit.row(message.publicId);
+    assert.ok(!("fileName" in row.payload.input));
+    assert.deepEqual(row.payload.input, { caption: "Invoice" });
+    assert.match(row.payload.media.fileName, /^[^/\\]+\.pdf$/, "no path, the extension of the detected type");
+    assert.equal(row.payload.media.mime, "application/pdf");
+
+    const noName = await kit.send({ format: "document", fields: {}, media: kit.file(samples.pdf(), "report.pdf") });
+    assert.equal((await kit.row(noName.message.publicId)).payload.media.fileName, "report.pdf", "the multipart name is the fallback");
+  });
+
+  test("a file that came from a URL is recorded as source url, and no URL is stored anywhere", async () => {
+    const staged = { ...kit.file(await samples.png(), null), source: "url" };
+    const { message } = await kit.send({ format: "image", fields: {}, media: staged });
+    const row = await kit.row(message.publicId);
+    assert.equal(row.payload.media.source, "url");
+    assert.ok(!/https?:/.test(JSON.stringify(row.toJSON())), "a URL is never stored");
+  });
+
+  test("a media format without a file gives fields.media = required; a format without media given a file gives fields.file = not_allowed", async () => {
+    await refuses(kit.send({ format: "image", fields: {} }), "validation_failed", (err) => assert.equal(err.fields.media.code, "required"));
+    const stray = kit.file(samples.text());
+    await refuses(kit.send({ format: "text", fields: { text: "hi" }, media: stray }), "validation_failed", (err) => assert.equal(err.fields.file.code, "not_allowed"));
+    assert.equal(fs.existsSync(stray.path), true, "RT-42: a refusal before adoption leaves the temporary file to the pipeline");
+    assert.equal(await count(), 0);
+  });
+
+  test("a type mismatch and an oversize file are refused at submit too, with nothing adopted and the temp file left alone", async () => {
+    const wrong = kit.file(samples.pdf());
+    await refuses(kit.send({ format: "image", fields: {}, media: wrong }), "media_type_mismatch");
+    assert.equal(fs.existsSync(wrong.path), true);
+    assert.equal(fs.existsSync(kit.stage.rootDir()) ? fs.readdirSync(kit.stage.rootDir()).length : 0, 0);
+    assert.equal(await count(), 0);
+  });
+
+  test("the policy and the other refusals come before the file is touched (media step is after the recipient)", async () => {
+    const staged = kit.file(await samples.png());
+    await refuses(kit.send({ format: "image", fields: {}, media: staged, policy: { mode: "list", entries: [PN2] } }), "recipient_not_allowed");
+    assert.equal(fs.existsSync(staged.path), true);
+  });
+
+  test("RT-42: a refusal after adoption removes the staged directory (the INSERT failed)", async () => {
+    await kit.close();
+    const base = await createEngineKit();
+    const db = base.db;
+    await base.close();
+    kit = await createEngineKit({ clear: false, models: failingCreate(db) });
+    key = await kit.key();
+    const staged = { ...kit.file(await samples.png()), mode: "copy" };
+    await assert.rejects(kit.send({ format: "image", fields: {}, media: staged }), /database is locked/);
+    assert.equal(fs.existsSync(kit.stage.rootDir()) ? fs.readdirSync(kit.stage.rootDir()).length : 0, 0, "no directory left behind");
+    assert.equal(fs.existsSync(staged.path), true, "the copy mode left the caller's file");
+    assert.equal(await count(), 0);
+  });
+
+  test("an idempotent retry with a file is a replay answered before the file is adopted: no second directory", async () => {
+    const first = await kit.send({ format: "image", fields: {}, media: kit.file(await samples.png()), idempotency: { key: "photo-1", requestHash: "a".repeat(32) } });
+    const again = kit.file(await samples.png());
+    const replay = await kit.send({ format: "image", fields: {}, media: again, idempotency: { key: "photo-1", requestHash: "a".repeat(32) } });
+    assert.equal(replay.replayed, true);
+    assert.equal(replay.message.publicId, first.message.publicId);
+    assert.deepEqual(fs.readdirSync(kit.stage.rootDir()), [first.message.publicId]);
+    assert.equal(fs.existsSync(again.path), true, "the pipeline's finally removes it");
+  });
+
+  test("a public id that is already taken is skipped before a file is adopted: the first message's directory is never written over", async () => {
+    await kit.close();
+    const draws = [];
+    kit = await createEngineKit({ deps: { mintBytes: () => (draws.length ? draws.shift() : crypto.randomBytes(16)) } });
+    key = await kit.key();
+    const firstPng = await samples.png();
+    const first = await kit.send({ format: "image", fields: {}, media: kit.file(firstPng) });
+    draws.push(Buffer.from(first.message.publicId.slice(4), "base64url"), Buffer.alloc(16, 5));
+    const png = await require("sharp")({ create: { width: 8, height: 8, channels: 3, background: "#00f" } }).png().toBuffer();
+    const second = await kit.send({ format: "image", fields: {}, media: kit.file(png) });
+    assert.notEqual(second.message.publicId, first.message.publicId);
+    assert.deepEqual(fs.readdirSync(kit.stage.rootDir()).sort(), [first.message.publicId, second.message.publicId].sort());
+    assert.deepEqual(fs.readFileSync(path.join(dirOf(second.message.publicId), "source")), png);
+    assert.deepEqual(fs.readFileSync(path.join(dirOf(first.message.publicId), "source")), firstPng, "the first file is untouched");
+    assert.equal((await kit.row(first.message.publicId)).mediaPath.endsWith(`${first.message.publicId}/source`), true);
+  });
+
+  test("disk admission: pending media bytes plus the new file over twice MAX_UPLOAD gives queue_full { scope: disk, retryAfterMs: 5000 }", async () => {
+    const config = require("../config");
+    const previous = config.MAX_UPLOAD;
+    kit.config.MAX_UPLOAD = 1; // the bound is 2 MB
+    try {
+      await kit.db.ApiMessage.bulkCreate([
+        { publicId: `msg_${"D".repeat(22)}`, apiKeyId: key.id, recipient: PN, format: "image", status: "queued", size: 1900000, acceptedAt: new Date(kit.now()), expiresAt: new Date(kit.now() + 10 * MIN), payload: { v: 1, input: {}, media: null, quote: null }, mediaPath: `data/api-media/msg_${"D".repeat(22)}/source` },
+        { publicId: `msg_${"E".repeat(22)}`, apiKeyId: key.id, recipient: PN, format: "image", status: "sent", size: 9000000, acceptedAt: new Date(kit.now()), expiresAt: new Date(kit.now() + 10 * MIN), sendingAt: new Date(kit.now()), sentAt: new Date(kit.now()), waId: "3EB0DISKSENT000000001", payload: null },
+      ]);
+      assert.equal(await kit.messaging.pendingMediaBytes(), 1900000, "only queued and sending rows that still hold a file count");
+      // a real image of ~480 KB: noise does not compress
+      const noisy = await require("sharp")({ create: { width: 400, height: 400, channels: 3, noise: { type: "gaussian", mean: 128, sigma: 60 } } }).png({ compressionLevel: 0 }).toBuffer();
+      assert.ok(noisy.length > 100000 && noisy.length < 1000000);
+      config.MAX_UPLOAD = 1; // the cap seen by the type check is the real one
+      const staged = kit.file(noisy);
+      await refuses(kit.send({ format: "image", fields: {}, media: staged }), "queue_full", (err) => assert.deepEqual(err.params, { scope: "disk", retryAfterMs: 5000 }));
+      assert.equal(fs.existsSync(staged.path), true);
+      assert.equal(await count(), 2, "nothing written by the refusal");
+      kit.config.MAX_UPLOAD = 230;
+      const accepted = await kit.send({ format: "image", fields: {}, media: kit.file(noisy) });
+      assert.equal(accepted.replayed, false);
+      assert.equal(await kit.messaging.pendingMediaBytes(), 1900000 + noisy.length);
+    } finally {
+      config.MAX_UPLOAD = previous;
+    }
+  });
+});
+
+// =====================================================================================================================
+// Part 3: get and list (runtime.md 1, RT-11)
+// =====================================================================================================================
+
+describe("get: scoped by the key in the WHERE clause (RT-11)", () => {
+  test("the owning key reads its message as a MessageView; every other case is the same null", async () => {
+    const other = await kit.key();
+    const { message } = await kit.send({ fields: { text: "mine" } });
+    const theirs = await kit.send({ apiKeyId: other.id, fields: { text: "theirs" } });
+    const panel = await kit.send({ source: "panel", apiKeyId: null, policy: null, limits: null, fields: { text: "panel" } });
+
+    const view = await kit.messaging.get({ apiKeyId: key.id, publicId: message.publicId });
+    assert.equal(view.publicId, message.publicId);
+    assert.deepEqual([view.status, view.format, view.recipient, view.chatType, view.source], ["queued", "text", PN, "private", "api"]);
+    assert.ok(view.acceptedAt instanceof Date);
+    assert.equal(view.responses, null);
+
+    for (const miss of [
+      { apiKeyId: key.id, publicId: theirs.message.publicId }, // another key's
+      { apiKeyId: key.id, publicId: panel.message.publicId }, // a panel row
+      { apiKeyId: other.id, publicId: panel.message.publicId },
+      { apiKeyId: key.id, publicId: `msg_${"Q".repeat(22)}` }, // unknown
+      { apiKeyId: key.id, publicId: "msg_short" }, // malformed
+      { apiKeyId: key.id, publicId: "" },
+      { apiKeyId: key.id, publicId: undefined },
+      { apiKeyId: null, publicId: message.publicId },
+    ]) {
+      assert.equal(await kit.messaging.get(miss), null, JSON.stringify(miss));
+    }
+    await kit.db.ApiMessage.destroy({ where: { publicId: message.publicId } }); // purged by the retention job
+    assert.equal(await kit.messaging.get({ apiKeyId: key.id, publicId: message.publicId }), null);
+  });
+
+  test("the view carries the steps, the choices of an interactive message and never a content column", async () => {
+    const row = await kit.db.ApiMessage.create({
+      publicId: `msg_${"G".repeat(22)}`,
+      apiKeyId: key.id,
+      recipient: PN,
+      format: "poll",
+      size: 12,
+      status: "sent",
+      acceptedAt: new Date(kit.T0),
+      expiresAt: new Date(kit.T0 + 10 * MIN),
+      sendingAt: new Date(kit.T0 + SEC),
+      sentAt: new Date(kit.T0 + 2 * SEC),
+      waId: "3EB0GETVIEW00000000001",
+      requestId: "0123456789abcdef",
+      choices: [{ id: "0", label: "Yes" }],
+      repliesUntil: new Date(kit.T0 + 7 * 24 * HOUR),
+      pollSecret: "enc:v1:a:b:c",
+      replyData: { v: 1, multi: false, hashes: ["a".repeat(64)] },
+    });
+    const view = await kit.messaging.get({ apiKeyId: key.id, publicId: row.publicId }, { responses: false });
+    assert.equal(view.interactive, true);
+    assert.deepEqual(view.choices, [{ id: "0", label: "Yes" }]);
+    assert.equal(view.responses, null, "not requested");
+    assert.equal(view.waId, "3EB0GETVIEW00000000001");
+    assert.equal(view.requestId, "0123456789abcdef");
+    for (const forbidden of ["payload", "pollSecret", "replyData", "mediaPath", "requestHash", "idempotencyKey", "id"]) {
+      assert.ok(!(forbidden in view), `${forbidden} is not part of the view`);
+    }
+  });
+});
+
+describe("list: newest first by keyset on the internal id (RT-11, public-api 2.3)", () => {
+  async function many(n, over = {}) {
+    const out = [];
+    for (let i = 0; i < n; i += 1) out.push((await kit.send({ fields: { text: `m${i}` }, now: kit.T0 + i * SEC, ...over })).message.publicId);
+    return out;
+  }
+
+  test("newest first, scoped to the key: other keys and panel rows are invisible", async () => {
+    const other = await kit.key();
+    const ids = await many(3);
+    await kit.send({ apiKeyId: other.id, fields: { text: "theirs" } });
+    await kit.send({ source: "panel", apiKeyId: null, policy: null, limits: null, fields: { text: "panel" } });
+    const { items, next } = await kit.messaging.list({ apiKeyId: key.id });
+    assert.deepEqual(items.map((i) => i.publicId), [...ids].reverse());
+    assert.equal(next, null);
+    assert.ok(items.every((i) => i.responses === null), "items never carry responses");
+    assert.deepEqual((await kit.messaging.list({ apiKeyId: other.id })).items.length, 1);
+    assert.deepEqual((await kit.messaging.list({ apiKeyId: 99999 })).items, []);
+  });
+
+  test("limit defaults to 25, is capped at 100; next is the last item's id when more exist", async () => {
+    const ids = await many(27);
+    const first = await kit.messaging.list({ apiKeyId: key.id });
+    assert.equal(first.items.length, 25);
+    assert.equal(first.next, first.items.at(-1).publicId);
+    const second = await kit.messaging.list({ apiKeyId: key.id, after: first.next });
+    assert.deepEqual(second.items.map((i) => i.publicId), [ids[1], ids[0]]);
+    assert.equal(second.next, null);
+
+    const small = await kit.messaging.list({ apiKeyId: key.id, limit: 5 });
+    assert.equal(small.items.length, 5);
+    assert.equal(small.next, small.items[4].publicId);
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, limit: 500 })).items.length, 27, "capped at 100, there are only 27");
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, limit: 0 })).items.length, 25, "an unusable limit is the default");
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, limit: -4 })).items.length, 1, "never fewer than one");
+    const exact = await kit.messaging.list({ apiKeyId: key.id, limit: 27 });
+    assert.equal(exact.next, null, "exactly the last page: nothing more exists");
+  });
+
+  test("keyset pagination is stable while new messages arrive", async () => {
+    await many(6);
+    const first = await kit.messaging.list({ apiKeyId: key.id, limit: 3 });
+    await many(4, {}); // newer messages arrive between the pages
+    const second = await kit.messaging.list({ apiKeyId: key.id, limit: 3, after: first.next });
+    const all = (await kit.messaging.list({ apiKeyId: key.id, limit: 100 })).items.map((i) => i.publicId);
+    const tail = all.slice(all.indexOf(first.next) + 1);
+    assert.deepEqual(second.items.map((i) => i.publicId), tail.slice(0, 3), "page 2 continues exactly after page 1");
+    assert.equal(new Set([...first.items, ...second.items].map((i) => i.publicId)).size, 6);
+  });
+
+  test("an after that is not a message of this key (unknown, purged, other key, panel, malformed) is the same fields.after = not_found", async () => {
+    const other = await kit.key();
+    const mine = await many(2);
+    const theirs = await kit.send({ apiKeyId: other.id });
+    const panel = await kit.send({ source: "panel", apiKeyId: null, policy: null, limits: null });
+    await kit.db.ApiMessage.destroy({ where: { publicId: mine[0] } });
+    for (const after of [`msg_${"Z".repeat(22)}`, mine[0], theirs.message.publicId, panel.message.publicId, "msg_x", "garbage"]) {
+      await refuses(kit.messaging.list({ apiKeyId: key.id, after }), "validation_failed", (err) => assert.deepEqual(err.fields, { after: { code: "not_found" } }), after);
+    }
+  });
+
+  test("filters: status, format, since (inclusive) and until (exclusive) on the acceptance time", async () => {
+    await many(5); // accepted at T0 + 0..4 s
+    await kit.send({ format: "poll", fields: { question: "Q", options: ["a", "b"] }, now: kit.T0 + 10 * SEC });
+    await kit.db.ApiMessage.update({ status: "cancelled", errorCode: "key_revoked", endedAt: new Date(kit.T0 + 30 * SEC), payload: null }, { where: { format: "text", acceptedAt: { [require("sequelize").Op.lt]: new Date(kit.T0 + 2 * SEC) } } });
+
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, status: "cancelled" })).items.length, 2);
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, status: "queued" })).items.length, 4);
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, format: "poll" })).items.length, 1);
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, since: new Date(kit.T0 + 2 * SEC) })).items.length, 4, "since is inclusive");
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, until: new Date(kit.T0 + 2 * SEC) })).items.length, 2, "until is exclusive");
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, since: new Date(kit.T0 + SEC), until: new Date(kit.T0 + 4 * SEC) })).items.length, 3);
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, since: kit.T0 + 2 * SEC, until: new Date(kit.T0 + 4 * SEC).toISOString() })).items.length, 2, "ms, Date and ISO text are accepted");
+    assert.equal((await kit.messaging.list({ apiKeyId: key.id, status: "failed" })).items.length, 0);
   });
 });

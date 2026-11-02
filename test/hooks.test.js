@@ -10,8 +10,8 @@
  *  - BannedChat: commands ignored, `unban` from the owner gets through, the ban survives a cache flush
  *    and a re-require of the pipeline (DB);
  *  - tracking: group messages counted atomically, private chats / bot messages not;
- *  - the onMessage hooks run by priority (knownchats 5, role 10, tracking 20, afk 30, notify 40, groupguard 50,
- *    filters 90), so a message that matches a filter is still counted and still clears AFK;
+ *  - the onMessage hooks run by priority (knownchats 5, apireplies 6, role 10, tracking 20, afk 30, notify 40,
+ *    groupguard 50, filters 90), so a message that matches a filter is still counted and still clears AFK;
  *  - reminders: a reminder due in the past is delivered exactly once by scheduler.tick(), then `sent`.
  */
 
@@ -473,10 +473,11 @@ test("tracking: 3 group messages → messageCount 3 (once XP, atomic under concu
 // Hook order
 // ---------------------------------------------------------------------------
 
-test("onMessage hooks run by priority: knownchats, role, tracking, afk, notify, groupguard, then filters", () => {
+test("onMessage hooks run by priority: knownchats, apireplies, role, tracking, afk, notify, groupguard, then filters", () => {
   const files = registry.getHooks("onMessage").map((h) => h.file);
   const order = [
     "knownchats.js",
+    "apireplies.js",
     "role.js",
     "trackmessages.js",
     "afk.js",
@@ -488,6 +489,18 @@ test("onMessage hooks run by priority: knownchats, role, tracking, afk, notify, 
   const positions = order.map((file) => files.indexOf(file));
   assert.ok(positions.every((p) => p >= 0), `missing onMessage hook(s): ${order.filter((f, i) => positions[i] < 0).join(", ")} (have ${files.join(", ")})`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, `onMessage order should be ${order.join(" -> ")}, got ${files.join(" -> ")}`);
+});
+
+test("apireplies.js (feature 004) is hook-only: priority 5 for handleButtonReply (before every game), 6 for onMessage, no command", () => {
+  const plugin = registry.getHooks("onMessage").find((h) => h.file === "apireplies.js").plugin;
+  assert.equal(plugin.command, undefined, "no command: the reply capture has nothing to type");
+  assert.equal(typeof plugin.execute, "undefined");
+  assert.deepEqual(plugin.hookPriority, { handleButtonReply: 5, onMessage: 6 });
+
+  const replyHooks = registry.getHooks("handleButtonReply").map((h) => h.file);
+  assert.equal(replyHooks[0], "apireplies.js", `it runs before every game's hook, which only claim their own messages: ${replyHooks.join(", ")}`);
+  assert.ok(replyHooks.length > 5, "the games' hooks are behind it");
+  assert.equal(registry.getPlugins().filter((p) => registry.getPluginFile(p) === "apireplies.js").length, 1, "loaded once");
 });
 
 test("a message that matches a filter is still counted by tracking and still clears AFK", async () => {

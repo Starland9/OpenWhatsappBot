@@ -2,8 +2,8 @@
 /**
  * The outbox of the messaging engine (feature 004, contracts/runtime.md 4.1 to 4.9 and 11). Part 1: the queue core
  * (accept to sent, pacing SC-005, the shared gate, the two crash windows SC-006, expiry, the pick-step guards, the
- * verification, settling). Part 2: waiters, cancellation, pause, lifecycle. The media cases are appended in Phase 4,
- * the receipts in messaging-receipts.test.js.
+ * verification, settling). Part 2: waiters, cancellation, pause, lifecycle. The media cases close the file; the
+ * receipts are in messaging-receipts.test.js, the replies in messaging-replies.test.js.
  *
  * A real facade over the in-memory database, a fake clock, a fake socket, a private gate (test/helpers/
  * messagingKit.js); `assertMessageInvariants` runs after every scenario (afterEach).
@@ -17,7 +17,7 @@ const fakes = require("./helpers/fakes");
 
 fakes.setupEnv({ sudo: "111" });
 
-const { createEngineKit } = require("./helpers/messagingKit");
+const { createEngineKit, samples } = require("./helpers/messagingKit");
 const { createBroadcaster } = require("../lib/utils/broadcaster");
 const { createSendGate } = require("../lib/utils/sendGate");
 const maintenanceMode = require("../lib/utils/maintenanceMode");
@@ -1385,5 +1385,198 @@ describe("lifecycle: no timer and no listener while disabled, a tick sleeps when
     assert.equal(typeof messaging.createMessaging, "function");
     assert.equal(messaging.MessagingError, MessagingError);
     assert.equal(messaging.MESSAGING_STATUS.queue_full, 503);
+  });
+});
+
+// =====================================================================================================================
+// Media (Phase 4): staged files, the media timeout, deletion after the terminal UPDATE (4.3, 4.9, 10.3, data-model 7)
+// =====================================================================================================================
+
+const { spawnSync } = require("node:child_process");
+const haveFfmpeg = spawnSync("ffmpeg", ["-version"]).status === 0;
+
+describe("media messages", () => {
+  const dirOf = (publicId) => path.join(kit.stage.rootDir(), publicId);
+  const sourceOf = (publicId) => path.join(dirOf(publicId), "source");
+
+  async function sendImage(over = {}) {
+    const png = await samples.png();
+    const accepted = await kit.send({ format: "image", fields: { caption: "Your receipt" }, media: kit.file(png, "photo.png"), ...over });
+    return { ...accepted, png };
+  }
+
+  test("an image goes out from its staged path with the detected type; afterwards the file, the directory and mediaPath are gone", async () => {
+    await boot();
+    const { message, png } = await sendImage();
+    assert.ok(fs.existsSync(sourceOf(message.publicId)));
+    await kit.tick();
+    assert.equal(kit.sock.sent.length, 1);
+    const content = kit.sock.sent[0].content;
+    assert.equal(content.image.url, sourceOf(message.publicId), "the staged path, never a caller string");
+    assert.equal(content.mimetype, "image/png");
+    assert.equal(content.caption, "Your receipt");
+    assert.equal(kit.sock.sent[0].options.messageId, (await kit.row(message.publicId)).waId);
+
+    const row = await kit.row(message.publicId);
+    assert.deepEqual([row.status, row.payload, row.mediaPath], ["sent", null, null]);
+    assert.equal(fs.existsSync(dirOf(message.publicId)), false, "removed after the terminal UPDATE");
+    assert.equal(row.size, png.length);
+  });
+
+  test("a document goes out with the sanitised name and the detected mime", async () => {
+    await boot();
+    const accepted = await kit.send({ format: "document", fields: { caption: "Invoice", fileName: "Invoice 2026.pdf" }, media: kit.file(samples.pdf(), "x.bin") });
+    await kit.tick();
+    const content = kit.sock.sent[0].content;
+    assert.equal(content.mimetype, "application/pdf");
+    assert.match(content.fileName, /\.pdf$/);
+    assert.equal(content.document.url, sourceOf(accepted.message.publicId));
+    assert.equal(content.caption, "Invoice");
+  });
+
+  test("a sticker is converted while the row is still queued: the WebP prepared beside the source is what is sent", async () => {
+    await boot();
+    const accepted = await kit.send({ format: "sticker", fields: {}, media: kit.file(await samples.png()) });
+    const seen = [];
+    const sticker = kit.messaging.formats.get("sticker");
+    const realPrepare = sticker.prepare;
+    sticker.prepare = async (ctx) => {
+      seen.push((await kit.row(accepted.message.publicId)).status);
+      return realPrepare.call(sticker, ctx);
+    };
+    try {
+      await kit.tick();
+    } finally {
+      sticker.prepare = realPrepare;
+    }
+    assert.deepEqual(seen, ["queued"], "a crash during the conversion loses nothing");
+    const url = kit.sock.sent[0].content.sticker.url;
+    assert.equal(url, path.join(dirOf(accepted.message.publicId), "prepared.webp"));
+    assert.equal((await kit.row(accepted.message.publicId)).status, "sent");
+    assert.equal(fs.existsSync(dirOf(accepted.message.publicId)), false, "the prepared file goes with the directory");
+  });
+
+  test("a voice note is converted to Ogg/Opus (real ffmpeg, skipped when absent)", { skip: !haveFfmpeg && "ffmpeg is not installed" }, async () => {
+    await boot();
+    const wav = path.join(kit.tmp, "tone.wav");
+    assert.equal(spawnSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", wav]).status, 0);
+    const accepted = await kit.send({ format: "voice", fields: {}, media: kit.file(fs.readFileSync(wav)) });
+    await kit.tick();
+    const content = kit.sock.sent[0].content;
+    assert.equal(content.ptt, true);
+    assert.equal(content.mimetype, "audio/ogg; codecs=opus");
+    assert.equal(content.audio.url, path.join(dirOf(accepted.message.publicId), "prepared.ogg"));
+    assert.equal((await kit.row(accepted.message.publicId)).status, "sent");
+  });
+
+  test("a GIF is converted to an MP4 and played back as a GIF (real ffmpeg, skipped when absent)", { skip: !haveFfmpeg && "ffmpeg is not installed" }, async () => {
+    await boot();
+    const gif = path.join(kit.tmp, "anim.gif");
+    assert.equal(spawnSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc=duration=1:size=64x64:rate=5", gif]).status, 0);
+    const accepted = await kit.send({ format: "gif", fields: {}, media: kit.file(fs.readFileSync(gif)) });
+    await kit.tick();
+    const content = kit.sock.sent[0].content;
+    assert.equal(content.gifPlayback, true);
+    assert.equal(content.mimetype, "video/mp4");
+    assert.equal(content.video.url, path.join(dirOf(accepted.message.publicId), "prepared.mp4"));
+  });
+
+  test("a conversion that fails is failed / media_conversion_failed, before the claim, and the directory goes", async () => {
+    await boot();
+    const sticker = kit.messaging.formats.get("sticker");
+    const realPrepare = sticker.prepare;
+    sticker.prepare = async () => {
+      throw new Error("sharp could not decode the image");
+    };
+    try {
+      const accepted = await kit.send({ format: "sticker", fields: {}, media: kit.file(await samples.png()) });
+      await kit.tick();
+      const row = await kit.row(accepted.message.publicId);
+      assert.deepEqual([row.status, row.errorCode, row.waId, row.mediaPath], ["failed", "media_conversion_failed", null, null]);
+      assert.equal(fs.existsSync(dirOf(accepted.message.publicId)), false);
+      assert.equal(kit.sock.sent.length, 0);
+    } finally {
+      sticker.prepare = realPrepare;
+    }
+  });
+
+  test("a directory that vanished fails the row as payload_unavailable: the caption is never sent as a text-only message", async () => {
+    await boot();
+    const { message } = await sendImage();
+    fs.rmSync(dirOf(message.publicId), { recursive: true });
+    await kit.tick();
+    const row = await kit.row(message.publicId);
+    assert.deepEqual([row.status, row.errorCode, row.payload], ["failed", "payload_unavailable", null]);
+    assert.equal(kit.sock.sent.length, 0);
+    assert.equal(kit.gate.lastSendAt(), null);
+  });
+
+  test("a failed or unknown send removes the staged media too (T7, T8)", async () => {
+    await boot();
+    kit.sock.sendMessage = async () => {
+      throw refusedError();
+    };
+    const first = await sendImage();
+    await kit.tick();
+    assert.equal((await kit.row(first.message.publicId)).status, "failed");
+    assert.equal(fs.existsSync(dirOf(first.message.publicId)), false);
+
+    kit.sock.sendMessage = async () => {
+      throw timeoutError();
+    };
+    const second = await sendImage();
+    await kit.tick(3 * SEC);
+    const row = await kit.row(second.message.publicId);
+    assert.deepEqual([row.status, row.errorCode, row.mediaPath], ["unknown", "timeout", null]);
+    assert.equal(fs.existsSync(dirOf(second.message.publicId)), false);
+  });
+
+  test("a crash between the terminal UPDATE and the deletion leaves a pending-deletion pointer (I6), never a lost state", async () => {
+    let broken = true;
+    await boot({
+      stageWrap: (stage) => ({
+        ...stage,
+        remove: async (publicId) => {
+          if (broken) throw new Error("EBUSY");
+          return stage.remove(publicId);
+        },
+      }),
+    });
+    const { message } = await sendImage();
+    await kit.tick();
+    const row = await kit.row(message.publicId);
+    assert.deepEqual([row.status, row.payload], ["sent", null], "the terminal state is committed first");
+    assert.equal(row.mediaPath, `data/api-media/${message.publicId}/source`, "the pointer of a deletion pending");
+    assert.ok(fs.existsSync(dirOf(message.publicId)), "an orphan, finished by the housekeeping");
+    broken = false;
+  });
+
+  test("the send of a media row has the media timeout (90 s), a text row 30 s", async () => {
+    await boot();
+    kit.sock.sendMessage = () => new Promise(() => {});
+    const media = await sendImage();
+    const pass = kit.messaging.tick(kit.now());
+    await until(async () => (await kit.row(media.message.publicId)).status === "sending", "the claim");
+    await kit.clock.advance(60 * SEC);
+    assert.equal((await kit.row(media.message.publicId)).status, "sending", "still waiting at 60 s");
+    await kit.clock.advance(30 * SEC);
+    await pass;
+    assert.deepEqual([(await kit.row(media.message.publicId)).status, (await kit.row(media.message.publicId)).errorCode], ["unknown", "timeout"]);
+  });
+
+  test("cancelling and expiring a media row removes its directory (T4, T5)", async () => {
+    await boot();
+    const a = await sendImage();
+    const b = await sendImage();
+    assert.equal(await kit.messaging.cancelForKey(key.id, "key_revoked"), 2);
+    for (const accepted of [a, b]) {
+      assert.equal(fs.existsSync(dirOf(accepted.message.publicId)), false);
+      assert.equal((await kit.row(accepted.message.publicId)).mediaPath, null);
+    }
+    kit.client.setReady(false);
+    const c = await sendImage();
+    await kit.tick(10 * MIN);
+    assert.equal((await kit.row(c.message.publicId)).status, "expired");
+    assert.equal(fs.existsSync(dirOf(c.message.publicId)), false);
   });
 });

@@ -844,8 +844,6 @@
   "groups.delete_confirm": "Supprimer",
   "groups.delete_confirm_message": "Cette action est irréversible.",
   "groups.delete_confirm_title": "Supprimer les réglages de {name} ?",
-  "groups.delete_done": "Réglages supprimés ({filters} filtres, {roles} rôles, {warnings} avertissements, {commandStates} commandes désactivées).",
-  "groups.delete_hint": "Le bot a quitté ce groupe. Vous pouvez supprimer les réglages conservés : messages, filtres, rôles, avertissements et commandes désactivées. Les soldes, idées, citations, tâches et statistiques sont conservés.",
   "groups.delete_title": "Réglages d'un ancien groupe",
   "groups.disable_confirm": "Désactiver",
   "groups.disable_confirm_message": "Il ne répondra plus dans ce groupe, ni aux commandes ni par les messages d'accueil.",

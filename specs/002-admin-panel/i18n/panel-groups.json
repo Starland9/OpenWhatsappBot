@@ -162,12 +162,10 @@
     "groups.disable_done": "The bot is disabled in this group.",
     "groups.enable_done": "The bot is active in this group.",
     "groups.delete_title": "Settings of a former group",
-    "groups.delete_hint": "The bot has left this group. You can delete the settings kept for it: messages, filters, roles, warnings and disabled commands. Balances, ideas, quotes, tasks and statistics are kept.",
     "groups.delete_button": "Delete the settings",
     "groups.delete_confirm_title": "Delete the settings of {name}?",
     "groups.delete_confirm_message": "This cannot be undone.",
-    "groups.delete_confirm": "Delete",
-    "groups.delete_done": "Settings deleted ({filters} filters, {roles} roles, {warnings} warnings, {commandStates} disabled commands)."
+    "groups.delete_confirm": "Delete"
   },
   "fr": {
     "groups.intro": "Choisissez un groupe pour régler ses messages d'accueil et d'au revoir, sa protection, ses filtres, les rôles des membres et les avertissements. Les changements s'appliquent dès le prochain message.",
@@ -332,11 +330,9 @@
     "groups.disable_done": "Le bot est désactivé dans ce groupe.",
     "groups.enable_done": "Le bot est actif dans ce groupe.",
     "groups.delete_title": "Réglages d'un ancien groupe",
-    "groups.delete_hint": "Le bot a quitté ce groupe. Vous pouvez supprimer les réglages conservés : messages, filtres, rôles, avertissements et commandes désactivées. Les soldes, idées, citations, tâches et statistiques sont conservés.",
     "groups.delete_button": "Supprimer les réglages",
     "groups.delete_confirm_title": "Supprimer les réglages de {name} ?",
     "groups.delete_confirm_message": "Cette action est irréversible.",
-    "groups.delete_confirm": "Supprimer",
-    "groups.delete_done": "Réglages supprimés ({filters} filtres, {roles} rôles, {warnings} avertissements, {commandStates} commandes désactivées)."
+    "groups.delete_confirm": "Supprimer"
   }
 }

@@ -844,8 +844,6 @@
   "groups.delete_confirm": "Delete",
   "groups.delete_confirm_message": "This cannot be undone.",
   "groups.delete_confirm_title": "Delete the settings of {name}?",
-  "groups.delete_done": "Settings deleted ({filters} filters, {roles} roles, {warnings} warnings, {commandStates} disabled commands).",
-  "groups.delete_hint": "The bot has left this group. You can delete the settings kept for it: messages, filters, roles, warnings and disabled commands. Balances, ideas, quotes, tasks and statistics are kept.",
   "groups.delete_title": "Settings of a former group",
   "groups.disable_confirm": "Disable",
   "groups.disable_confirm_message": "It will stop answering in this group, to commands as well as with welcome messages.",

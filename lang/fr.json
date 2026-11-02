@@ -1192,7 +1192,10 @@
     "key_refused": "🔑 Le service {0} a refusé la clé d'API configurée. Vérifiez la clé dans le panel (Clés d'API).",
     "login_blocked": "🚫 Trop de connexions échouées au panel depuis {0}. Cette origine est bloquée pendant {1} minutes.",
     "new_origin": "🆕 Première connexion au panel depuis {0}. Si ce n'était pas vous, changez le mot de passe du panel.",
-    "update_available": "⬆️ La version {0} du bot est disponible. Installez-la depuis le panel ou avec la commande de mise à jour."
+    "update_available": "⬆️ La version {0} du bot est disponible. Installez-la depuis le panel ou avec la commande de mise à jour.",
+    "api_origin_blocked": "🚫 Trop d'appels refusés à l'API de messagerie depuis {0}. Cette adresse est bloquée pendant {1} minutes.",
+    "api_key_new_ip": "🆕 La clé d'API « {0} » a été utilisée depuis une nouvelle adresse : {1}. Si ce n'est pas attendu, révoquez la clé dans le panel (API).",
+    "api_paused": "⏸️ WhatsApp a restreint le compte : la file de l'API de messagerie est en pause pendant {0} minutes. Rien n'est perdu, les messages en file attendent."
   },
   "broadcasts": {
     "rule_daily": "Tous les jours à {0}",
@@ -1202,5 +1205,8 @@
   },
   "groupguard": {
     "reason_link": "Lien envoyé (anti-lien)"
+  },
+  "api": {
+    "registry_failed": "API de messagerie désactivée : le point d'accès {0} n'a pas pu être chargé."
   }
 }

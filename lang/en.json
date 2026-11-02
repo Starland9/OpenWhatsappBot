@@ -1192,7 +1192,10 @@
     "key_refused": "🔑 The {0} service refused the configured API key. Check the key in the panel (API keys).",
     "login_blocked": "🚫 Too many failed panel logins from {0}. This origin is blocked for {1} minutes.",
     "new_origin": "🆕 First panel login from {0}. If this was not you, change the panel password.",
-    "update_available": "⬆️ Version {0} of the bot is available. Install it from the panel or with the update command."
+    "update_available": "⬆️ Version {0} of the bot is available. Install it from the panel or with the update command.",
+    "api_origin_blocked": "🚫 Too many refused calls to the messaging API from {0}. This address is blocked for {1} minutes.",
+    "api_key_new_ip": "🆕 The API key \"{0}\" was used from a new address: {1}. If this was not expected, revoke the key in the panel (API).",
+    "api_paused": "⏸️ WhatsApp restricted the account: the messaging API queue is paused for {0} minutes. Nothing is lost, the queued messages wait."
   },
   "broadcasts": {
     "rule_daily": "Every day at {0}",
@@ -1202,5 +1205,8 @@
   },
   "groupguard": {
     "reason_link": "Link posted (anti-link)"
+  },
+  "api": {
+    "registry_failed": "Messaging API disabled: the endpoint {0} could not be loaded."
   }
 }

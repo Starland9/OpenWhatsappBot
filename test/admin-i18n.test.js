@@ -6,7 +6,8 @@
  *  - errors.<code> for every envelope code and fields.<code> for every field code of admin-http-api.md 1.9,
  *    banners.<id> for the 11 banner ids of 3.3, settings.theme.<id> for the 10 themes, status.<id> for the
  *    client states, nav.<area> and <area>.title for the 14 areas;
- *  - settings.<KEY>.label and .desc for the 101 entries of the settings catalog (settings-catalog.md 8, item 4);
+ *  - settings.<KEY>.label and .desc for the 112 entries of the settings catalog (settings-catalog.md 8, item 4; the
+ *    eleven of feature 004 come from specs/004-messaging-api/i18n/panel-api-server.json);
  *  - every literal t("...") key used under lib/admin/public/js/** exists in both catalogs (the fragments are merged:
  *    nothing counts as "pending" any more);
  *  - the fragments themselves are valid, complete, do not conflict, and are all merged (panel-*.json into the panel
@@ -28,7 +29,7 @@ const ROOT = path.resolve(__dirname, "..");
 const CATALOG_DIR = path.join(ROOT, "lib", "admin", "public", "i18n");
 const FRAGMENT_DIR = path.join(ROOT, "specs", "002-admin-panel", "i18n");
 // panel-*.json fragments live in one directory per feature (the bot-*.json fragments stay in the 002 directory)
-const FRAGMENT_DIRS = [FRAGMENT_DIR, path.join(ROOT, "specs", "003-command-permissions", "i18n")];
+const FRAGMENT_DIRS = [FRAGMENT_DIR, path.join(ROOT, "specs", "003-command-permissions", "i18n"), path.join(ROOT, "specs", "004-messaging-api", "i18n")];
 const JS_DIR = path.join(ROOT, "lib", "admin", "public", "js");
 const CONTRACT = path.join(ROOT, "specs", "002-admin-panel", "contracts", "admin-http-api.md");
 const LANG_DIR = path.join(ROOT, "lang");
@@ -195,10 +196,10 @@ test("every code the HTTP layer can send has an errors.<code> text (STATUS_BY_CO
   assertNone(problems, "error codes without a text:");
 });
 
-test("settings.<KEY>.label and settings.<KEY>.desc exist in both catalogs for all 101 settings catalog entries, and for nothing else", () => {
+test("settings.<KEY>.label and settings.<KEY>.desc exist in both catalogs for all 112 settings catalog entries, and for nothing else", () => {
   const settingsCatalog = require("../lib/utils/settingsCatalog");
   const keys = settingsCatalog.entries.map((entry) => entry.key);
-  assert.equal(keys.length, 101, "settings-catalog.md: 101 entries");
+  assert.equal(keys.length, 112, "settings-catalog.md: 101 entries + the eleven of feature 004 (data-model.md 8.1)");
   assert.equal(new Set(keys).size, keys.length, "setting keys are unique");
   const problems = [];
   for (const lang of LANGS) {
@@ -289,6 +290,10 @@ test("panel fragments are valid and complete (en and fr: same keys, same placeho
     fragments.some((f) => f.dir === "003-command-permissions" && f.file === "panel-permissions.json"),
     "specs/003-command-permissions/i18n/panel-permissions.json is among the loaded fragments",
   );
+  assert.ok(
+    fragments.some((f) => f.dir === "004-messaging-api" && f.file === "panel-api-server.json" && !f.error),
+    "specs/004-messaging-api/i18n/panel-api-server.json is among the loaded fragments",
+  );
   const problems = [];
   const seen = new Map();
   for (const fragment of fragments) {
@@ -346,6 +351,31 @@ test("every bot fragment is merged: its keys and texts are in lang/{en,fr}.json"
     }
   }
   assertNone(problems, "unmerged bot fragments:");
+});
+
+test("the bot fragment of feature 004 is merged too: the three API alerts and the registry failure, same placeholders", () => {
+  const dir = path.join(ROOT, "specs", "004-messaging-api", "i18n");
+  const fragment = readJson(path.join(dir, "bot-api.json"));
+  const lang = Object.fromEntries(LANGS.map((l) => [l, flatten(readJson(path.join(LANG_DIR, `${l}.json`)))]));
+  const expected = {
+    "alerts.api_origin_blocked": ["{0}", "{1}"],
+    "alerts.api_key_new_ip": ["{0}", "{1}"],
+    "alerts.api_paused": ["{0}"],
+    "api.registry_failed": ["{0}"],
+  };
+  const problems = [];
+  const holes = (text) => [...new Set(text.match(/\{\d+\}/g) || [])].sort();
+  for (const l of LANGS) {
+    assert.deepEqual(Object.keys(flatten(fragment[l])).sort(), Object.keys(expected).sort(), `bot-api.json (${l}) holds exactly the four texts`);
+    for (const [key, placeholders] of Object.entries(expected)) {
+      const text = lang[l][key];
+      if (typeof text !== "string" || text.trim() === "") problems.push(`${key} missing in lang/${l}.json (run node tools/merge-i18n.js --frag-dir specs/004-messaging-api/i18n --pattern "bot-*.json")`);
+      else if (JSON.stringify(holes(text)) !== JSON.stringify(placeholders)) problems.push(`${key} (${l}) has the placeholders ${holes(text)}, expected ${placeholders}`);
+      else if (text !== fragment[l][key]) problems.push(`${key} (${l}) differs from the fragment`);
+    }
+  }
+  assertNone(problems, "bot-api.json:");
+  assert.doesNotMatch(JSON.stringify([lang.fr["alerts.api_origin_blocked"], lang.fr["alerts.api_key_new_ip"], lang.fr["alerts.api_paused"]]), /panneau/i);
 });
 
 // ---------------------------------------------------------------------------

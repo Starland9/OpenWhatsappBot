@@ -123,6 +123,25 @@ describe("panel activation and bind address", () => {
   });
 });
 
+describe("settings without an environment name", () => {
+  // panel-only entries (env: null) have no line in the example and none is expected: the eleven of feature 004 included
+  const API_KEYS = [
+    "SEND_MIN_SPACING_MS", "API_RATE_PER_MINUTE", "API_RATE_PER_DAY", "API_MAX_PENDING", "API_QUEUE_MAX", "API_QUEUE_EXPIRY_MIN",
+    "API_RETENTION_DAYS", "API_REPLY_WINDOW_DAYS", "ALERT_API_ORIGIN_BLOCKED", "ALERT_API_KEY_NEW_IP", "ALERT_API_PAUSED",
+  ];
+
+  test("the eleven messaging API settings are env-less, so the example does not name them", () => {
+    for (const key of API_KEYS) {
+      const entry = catalog.byKey.get(key);
+      assert.ok(entry, key);
+      assert.equal(entry.env, null, `${key} has no environment name`);
+      assert.ok(!names.has(key), `${key} must not be in config.env.example`);
+      assert.ok(!withEnv.includes(entry), `${key} is not required in the example`);
+    }
+    assert.equal(entries.filter((e) => !e.env).every((e) => !names.has(e.key)), true, "no env-less entry is written under its key");
+  });
+});
+
 describe("settings without effect", () => {
   const inactive = entries.filter((e) => e.inactive);
   const markerLine = lines.findIndex((line) => line.startsWith("#") && MARKER.test(line));

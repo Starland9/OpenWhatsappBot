@@ -104,7 +104,12 @@ describe("environment reads match the catalog", () => {
     }
     assert.ok(checked >= 85, `${checked} names checked`);
     // keys without an environment variable never read one
-    for (const key of ["ALERT_UPDATE", "BROADCAST_DELAY_MS", "SESSION_DIR", "ANTIDELETE_MODE", "VIEWONCE_MODE"]) {
+    // (the eleven of feature 004 are panel-only too: no example line, no environment name)
+    for (const key of [
+      "ALERT_UPDATE", "BROADCAST_DELAY_MS", "SESSION_DIR", "ANTIDELETE_MODE", "VIEWONCE_MODE",
+      "SEND_MIN_SPACING_MS", "API_RATE_PER_MINUTE", "API_RATE_PER_DAY", "API_MAX_PENDING", "API_QUEUE_MAX", "API_QUEUE_EXPIRY_MIN",
+      "API_RETENTION_DAYS", "API_REPLY_WINDOW_DAYS", "ALERT_API_ORIGIN_BLOCKED", "ALERT_API_KEY_NEW_IP", "ALERT_API_PAUSED",
+    ]) {
       assert.equal(catalog.byKey.get(key).env, null, key);
       assert.equal(createSettingsStore({ env: { [key]: "x" } }).origin(key), "default", key);
     }

@@ -4,7 +4,7 @@
  * Settings catalog + store (specs/002-admin-panel T026-T030, T034; contracts/settings-catalog.md,
  * contracts/runtime.md section 1).
  *
- *  - catalog invariants (101 entries, 67 editable, 34 read-only, 22 secrets, 5 "restart", U19 defaults);
+ *  - catalog invariants (112 entries, 78 editable, 34 read-only, 22 secrets, 5 "restart", U19 defaults);
  *  - tier precedence: runtime > override > environment > default, '' as a deliberate override;
  *  - the validation table of settings-catalog.md section 6 and all-or-nothing batches;
  *  - versions: stale write, lost insert race, version continuity after a reset;
@@ -117,9 +117,9 @@ const fieldOf = async (promise, key) => {
 describe("catalog invariants", () => {
   const entries = catalog.entries;
 
-  test("101 entries: 67 editable, 34 read-only (13 startup, 21 inactive), 22 secrets, 5 restart", () => {
-    assert.equal(entries.length, 101);
-    assert.equal(entries.filter((e) => !e.readonly).length, 67);
+  test("112 entries: 78 editable, 34 read-only (13 startup, 21 inactive), 22 secrets, 5 restart", () => {
+    assert.equal(entries.length, 112);
+    assert.equal(entries.filter((e) => !e.readonly).length, 78);
     assert.equal(entries.filter((e) => e.readonly).length, 34);
     assert.equal(entries.filter((e) => e.theme === "boot").length, 13);
     assert.equal(entries.filter((e) => e.theme === "inactive").length, 21);
@@ -137,14 +137,14 @@ describe("catalog invariants", () => {
     const count = (theme) => entries.filter((e) => e.theme === theme).length;
     assert.deepEqual(
       { general: count("general"), behavior: count("behavior"), apiKeys: count("api-keys"), responder: count("responder"), moderation: count("moderation"), limits: count("limits"), advanced: count("advanced"), alerts: count("alerts") },
-      { general: 6, behavior: 11, apiKeys: 16, responder: 9, moderation: 5, limits: 5, advanced: 9, alerts: 6 },
+      { general: 6, behavior: 11, apiKeys: 16, responder: 9, moderation: 5, limits: 13, advanced: 9, alerts: 9 },
     );
   });
 
   test("keys are unique and well formed; themes are known", () => {
     const keys = entries.map((e) => e.key);
     assert.equal(new Set(keys).size, keys.length);
-    assert.equal(catalog.byKey.size, 101);
+    assert.equal(catalog.byKey.size, 112);
     for (const e of entries) {
       assert.match(e.key, /^[A-Z][A-Z0-9_]{1,63}$/);
       assert.ok(catalog.themes.includes(e.theme), e.key);
@@ -1422,6 +1422,136 @@ describe("describe / snapshot", () => {
 // SC-003: every editable "immediate" entry applies on the next read, no restart
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// specs/004-messaging-api: the eleven settings of data-model.md 8.1
+// ---------------------------------------------------------------------------
+
+describe("messaging API settings (feature 004)", () => {
+  const check = (key, value) => entry(key).validate(value);
+
+  // key, default, min, max
+  const INTS = [
+    ["SEND_MIN_SPACING_MS", 2000, 2000, 600000],
+    ["API_RATE_PER_MINUTE", 30, 1, 1000],
+    ["API_RATE_PER_DAY", 1000, 1, 100000],
+    ["API_MAX_PENDING", 100, 1, 5000],
+    ["API_QUEUE_MAX", 500, 1, 5000],
+    ["API_QUEUE_EXPIRY_MIN", 10, 1, 1440],
+    ["API_RETENTION_DAYS", 30, 1, 365],
+    ["API_REPLY_WINDOW_DAYS", 7, 1, 30],
+  ];
+  const ALERTS = [
+    ["ALERT_API_ORIGIN_BLOCKED", true],
+    ["ALERT_API_KEY_NEW_IP", false],
+    ["ALERT_API_PAUSED", true],
+  ];
+
+  test("eleven panel-only entries: no environment name, immediate effect, editable, the right theme", () => {
+    assert.equal(INTS.length + ALERTS.length, 11);
+    for (const [key] of INTS) {
+      const e = entry(key);
+      assert.ok(e, key);
+      assert.deepEqual([e.env, e.envAliases, e.theme, e.type, e.effect, e.readonly, e.inactive, e.secret, e.source], [null, [], "limits", "int", "immediate", false, false, false, "env"], key);
+    }
+    for (const [key] of ALERTS) {
+      const e = entry(key);
+      assert.ok(e, key);
+      assert.deepEqual([e.env, e.theme, e.type, e.effect, e.readonly, e.inactive], [null, "alerts", "bool", "immediate", false, false], key);
+    }
+  });
+
+  test("defaults: the numbers of the data model, and ALERT_API_KEY_NEW_IP off while the other two alerts are on", () => {
+    for (const [key, value] of INTS) assert.equal(entry(key).default, value, key);
+    for (const [key, value] of ALERTS) assert.equal(entry(key).default, value, key);
+    assert.equal(entry("SEND_MIN_SPACING_MS").unit, "ms");
+    // the alert helper of the catalog defaults to true: the exception is built by hand and is still an alert
+    assert.equal(entry("ALERT_API_KEY_NEW_IP").default, false);
+    assert.equal(entry("ALERT_RECONNECT").default, true);
+  });
+
+  test("bounds: both edges are accepted, one past is out_of_range with the limits as parameters", () => {
+    for (const [key, , min, max] of INTS) {
+      assert.equal(check(key, min), null, `${key} min`);
+      assert.equal(check(key, max), null, `${key} max`);
+      assert.deepEqual(check(key, min - 1), { code: "out_of_range", params: { min, max } }, `${key} below`);
+      assert.deepEqual(check(key, max + 1), { code: "out_of_range", params: { min, max } }, `${key} above`);
+      for (const bad of ["5", 5.5, NaN, null, true, undefined]) assert.deepEqual(check(key, bad), { code: "invalid_type" }, `${key} ${String(bad)}`);
+    }
+  });
+
+  test("the pacing floor can only go up from 2000 ms (FR-035)", () => {
+    assert.equal(check("SEND_MIN_SPACING_MS", 2000), null);
+    assert.equal(check("SEND_MIN_SPACING_MS", 2001), null);
+    for (const lower of [1999, 1000, 0, -1]) assert.equal(check("SEND_MIN_SPACING_MS", lower).code, "out_of_range", String(lower));
+    assert.equal(check("SEND_MIN_SPACING_MS", 600001).code, "out_of_range");
+  });
+
+  test("booleans are strict", () => {
+    for (const [key] of ALERTS) {
+      assert.equal(check(key, true), null);
+      assert.equal(check(key, false), null);
+      for (const bad of ["true", 1, null]) assert.deepEqual(check(key, bad), { code: "invalid_type" }, `${key} ${String(bad)}`);
+    }
+  });
+
+  test("a value is applied on the next read of config[key] and the example file needs no line (env-less)", () => {
+    for (const [key, value] of INTS) assert.equal(settingsStore.get(key), value, `${key} read through the store`);
+    for (const [key, value] of ALERTS) assert.equal(settingsStore.get(key), value, `${key} read through the store`);
+    for (const [key] of [...INTS, ...ALERTS]) assert.equal(settingsStore.origin(key), "default", key);
+  });
+
+  test("a reply window never outlives the history it needs: API_REPLY_WINDOW_DAYS <= API_RETENTION_DAYS (cross validator)", () => {
+    assert.equal(catalog.crossValidators.length, 2);
+    const validator = catalog.crossValidators.find((fn) => fn.name === "replyWindowWithinRetention");
+    assert.ok(validator, "named replyWindowWithinRetention, beside responderDelays");
+    const projected = (retention, window) => (key) => (key === "API_RETENTION_DAYS" ? retention : key === "API_REPLY_WINDOW_DAYS" ? window : undefined);
+    const both = new Set(["API_RETENTION_DAYS", "API_REPLY_WINDOW_DAYS"]);
+    assert.equal(validator(projected(30, 7), both), null);
+    assert.equal(validator(projected(7, 7), both), null, "equal is allowed");
+    assert.equal(validator(projected(30, 30), both), null);
+    assert.deepEqual(validator(projected(5, 7), both), {
+      API_RETENTION_DAYS: { code: "bound_conflict", params: { other: "API_REPLY_WINDOW_DAYS" } },
+      API_REPLY_WINDOW_DAYS: { code: "bound_conflict", params: { other: "API_RETENTION_DAYS" } },
+    });
+    // only the keys of the batch are blamed
+    assert.deepEqual(Object.keys(validator(projected(5, 7), new Set(["API_RETENTION_DAYS"]))), ["API_RETENTION_DAYS"]);
+    assert.deepEqual(Object.keys(validator(projected(5, 7), new Set(["API_REPLY_WINDOW_DAYS"]))), ["API_REPLY_WINDOW_DAYS"]);
+    assert.equal(validator(projected(5, 7), new Set(["PREFIX"])), null, "an unrelated batch is never blocked");
+    assert.equal(validator(() => undefined, both), null, "values that are not numbers are left to the type check");
+    // the responder pair keeps its place first
+    assert.equal(catalog.crossValidators[0].name, "responderDelays");
+  });
+
+  test("set: the pair is checked on the resulting values, against the value already in force", async () => {
+    const { store } = await loaded();
+    assert.equal(store.get("API_REPLY_WINDOW_DAYS"), 7);
+    await assert.rejects(store.set({ API_RETENTION_DAYS: 5 }), (error) => {
+      assert.deepEqual(error.fields, { API_RETENTION_DAYS: { code: "bound_conflict", params: { other: "API_REPLY_WINDOW_DAYS" } } });
+      return true;
+    });
+    await assert.rejects(store.set({ API_REPLY_WINDOW_DAYS: 31 }), (error) => error.fields.API_REPLY_WINDOW_DAYS.code === "out_of_range");
+    assert.equal(store.get("API_RETENTION_DAYS"), 30, "nothing was written");
+    assert.equal(await db.SettingOverride.count(), 0);
+
+    await store.set({ API_RETENTION_DAYS: 5, API_REPLY_WINDOW_DAYS: 3 });
+    assert.deepEqual([store.get("API_RETENTION_DAYS"), store.get("API_REPLY_WINDOW_DAYS")], [5, 3]);
+    await assert.rejects(store.set({ API_REPLY_WINDOW_DAYS: 6 }), (error) => error.fields.API_REPLY_WINDOW_DAYS.code === "bound_conflict");
+    await store.set({ API_REPLY_WINDOW_DAYS: 5 });
+    assert.equal(store.get("API_REPLY_WINDOW_DAYS"), 5);
+  });
+
+  test("set: the spacing and the three alerts are stored and read back", async () => {
+    const { store } = await loaded();
+    await store.set({ SEND_MIN_SPACING_MS: 4000, ALERT_API_KEY_NEW_IP: true, ALERT_API_PAUSED: false });
+    assert.deepEqual([store.get("SEND_MIN_SPACING_MS"), store.get("ALERT_API_KEY_NEW_IP"), store.get("ALERT_API_PAUSED"), store.get("ALERT_API_ORIGIN_BLOCKED")], [4000, true, false, true]);
+    assert.equal((await rowOf("SEND_MIN_SPACING_MS")).value, "4000");
+    await assert.rejects(store.set({ SEND_MIN_SPACING_MS: 1500 }), (error) => error.fields.SEND_MIN_SPACING_MS.code === "out_of_range");
+    assert.equal(store.get("SEND_MIN_SPACING_MS"), 4000);
+    await store.unset(["SEND_MIN_SPACING_MS", "ALERT_API_KEY_NEW_IP"]);
+    assert.deepEqual([store.get("SEND_MIN_SPACING_MS"), store.get("ALERT_API_KEY_NEW_IP")], [2000, false]);
+  });
+});
+
 describe("SC-003: the process-wide store behind config.js", () => {
   const SAMPLES = {
     PREFIX: "!",
@@ -1443,6 +1573,7 @@ describe("SC-003: the process-wide store behind config.js", () => {
     ANTIBOT_MSG: "bot &mention",
     AUTO_RESPONDER_MIN_DELAY: 500,
     AUTO_RESPONDER_MAX_DELAY: 2500,
+    API_RETENTION_DAYS: 45, // must stay at or above API_REPLY_WINDOW_DAYS (7 by default), unlike the minimum the sampler would pick
   };
 
   /** A valid value that differs from the default */

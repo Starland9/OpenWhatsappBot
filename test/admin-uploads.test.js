@@ -235,12 +235,12 @@ describe("uploads", () => {
     assert.equal((await put({ body: PNG })).status, 201, "the session is free again");
   });
 
-  test("the query is validated: purpose is required and one of backup|broadcast; the name is display metadata only", async () => {
+  test("the query is validated: purpose is required and one of backup|broadcast|api; the name is display metadata only", async () => {
     const missing = await put({ query: "name=x", body: PNG });
     assert.equal(missing.status, 422);
     assert.deepEqual(missing.json.error.fields, { purpose: { code: "required" } });
     const other = await put({ query: "purpose=avatar", body: PNG });
-    assert.deepEqual(other.json.error.fields, { purpose: { code: "not_allowed", params: { allowed: ["backup", "broadcast"] } } });
+    assert.deepEqual(other.json.error.fields, { purpose: { code: "not_allowed", params: { allowed: ["backup", "broadcast", "api"] } } });
 
     const nasty = await put({ query: `purpose=broadcast&name=${encodeURIComponent("../../etc/pass\nwd\u0000" + "n".repeat(200))}`, body: PNG });
     assert.equal(nasty.status, 201);
@@ -279,6 +279,86 @@ describe("uploads", () => {
     assert.equal((await t.send("DELETE", `/admin/api/uploads/${mine.json.uploadId}`, { headers: json })).status, 404, "already gone");
     const confirmNeeded = await t.send("DELETE", `/admin/api/uploads/${theirs.json.uploadId}`, { name: "other", headers: json });
     assert.equal(confirmNeeded.status, 200);
+  });
+
+  // ---- purpose=api (feature 004, admin-api.md section 3 UP-1): the messaging engine's content detection ----------
+
+  test("purpose=api is accepted and sniffed by the engine's classifier: kind and mime are the detected ones", async () => {
+    const cases = [
+      [PNG, "image", "image/png"],
+      [JPEG, "image", "image/jpeg"],
+      [GIF, "animated", "image/gif"],
+      [PDF, "document", "application/pdf"],
+      [Buffer.from("name,amount\nAwa,1200\n"), "document", "text/csv"],
+      [Buffer.from("plain words\n"), "document", "text/plain"],
+    ];
+    for (const [buffer, kind, mime] of cases) {
+      const res = await put({ query: `purpose=api&name=${mime === "text/csv" ? "table.csv" : "file.bin"}`, body: buffer });
+      assert.equal(res.status, 201, `${mime}: ${res.text}`);
+      assert.equal(res.json.purpose, "api");
+      assert.equal(res.json.kind, kind, mime);
+      assert.equal(res.json.mime, mime);
+    }
+  });
+
+  test("purpose=api refuses a script or an executable (422 unsupported_file_type) and leaves no file", async () => {
+    const before = files().length;
+    for (const body of [ELF, Buffer.from("#!/bin/sh\nrm -rf /\n"), Buffer.concat([Buffer.from("text then"), Buffer.from([0, 1, 2])]), Buffer.alloc(0)]) {
+      const res = await put({ query: "purpose=api&name=photo.png", body });
+      assert.equal(res.status, 422, "the name is never trusted");
+      assert.equal(res.json.error.code, "unsupported_file_type");
+    }
+    assert.equal(files().length, before);
+  });
+
+  test("an api upload belongs to its session: invisible and unusable for another one, consumed only with purpose api", async () => {
+    const res = await put({ query: "purpose=api&name=a.png", body: PNG });
+    const id = res.json.uploadId;
+    assert.ok(uploads.peek(id, "session-good", { purpose: "api" }));
+    assert.equal(uploads.peek(id, "session-other", { purpose: "api" }), null);
+    assert.equal(uploads.peek(id, "session-good", { purpose: "broadcast" }), null, "another purpose");
+    assert.equal(await uploads.consume(id, "session-other", { purpose: "api" }), null);
+    const record = await uploads.consume(id, "session-good", { purpose: "api" });
+    assert.equal(record.purpose, "api");
+    assert.equal(record.kind, "image");
+    assert.deepEqual(files().filter((name) => name.startsWith(id)), []);
+  });
+
+  test("the classifier is injectable (createUploads({ classify })), and a thrown or empty detection is unknown", async () => {
+    const { sniffFile, apiKindOf } = require("../lib/admin/http/uploads");
+    const file = path.join(dir, "probe.bin");
+    fs.writeFileSync(file, "x");
+    assert.deepEqual(await sniffFile(file, "api", "n", { classify: async () => ({ mime: "video/mp4" }) }), { kind: "video", mime: "video/mp4" });
+    assert.deepEqual(await sniffFile(file, "api", "n", { classify: async () => ({ mime: "audio/ogg" }) }), { kind: "audio", mime: "audio/ogg" });
+    assert.deepEqual(await sniffFile(file, "api", "n", { classify: async () => ({ mime: "video/webm" }) }), { kind: "audio", mime: "video/webm" }, "a container the voice format accepts");
+    assert.equal(await sniffFile(file, "api", "n", { classify: async () => ({ mime: "application/x-elf" }) }), null);
+    assert.equal(await sniffFile(file, "api", "n", { classify: async () => null }), null);
+    assert.equal(await sniffFile(file, "api", "n", { classify: async () => { throw new Error("broken container"); } }), null);
+    assert.equal(apiKindOf("application/x-msdownload"), null);
+
+    const injected = createUploads({ dir: path.join(dir, "injected"), maxBytes: () => CAP, classify: async () => ({ mime: "image/webp" }) });
+    const stubbed = await startStubAdmin({ uploads: injected, dataDir: dir });
+    try {
+      const sent = await stubbed.raw({
+        method: "PUT",
+        path: "/admin/api/uploads?purpose=api&name=x.bin",
+        headers: { ...stubbed.session("good").headers, "Content-Type": "application/octet-stream", "Content-Length": 5 },
+        body: "hello",
+      });
+      assert.equal(sent.status, 201, sent.text);
+      assert.deepEqual([sent.json.kind, sent.json.mime], ["image", "image/webp"]);
+    } finally {
+      await stubbed.close();
+    }
+  });
+
+  test("cap, quota, one-in-flight and the one-hour life are the same for purpose=api", async () => {
+    const big = await put({ query: "purpose=api&name=big.png", body: PNG, length: CAP + 1 });
+    assert.equal(big.status, 413);
+    const res = await put({ query: "purpose=api&name=a.png", body: PNG });
+    assert.equal(Date.parse(res.json.expiresAt), clock.now() + TTL_MS);
+    await clock.advance(TTL_MS + 1000);
+    assert.equal(uploads.peek(res.json.uploadId, "session-good", { purpose: "api" }), null, "expired after an hour");
   });
 
   test("peek() reads without consuming; ownership and purpose are checked", async () => {

@@ -63,8 +63,13 @@ const AREAS = [
   "backup", "maintenance", "texts", "alerts", "logs", "stats", "audit",
 ];
 // codes the server sends that the contract table of 1.9 does not list (the boot window of runtime.md section 15)
-// (+ password_required of the step-up, feature 004, admin-api.md 1.4)
-const EXTRA_SERVER_CODES = ["starting", "password_required"];
+// (+ password_required of the step-up, api_disabled and the engine refusals of MESSAGING_STATUS that are not envelope
+// codes, feature 004, admin-api.md 1.4)
+const EXTRA_SERVER_CODES = [
+  "starting", "password_required", "api_disabled",
+  "recipient_not_allowed", "chat_disabled", "queue_full", "pending_limit_reached", "media_type_mismatch", "media_too_large",
+  "url_forbidden", "url_unreachable",
+];
 // codes only the browser produces (no server answer carries them)
 const CLIENT_ERROR_CODES = ["unknown", "network_error", "invalid_response", "aborted"];
 const CLIENT_FIELD_CODES = ["unknown", "mismatch"];
@@ -195,6 +200,27 @@ test("every code the HTTP layer can send has an errors.<code> text (STATUS_BY_CO
   const unlisted = sent.filter((code) => !ENVELOPE_CODES.includes(code) && !EXTRA_SERVER_CODES.includes(code));
   assert.deepEqual(unlisted, [], "a code was added to STATUS_BY_CODE: list it in ENVELOPE_CODES (contract 1.9) or EXTRA_SERVER_CODES");
   assertNone(problems, "error codes without a text:");
+});
+
+test("every key of MESSAGING_STATUS is an envelope code or listed in EXTRA_SERVER_CODES, and has its panel text (feature 004)", () => {
+  const { MESSAGING_STATUS } = require("../lib/messaging/errors");
+  const { STATUS_BY_CODE } = require("../lib/admin/http/response");
+  const problems = [];
+  for (const [code, status] of Object.entries(MESSAGING_STATUS)) {
+    if (!ENVELOPE_CODES.includes(code) && !EXTRA_SERVER_CODES.includes(code)) problems.push(`${code} is neither an envelope code nor in EXTRA_SERVER_CODES`);
+    if (STATUS_BY_CODE[code] !== status) problems.push(`${code}: STATUS_BY_CODE says ${STATUS_BY_CODE[code]}, the engine ${status}`);
+    for (const lang of LANGS) if (typeof catalogs[lang][`errors.${code}`] !== "string") problems.push(`errors.${code} missing in ${lang}.json`);
+  }
+  assert.equal(Object.keys(MESSAGING_STATUS).length, 9, "nine engine refusals: validation_failed is an envelope code, eight are added");
+  assert.equal(STATUS_BY_CODE.api_disabled, 409);
+  assertNone(problems, "engine refusals:");
+});
+
+test("fields.not_found exists in both catalogs (the field code of a quote or an upload that designates nothing)", () => {
+  for (const lang of LANGS) assert.equal(typeof catalogs[lang]["fields.not_found"], "string", `fields.not_found missing in ${lang}.json`);
+  const fr = catalogs.fr["errors.queue_full"];
+  assert.ok(fr.includes("{retryAfter}") && catalogs.en["errors.queue_full"].includes("{retryAfter}"), "queue_full shows the wait the server asks for");
+  assert.ok(catalogs.en["errors.media_too_large"].includes("{maxBytes}") && catalogs.fr["errors.media_too_large"].includes("{maxBytes}"));
 });
 
 test("settings.<KEY>.label and settings.<KEY>.desc exist in both catalogs for all 112 settings catalog entries, and for nothing else", () => {

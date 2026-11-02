@@ -371,10 +371,10 @@ describe("part 1: PUB-1 POST /api/v1/messages", () => {
       }
     });
 
-    // The pipeline checks the key's pending override at step 16, but the engine re-runs the admission under its lock with
-    // `request.limits`, which the handler cannot fill (ctx never carries the key's limits, RT-133): until the bound
-    // `submit` of the pipeline adds `policy` and `limits.maxPending` of the key, the engine falls back to the default.
-    test("a key's own pending limit above the default applies inside the engine too", { todo: "needs the pipeline to hand the key's policy and limits to submit (Request to D-HTTP's pipeline.js)" }, async () => {
+    // The pipeline checks the key's pending override at step 16 and the engine re-runs the admission under its lock with
+    // `request.limits`: the bound `submit` of the pipeline hands it the key's policy and limits (ctx never carries them,
+    // RT-133), so the override applies there too instead of the default.
+    test("a key's own pending limit above the default applies inside the engine too", async () => {
       const previous = h.config.API_MAX_PENDING;
       h.config.API_MAX_PENDING = 2;
       const wide = await h.createKey({ name: "wide pending", limits: { pending: 5, perMinute: 100 } });

@@ -73,7 +73,7 @@ Decisions: [research.md](research.md) (owner decisions U1-U15, arbitration X1-X2
 
 - 13 formats, 4 public endpoints (PUB-1..4), 16 rights, 13 + 1 panel routes, 4 tables, 11 settings, 3 alert types;
 - about 45 new source files, about 30 edited, about 45 new test files;
-- 63 functional requirements, 11 success criteria.
+- 64 functional requirements, 11 success criteria.
 
 ## Constitution Check
 
@@ -182,7 +182,7 @@ The user's standing rules apply:
 | | j | `docs/API.md` (user guide, French), `CLAUDE.md` (architecture sections for `lib/api`, `lib/messaging`, settings, tests), README links, `tools/panel-memory-child.js` modes, `docs/AUDIT_COMMANDES.md` note if a command changes (`buttons`, `sticker`) | f, h |
 | W5 Integration | orchestrator | full suite once (fr, then en), `node tools/check-unused-deps.js`, `tools/measure-panel-memory.js`, quickstart automated checks, fixes routed back to the owning agent's files | all |
 
-Tasks in `tasks.md` carry their wave, their model (`sonnet` by default) and the files they own. Opus is planned for nothing. The orchestrator escalates a task to Opus only if a security-critical piece (pipeline order, key store, URL fetcher, outbox at-most-once) fails review twice.
+Tasks in `tasks.md` carry their wave, their model (`sonnet` by default) and the files they own. `tasks.md` refines this table where a dependency forces it (its Notes list each move: `lib/messaging/{errors,limits}.js` to A-UTIL, `ipRules.js` to B-DATA, the alerts service to E-OUT, `panel-api.json` to G-STEP in W2, `bot-api.json` to B-DATA in W0); `tasks.md` wins. Opus is planned for nothing. The orchestrator escalates a task to Opus only if a security-critical piece (pipeline order, key store, URL fetcher, outbox at-most-once) fails review twice.
 
 ## Complexity Tracking
 

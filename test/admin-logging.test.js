@@ -189,6 +189,85 @@ describe("lib/admin rules", () => {
   });
 });
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Feature 004 (contracts/runtime.md RT-01, RT-05; tasks T042): the same walkers over the messaging API and its engine,
+// plus the layering of the new modules.
+describe("lib/api and lib/messaging rules (feature 004)", () => {
+  const apiFiles = [...walk("lib/api"), ...walk("lib/messaging")];
+
+  test("the walkers see the new modules", () => {
+    assert.ok(apiFiles.includes(path.join("lib", "api", "pipeline.js")));
+    assert.ok(apiFiles.includes(path.join("lib", "messaging", "errors.js")));
+  });
+
+  test("no console. in lib/api/** and lib/messaging/**", () => {
+    const offenders = apiFiles.filter((rel) => /\bconsole\s*\./.test(read(rel)));
+    assert.deepEqual(offenders, [], "use createLogger() from lib/utils/logger.js");
+  });
+
+  test("no pino( in lib/api/** and lib/messaging/**", () => {
+    const offenders = apiFiles.filter((rel) => count(read(rel), PINO_CALL) > 0);
+    assert.deepEqual(offenders, []);
+  });
+
+  test("a logger call never receives req.body, req.headers or req.url (RT-05)", () => {
+    const offenders = [];
+    for (const rel of apiFiles) {
+      const hits = requestDataInLoggerCalls(read(rel));
+      if (hits.length) offenders.push(`${rel}: ${hits[0].replace(/\s+/g, " ").slice(0, 80)}`);
+    }
+    assert.deepEqual(offenders, []);
+  });
+
+  /** The repo-relative (forward slash) targets of the relative require() calls of a file */
+  function relativeRequires(rel) {
+    const text = read(rel);
+    const specs = [...text.matchAll(/\brequire\s*\(\s*(["'`])(\.[^"'`]*)\1\s*\)/g)].map((m) => m[2]);
+    return specs.map((spec) => path.relative(ROOT, path.resolve(path.dirname(path.join(ROOT, rel)), spec)).split(path.sep).join("/"));
+  }
+  const underAny = (target, prefixes) => prefixes.some((p) => target === p || target.startsWith(`${p}/`));
+
+  test("RT-01: lib/messaging/** and the engine utilities never require lib/api/** or lib/admin/**", () => {
+    const engine = [...walk("lib/messaging"), "lib/utils/sendGate.js", "lib/utils/schema.js", "lib/utils/apiState.js"].filter((rel) =>
+      fs.existsSync(path.join(ROOT, rel)),
+    );
+    const offenders = [];
+    for (const rel of engine) {
+      for (const target of relativeRequires(rel)) {
+        if (!underAny(target, ["lib/api", "lib/admin"])) continue;
+        // the single exception: apiState.setPlainHttpFrom lazily requires the dependency-free leaf ipRules
+        if (rel.split(path.sep).join("/") === "lib/utils/apiState.js" && target === "lib/api/ipRules") continue;
+        offenders.push(`${rel} requires ${target}`);
+      }
+    }
+    assert.deepEqual(offenders, []);
+  });
+
+  test("RT-01: lib/api/** requires from the panel only lib/admin/http/*, lib/admin/auth/rateLimit.js and lib/admin/logs/redactor.js", () => {
+    const allowed = (target) =>
+      /^lib\/admin\/http\/[A-Za-z]+$/.test(target) || target === "lib/admin/auth/rateLimit" || target === "lib/admin/logs/redactor";
+    const offenders = [];
+    for (const rel of walk("lib/api")) {
+      for (const target of relativeRequires(rel)) {
+        if (underAny(target, ["lib/admin"]) && !allowed(target)) offenders.push(`${rel} requires ${target}`);
+      }
+    }
+    assert.deepEqual(offenders, []);
+  });
+
+  test("lib/api/ipRules.js is a dependency-free leaf (Node's net only)", () => {
+    const text = read("lib/api/ipRules.js");
+    const specs = [...text.matchAll(/\brequire\s*\(\s*(["'`])([^"'`]+)\1\s*\)/g)].map((m) => m[2]);
+    assert.deepEqual(specs.sort(), ["net"]);
+  });
+
+  test("the layering scan itself finds a violation", () => {
+    const fake = underAny("lib/admin/routes/api", ["lib/admin"]);
+    assert.equal(fake, true);
+    assert.equal(underAny("lib/administrator/x", ["lib/admin"]), false);
+  });
+});
+
 describe("the three log leaves", () => {
   const BUILTINS = new Set([...builtinModules, ...builtinModules.map((m) => `node:${m}`)]);
   const SIBLINGS = new Set(["./redactor", "./ring", "./consoleCapture"]);

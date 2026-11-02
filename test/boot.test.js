@@ -10,7 +10,10 @@
  *  - requiring panel.js binds nothing and installs no handler;
  *  - the engines and the panel collaborators (textOverrides, commandState, ytdlpUpdate) are hard requires: a missing
  *    or broken module fails the start-up with exit(1) (W2, T219);
- *  - the setting store drives BOT_LANG and LOG_LEVEL; fatal start-up failures exit with 1.
+ *  - the setting store drives BOT_LANG and LOG_LEVEL; fatal start-up failures exit with 1;
+ *  - feature 004: the `messaging` engine starts between `broadcaster` and `alerts` (a hard require like the others),
+ *    `apiState` is a hard-required collaborator loaded after `markInForce` and before `dbReady`, createAdmin receives
+ *    `messaging`, `apiState` and `createApi`, and a messaging engine that fails to start does not stop the boot.
  *
  * Every collaborator is a recorder injected through `deps`: no database, no network, no WhatsApp, no real signal
  * handler, no console capture.
@@ -99,11 +102,13 @@ function makeBoot(overrides = {}) {
     stats: { start: () => log.push("stats.start"), stop: () => log.push("stats.stop") },
     housekeeping: { start: () => log.push("housekeeping.start") },
     broadcaster: { start: (c) => log.push(`broadcaster.start:${c === client}`) },
+    messaging: { start: (c) => log.push(`messaging.start:${c === client}`), stop: () => log.push("messaging.stop") },
     alerts: { start: (c) => log.push(`alerts.start:${c === client}`) },
     updater: { startChecker: (c) => log.push(`updater.startChecker:${c === client}`) },
     textOverrides: { load: async () => log.push("texts.load") },
     commandState: null,
     ytdlpUpdate: null,
+    apiState: { load: async (options) => log.push(`apiState.load@dbReady=${runtime.dbReady}:models=${Boolean(options && options.models)}`) },
     ...(overrides.engines || {}),
   };
   const created = { createAdminDeps: null, startOptions: null };
@@ -195,11 +200,14 @@ test("bootstrap: the ten steps in order, the server before the database, the pip
     "lang.reload",
     "texts.load",
     "store.markInForce",
+    // feature 004: the switch is loaded before the database-gated routes open
+    "apiState.load@dbReady=false:models=true",
     "plugins.loadAll",
     "attachHandlers:true:true",
     "stats.start",
     "housekeeping.start",
     "broadcaster.start:true",
+    "messaging.start:true",
     "alerts.start:true",
     "updater.startChecker:true",
     "admin.start",
@@ -223,6 +231,9 @@ test("bootstrap: createAdmin receives the engines, the runtime and the client; t
   assert.equal(d.alerts, b.deps.engines.alerts);
   assert.equal(d.updater, b.deps.engines.updater);
   assert.equal(d.textOverrides, b.deps.engines.textOverrides);
+  assert.equal(d.messaging, b.deps.engines.messaging, "feature 004: the panel talks to the engine");
+  assert.equal(d.apiState, b.deps.engines.apiState);
+  assert.equal(d.createApi, undefined, "createApi is only a test replacement: createAdmin falls back to lib/api");
   assert.equal(d.logger, undefined, "the admin makes its own logger");
   assert.equal(b.created.startOptions.admin, b.fakeAdmin);
   assert.equal(b.created.startOptions.runtime, b.runtime);
@@ -251,6 +262,49 @@ test("bootstrap: an engine that cannot start is logged and the bot keeps startin
   assert.ok(b.log.includes("client.initialize"));
 });
 
+test("bootstrap: a messaging engine that fails to start (a broken format registry) does not stop the boot", async () => {
+  const b = makeBoot({
+    engines: {
+      messaging: {
+        start: () => {
+          throw Object.assign(new Error("format text.js: build must be a function"), { name: "FormatRegistryError" });
+        },
+      },
+    },
+  });
+  await b.run();
+  assert.deepEqual(b.exits, [], "engine failed to start is logged, never fatal");
+  assert.ok(b.log.includes("alerts.start:true"), "the engines after it still start");
+  assert.ok(b.log.includes("admin.start"));
+  assert.ok(b.log.includes("client.initialize"));
+});
+
+test("bootstrap: apiState.load runs after markInForce and before dbReady, with the models; a replaced collaborator is honoured", async () => {
+  const b = makeBoot();
+  await b.run();
+  const load = b.log.findIndex((l) => l.startsWith("apiState.load"));
+  assert.ok(load > b.log.indexOf("store.markInForce"), "after the settings are in force");
+  assert.ok(load < b.log.indexOf("plugins.loadAll"));
+  assert.equal(b.log[load], "apiState.load@dbReady=false:models=true", "dbReady is set right after");
+  assert.equal(b.runtime.dbReady, true);
+});
+
+test("bootstrap: the messaging engine stops with the others on shutdown", async () => {
+  const b = makeBoot();
+  await b.run();
+  for (const hook of b.runtime.hooks) await hook();
+  assert.ok(b.log.includes("messaging.stop"));
+});
+
+test("bootstrap: ADMIN_PANEL=false builds no admin and no API, the messaging engine still starts (recovery-only mode)", async () => {
+  const b = makeBoot({ config: { ADMIN_PANEL: false } });
+  await b.run();
+  assert.equal(b.created.createAdminDeps, null);
+  assert.ok(!b.log.includes("createAdmin"));
+  assert.ok(b.log.includes("messaging.start:true"), "a crash must not leave rows queued behind a disabled panel");
+  assert.ok(b.log.some((l) => l.startsWith("apiState.load")));
+});
+
 test("bootstrap: an engine supplied as null is left out, the others start with the client", async () => {
   const b = makeBoot({ engines: { housekeeping: null, alerts: null, updater: null } });
   await b.run();
@@ -258,8 +312,8 @@ test("bootstrap: an engine supplied as null is left out, the others start with t
   assert.ok(b.log.includes("broadcaster.start:true"));
   assert.deepEqual(
     ENGINES.map((e) => e.name),
-    ["stats", "housekeeping", "broadcaster", "alerts", "updater"],
-    "the order of contracts/runtime.md section 15, step 9",
+    ["stats", "housekeeping", "broadcaster", "messaging", "alerts", "updater"],
+    "the order of contracts/runtime.md section 15, step 9 and section 16.2 of feature 004",
   );
 });
 
@@ -530,11 +584,13 @@ const HARD_REQUIRES = [
   "../utils/stats",
   "../utils/housekeeping",
   "../utils/broadcaster",
+  "../messaging",
   "../utils/alerts",
   "../utils/updater",
   "../utils/textOverrides",
   "../utils/commandState",
   "../utils/ytdlpUpdate",
+  "../utils/apiState",
 ];
 
 /** A loader that serves recorders (no engine of the repository is started) and notes what was asked */
@@ -554,11 +610,12 @@ test("bootstrap: the engines and the panel collaborators are required by id, non
   assert.deepEqual([...asked].sort(), [...HARD_REQUIRES].sort());
   assert.deepEqual(
     ENGINES.map((e) => e.id),
-    HARD_REQUIRES.slice(0, 5),
+    HARD_REQUIRES.slice(0, 6),
   );
   const d = b.created.createAdminDeps;
   assert.ok(d.commandState && d.ytdlpUpdate && d.textOverrides, "handed to the admin, never null");
   assert.ok(d.stats && d.broadcaster && d.alerts && d.updater);
+  assert.ok(d.messaging && d.apiState, "feature 004: handed to the admin, never null");
 });
 
 test("bootstrap: a missing engine module fails the boot with exit(1), nothing starts after it", async () => {

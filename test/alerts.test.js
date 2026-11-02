@@ -36,6 +36,8 @@ const OWNER = "111@s.whatsapp.net";
 
 /** The alert settings of the catalog, each of which can be switched off by a runtime assignment */
 const ALERT_SETTINGS = ["ALERT_RECONNECT", "ALERT_ERROR_BURST", "ALERT_KEY_REFUSED", "ALERT_LOGIN_BLOCKED", "ALERT_NEW_ORIGIN", "ALERT_UPDATE"];
+/** Feature 004: the three alerts of the messaging API (the toggle of api_key_new_ip is OFF by default) */
+const API_ALERT_SETTINGS = ["ALERT_API_ORIGIN_BLOCKED", "ALERT_API_KEY_NEW_IP", "ALERT_API_PAUSED"];
 
 let db;
 let clock;
@@ -96,7 +98,7 @@ beforeEach(async () => {
   clock = createClock(START);
   alerts._reset();
   bus.removeAllListeners();
-  for (const key of ALERT_SETTINGS) settingsStore.clearRuntime(key);
+  for (const key of [...ALERT_SETTINGS, ...API_ALERT_SETTINGS]) settingsStore.clearRuntime(key);
   settingsStore.clearRuntime("SUDO");
   await db.AlertOutbox.destroy({ where: {}, truncate: true });
   await db.AlertState.destroy({ where: {}, truncate: true });
@@ -108,13 +110,23 @@ afterEach(async () => {
   alerts._reset();
   bus.removeAllListeners();
   clock.restore();
-  for (const key of ALERT_SETTINGS) settingsStore.clearRuntime(key);
+  for (const key of [...ALERT_SETTINGS, ...API_ALERT_SETTINGS]) settingsStore.clearRuntime(key);
   settingsStore.clearRuntime("SUDO");
 });
 
 describe("defaults and wiring", () => {
-  test("every type is on by default (U12) and the six toggles are the ALERT_* settings", async () => {
-    assert.deepEqual(alerts.TYPES, ["reconnected", "errors_series", "key_refused", "login_blocked", "new_origin", "update_available"]);
+  test("every type is on by default (U12) except api_key_new_ip, and the nine toggles are the ALERT_* settings", async () => {
+    assert.deepEqual(alerts.TYPES, [
+      "reconnected",
+      "errors_series",
+      "key_refused",
+      "login_blocked",
+      "new_origin",
+      "update_available",
+      "api_origin_blocked",
+      "api_key_new_ip",
+      "api_paused",
+    ]);
     assert.deepEqual(alerts.TYPE_SETTINGS, {
       reconnected: "ALERT_RECONNECT",
       errors_series: "ALERT_ERROR_BURST",
@@ -122,10 +134,17 @@ describe("defaults and wiring", () => {
       login_blocked: "ALERT_LOGIN_BLOCKED",
       new_origin: "ALERT_NEW_ORIGIN",
       update_available: "ALERT_UPDATE",
+      api_origin_blocked: "ALERT_API_ORIGIN_BLOCKED",
+      api_key_new_ip: "ALERT_API_KEY_NEW_IP",
+      api_paused: "ALERT_API_PAUSED",
     });
-    for (const key of ALERT_SETTINGS) assert.equal(config[key], true, `${key} defaults to true`);
+    for (const key of [...ALERT_SETTINGS, "ALERT_API_ORIGIN_BLOCKED", "ALERT_API_PAUSED"]) assert.equal(config[key], true, `${key} defaults to true`);
+    assert.equal(config.ALERT_API_KEY_NEW_IP, false, "a key used from a new address is noisy: off until the owner asks (FR-014)");
     const status = await alerts.getStatus();
-    assert.ok(Object.values(status.enabled).every((on) => on === true));
+    assert.deepEqual(
+      Object.entries(status.enabled).filter(([, on]) => on === false).map(([type]) => type),
+      ["api_key_new_ip"],
+    );
     assert.equal(status.recipients, 1);
     assert.equal(status.pending, 0);
   });
@@ -363,6 +382,125 @@ describe("key_refused, login_blocked, new_origin, update_available", () => {
     const out = await alerts.raise("login_blocked", { origin: "10.0.0.1", retryAfterMs: 900000, at }, { now: clock.now() });
     assert.deepEqual(out, { queued: true });
     assert.deepEqual(payloadOf((await rows())[0]), { origin: "10.0.0.1", retryAfterMs: 900000, at });
+  });
+});
+
+describe("the messaging API alerts (feature 004, contracts/runtime.md 17.2)", () => {
+  const raised = (type, payload) => alerts.raise(type, payload, { now: clock.now() });
+
+  test("api_origin_blocked: once per origin per 15 minutes, with the origin and the minutes", async () => {
+    await startEngine();
+    assert.deepEqual(await raised("api_origin_blocked", { origin: "203.0.113.9", retryAfterMs: 15 * MINUTE }), { queued: true });
+    assert.deepEqual(await raised("api_origin_blocked", { origin: "203.0.113.9", retryAfterMs: 15 * MINUTE }), { queued: false, reason: "rate_limited" });
+    assert.deepEqual(await raised("api_origin_blocked", { origin: "203.0.113.10", retryAfterMs: 15 * MINUTE }), { queued: true });
+    assert.match(sentTexts()[0], /203\.0\.113\.9/);
+    assert.match(sentTexts()[0], /15 minutes/);
+    assert.ok(await slot("api_origin_blocked:203.0.113.9"));
+
+    jump(14 * MINUTE);
+    assert.equal((await raised("api_origin_blocked", { origin: "203.0.113.9", retryAfterMs: 900000 })).queued, false);
+    jump(2 * MINUTE);
+    assert.equal((await raised("api_origin_blocked", { origin: "203.0.113.9", retryAfterMs: 900000 })).queued, true);
+  });
+
+  test("api_origin_blocked: the payload is origin, retryAfterMs and at, rebuilt field by field", async () => {
+    await startEngine();
+    await raised("api_origin_blocked", { origin: "2001:db8::1\u0000", retryAfterMs: 61000, key: "owb_live_secret", stack: "Error: x" });
+    const [row] = await rows();
+    assert.deepEqual(Object.keys(payloadOf(row)).sort(), ["at", "origin", "retryAfterMs"]);
+    assert.equal(payloadOf(row).origin, "2001:db8::1");
+    assert.doesNotMatch(row.payload + sentTexts().join(" "), /owb_live_secret|Error: x/);
+    assert.match(sentTexts()[0], /2 minutes/, "61 s rounds up to the next minute");
+    assert.equal((await raised("api_origin_blocked", { origin: "" })).reason, "invalid");
+    assert.equal((await raised("api_origin_blocked", { origin: "x".repeat(200), retryAfterMs: 1000 })).queued, true);
+    assert.equal(payloadOf((await rows()).at(-1)).origin.length, 64, "an origin is cut at 64 characters");
+  });
+
+  test("api_key_new_ip is OFF by default: nothing is queued and no slot is spent until the owner turns it on", async () => {
+    await startEngine();
+    assert.deepEqual(await raised("api_key_new_ip", { keyId: 7, keyName: "Billing", ip: "198.51.100.4" }), { queued: false, reason: "disabled" });
+    assert.equal(await slot("api_key_new_ip:7:198.51.100.4"), null);
+
+    config.ALERT_API_KEY_NEW_IP = true;
+    assert.deepEqual(await raised("api_key_new_ip", { keyId: 7, keyName: "Billing", ip: "198.51.100.4" }), { queued: true });
+    assert.match(sentTexts()[0], /Billing/);
+    assert.match(sentTexts()[0], /198\.51\.100\.4/);
+  });
+
+  test("api_key_new_ip: once per key and address per 24 h; another address or another key is another alert", async () => {
+    await startEngine();
+    config.ALERT_API_KEY_NEW_IP = true;
+    const alert = (keyId, ip) => raised("api_key_new_ip", { keyId, keyName: `Key ${keyId}`, ip });
+    assert.equal((await alert(7, "198.51.100.4")).queued, true);
+    assert.equal((await alert(7, "198.51.100.4")).reason, "rate_limited");
+    assert.equal((await alert(7, "198.51.100.5")).queued, true);
+    assert.equal((await alert(8, "198.51.100.4")).queued, true);
+    assert.equal((await alert(7, "2001:db8::7")).queued, true);
+    assert.ok(await slot("api_key_new_ip:7:2001:db8::7"));
+
+    jump(23 * HOUR);
+    assert.equal((await alert(7, "198.51.100.4")).queued, false);
+    jump(2 * HOUR);
+    assert.equal((await alert(7, "198.51.100.4")).queued, true);
+  });
+
+  test("api_key_new_ip: the payload is keyId, keyName (plain, 64), ip (a real address) and at; anything else is refused or dropped", async () => {
+    await startEngine();
+    config.ALERT_API_KEY_NEW_IP = true;
+    await raised("api_key_new_ip", { keyId: 3, keyName: `  Reporting\n${"x".repeat(80)}`, ip: "198.51.100.4", secret: "owb_live_x", lookupId: "abcd" });
+    const [row] = await rows();
+    assert.deepEqual(Object.keys(payloadOf(row)).sort(), ["at", "ip", "keyId", "keyName"]);
+    assert.equal(payloadOf(row).keyId, 3);
+    assert.equal(payloadOf(row).keyName.length, 64);
+    assert.ok(!/[\u0000-\u001f]/.test(payloadOf(row).keyName));
+    assert.doesNotMatch(row.payload, /owb_live_x|abcd/);
+    for (const bad of [
+      { keyId: 3, keyName: "A", ip: "not an ip" },
+      { keyId: 3, keyName: "A", ip: "198.51.100.4/24" },
+      { keyId: "three", keyName: "A", ip: "198.51.100.4" },
+      { keyId: 3, keyName: "", ip: "198.51.100.4" },
+      { keyId: 3, keyName: "A" },
+    ]) {
+      assert.equal((await raised("api_key_new_ip", bad)).reason, "invalid", JSON.stringify(bad));
+    }
+    assert.equal((await rows()).length, 1);
+  });
+
+  test("api_paused: one slot, 15 minutes; the text gives the minutes until resumesAt", async () => {
+    await startEngine();
+    const first = await raised("api_paused", { resumesAt: clock.now() + 15 * MINUTE });
+    assert.deepEqual(first, { queued: true });
+    assert.match(sentTexts()[0], /paused for 15 minutes/);
+    assert.deepEqual(await raised("api_paused", { resumesAt: clock.now() + 15 * MINUTE }), { queued: false, reason: "rate_limited" });
+    assert.ok(await slot("api_paused"));
+    const stored = payloadOf((await rows())[0]);
+    assert.deepEqual(Object.keys(stored).sort(), ["at", "resumesAt"]);
+    assert.equal(stored.resumesAt, new Date(clock.now() + 15 * MINUTE).toISOString());
+
+    jump(16 * MINUTE);
+    assert.equal((await raised("api_paused", { resumesAt: clock.now() + 15 * MINUTE })).queued, true);
+  });
+
+  test("api_paused: a payload without a usable resumesAt is refused; the toggle can silence it", async () => {
+    await startEngine();
+    assert.equal((await raised("api_paused", {})).reason, "invalid");
+    assert.equal((await raised("api_paused", { resumesAt: "soon" })).reason, "invalid");
+    config.ALERT_API_PAUSED = false;
+    assert.equal((await raised("api_paused", { resumesAt: clock.now() + 900000 })).reason, "disabled");
+    assert.equal(await slot("api_paused"), null);
+  });
+
+  test("the nine types accept the outbox: the three new ones are in AlertOutbox.TYPES and the others still are", async () => {
+    const { TYPES } = require("../lib/database/models/AlertOutbox");
+    if (Array.isArray(TYPES)) {
+      for (const type of alerts.TYPES) assert.ok(TYPES.includes(type), type);
+    }
+    await startEngine();
+    config.ALERT_API_KEY_NEW_IP = true;
+    await raised("api_origin_blocked", { origin: "1.2.3.4", retryAfterMs: 900000 });
+    await raised("api_key_new_ip", { keyId: 1, keyName: "k", ip: "1.2.3.4" });
+    await raised("api_paused", { resumesAt: clock.now() + 900000 });
+    assert.deepEqual((await rows()).map((row) => row.type), ["api_origin_blocked", "api_key_new_ip", "api_paused"]);
   });
 });
 
@@ -631,6 +769,22 @@ describe("the outbox: disconnection, restart, attempts, retention", () => {
     assert.equal(await slot("login_blocked:5.5.5.5"), null);
     assert.ok(await slot("key_refused:openai"));
   });
+
+  test("the messaging API slots are pruned after 24 h too (api_origin_blocked:, api_key_new_ip:, api_paused), the younger ones stay", async () => {
+    await startEngine();
+    config.ALERT_API_KEY_NEW_IP = true;
+    await alerts.raise("api_origin_blocked", { origin: "5.5.5.5", retryAfterMs: 900000 }, { now: clock.now() });
+    await alerts.raise("api_key_new_ip", { keyId: 4, keyName: "k", ip: "5.5.5.5" }, { now: clock.now() });
+    await alerts.raise("api_paused", { resumesAt: clock.now() + 900000 }, { now: clock.now() });
+    jump(23 * HOUR);
+    await alerts.raise("api_origin_blocked", { origin: "6.6.6.6", retryAfterMs: 900000 }, { now: clock.now() });
+    jump(2 * HOUR); // the first three are 25 h old, the fourth 2 h
+    await alerts.prune({ now: clock.now() });
+    assert.equal(await slot("api_origin_blocked:5.5.5.5"), null);
+    assert.equal(await slot("api_key_new_ip:4:5.5.5.5"), null);
+    assert.equal(await slot("api_paused"), null);
+    assert.ok(await slot("api_origin_blocked:6.6.6.6"));
+  });
 });
 
 describe("content of an alert", () => {
@@ -683,6 +837,9 @@ describe("content of an alert", () => {
       login_blocked: { origin: "1.2.3.4", retryAfterMs: 900000 },
       new_origin: { origin: "1.2.3.4" },
       update_available: { version: "1.0.1" },
+      api_origin_blocked: { origin: "1.2.3.4", retryAfterMs: 900000 },
+      api_key_new_ip: { keyId: 2, keyName: "Billing", ip: "1.2.3.4" },
+      api_paused: { resumesAt: "2026-03-01T08:15:00.000Z", at: "2026-03-01T08:00:00.000Z" },
     };
     for (const lang of ["en", "fr"]) {
       config.LANG = lang;

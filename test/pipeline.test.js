@@ -589,3 +589,55 @@ test("SC-003 (prefix): after config.PREFIX = \"!\" the next !zzcmd dispatches an
   await send(".zzcmd back");
   assert.equal(ran(), 3);
 });
+
+// ---------------------------------------------------------------------------
+// Feature 004: the echo of a message the messaging engine sent (contracts/runtime.md 6, 14.6, RT-70, RT-71)
+// ---------------------------------------------------------------------------
+
+test("sentIds guard: the echo of an id the engine sent is ignored before anything else, a foreign id and an incoming message are not", async () => {
+  const sentIds = require("../lib/messaging/sentIds");
+  const antiDeleteHandler = require("../lib/utils/antiDeleteHandler");
+  const events = [];
+  useRegistry({ "zz-probe.js": makeProbe(events) });
+  const sock = fakes.fakeSocket();
+  const client = fakes.fakeClient(sock);
+  pipeline.attachHandlers(client);
+  await fakes.sleep(20); // the anti-delete caching of the messages of earlier tests is deferred with setImmediate
+  const cache = mock.method(antiDeleteHandler, "cacheMessage", () => {});
+  const counted = mock.method(stats, "count", () => {});
+  sentIds._reset();
+  try {
+    sentIds.remember("3EB0PIPELINEKNOWNID0001");
+
+    await client.dispatch("messages", [fakes.rawMessage({ body: ".zzcmd echoed", fromMe: true, from: IDS.BOT_PN, id: "3EB0PIPELINEKNOWNID0001" })], "notify");
+    await fakes.sleep(10);
+    assert.deepEqual(events, [], "no hook, no command");
+    assert.deepEqual(sendsOf(sock), []);
+    assert.equal(cache.mock.callCount(), 0, "not cached for anti-delete");
+    assert.equal(counted.mock.callCount(), 0, "not counted");
+
+    // control 1: another own message still goes through the pipeline (fromMe alone is not the cause)
+    await client.dispatch("messages", [fakes.rawMessage({ body: "bot talking", fromMe: true, from: IDS.BOT_PN, id: "3EB0PIPELINEOTHERID001" })], "notify");
+    await fakes.sleep(10);
+    assert.deepEqual(events, [["onMessage", "bot talking"]]);
+    assert.equal(cache.mock.callCount(), 1);
+
+    // control 2: the id alone is not enough, the message must be the bot's own
+    events.length = 0;
+    await client.dispatch("messages", [fakes.rawMessage({ body: ".zzcmd incoming", id: "3EB0PIPELINEKNOWNID0001" })], "notify");
+    assert.deepEqual(events.map((e) => e[0]), ["onMessage", "execute"]);
+  } finally {
+    sentIds._reset();
+  }
+});
+
+test("sentIds guard: processMessage keeps the guard right after the maintenance check and requires the leaf only", () => {
+  const code = scan(fs.readFileSync(path.join(ROOT, "lib", "core", "pipeline.js"), "utf8")).masked;
+  assert.match(code, /require\(\s*["']\.\.\/messaging\/sentIds["']\s*\)/);
+  assert.doesNotMatch(code, /require\(\s*["']\.\.\/messaging["']\s*\)/, "never the facade (RT-71)");
+  const maintenance = code.search(/maintenanceMode\.isActive\(\)\s*\)\s*return/);
+  const guard = code.search(/msg\.key\.fromMe\s*&&\s*sentIds\.has\(msg\.key\.id\)/);
+  const wrap = code.search(/new Message\(/);
+  assert.ok(maintenance !== -1 && guard !== -1 && wrap !== -1);
+  assert.ok(maintenance < guard && guard < wrap, "maintenance check, then the guard, then the wrapping");
+});

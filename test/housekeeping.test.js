@@ -228,6 +228,23 @@ describe("alerts", () => {
     assert.equal(report.alertStates, 1);
     assert.deepEqual((await db.AlertState.findAll({ raw: true, order: [["key", "ASC"]] })).map((row) => row.key), ["errors_series", "login_blocked:5.6.7.8"]);
   });
+
+  test("states: the three messaging API slot prefixes go after 24 h too (feature 004), the recent ones and the others stay", async () => {
+    await db.AlertState.bulkCreate([
+      { key: "api_origin_blocked:203.0.113.9", lastSentAt: ago(25 * HOUR) },
+      { key: "api_origin_blocked:203.0.113.10", lastSentAt: ago(2 * HOUR) },
+      { key: "api_key_new_ip:7:198.51.100.4", lastSentAt: ago(30 * HOUR) },
+      { key: "api_key_new_ip:7:198.51.100.5", lastSentAt: ago(23 * HOUR) },
+      { key: "api_paused", lastSentAt: ago(48 * HOUR) },
+      { key: "key_refused:openai", lastSentAt: ago(100 * HOUR) },
+    ]);
+    const report = await housekeeping.run();
+    assert.equal(report.alertStates, 3);
+    assert.deepEqual(
+      (await db.AlertState.findAll({ raw: true, order: [["key", "ASC"]] })).map((row) => row.key),
+      ["api_key_new_ip:7:198.51.100.5", "api_origin_blocked:203.0.113.10", "key_refused:openai"],
+    );
+  });
 });
 
 describe("broadcasts", () => {

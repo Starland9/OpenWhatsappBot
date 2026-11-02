@@ -1244,6 +1244,97 @@ describe("GRP-3 counts.permissions and GRP-6 deleted.permissionRules", () => {
   });
 });
 
+describe("FR-030: saving a group rule and forgetting the group never leave a rule of a forgotten group (PERM-6 x GRP-6)", () => {
+  /**
+   * Holds the slow lookup of a PERM-6 save (`groups.participants(jid)`, which runs BEFORE the "permissions" lock):
+   * the real call completes, then it waits for `release()`. `reached` settles once a save is parked there.
+   */
+  function holdParticipants(groups) {
+    const original = groups.participants;
+    let release;
+    let entered;
+    const gate = new Promise((resolve) => (release = resolve));
+    const reached = new Promise((resolve) => (entered = resolve));
+    groups.participants = async (...args) => {
+      const out = await original(...args);
+      entered();
+      await gate;
+      return out;
+    };
+    return { reached, release, restore: () => (groups.participants = original) };
+  }
+
+  const forget = (http, jid) => http.api("DELETE", `/admin/api/groups/${enc(jid)}?confirm=true`);
+
+  test("a save parked before the lock while the group is forgotten answers 404 group and writes no rule and no audit row", async () => {
+    const { http, groups } = await boot();
+    const jid = await addGroup(newGroup(), { chat: { leftAt: new Date(t.clock.now()) }, group: { welcome: true } });
+    const hold = holdParticipants(groups);
+    try {
+      const pending = putRule(http, jid, "kick", "extra", [P1]);
+      // the save is now past the group check and waiting; never wait for it blindly: a save that ended early fails the test
+      await Promise.race([hold.reached, pending.then((a) => Promise.reject(new Error(`the save ended before the lookup: ${a.status} ${a.text}`)))]);
+
+      const forgotten = await forget(http, jid); // GRP-6 runs to completion in between
+      assert.equal(forgotten.status, 200, forgotten.text);
+      assert.equal(forgotten.json.deleted.group, 1);
+      assert.equal(forgotten.json.deleted.permissionRules, 0, "nothing to delete yet: the save has not written");
+      assert.equal(code(await http.get(`/admin/api/groups/${enc(jid)}`)), "not_found", "the group is forgotten");
+
+      hold.release();
+      const answer = await pending;
+      assert.equal(answer.status, 404, answer.text);
+      assert.equal(code(answer), "not_found");
+      assert.deepEqual(answer.json.error.params, { resource: "group" });
+    } finally {
+      hold.release();
+      hold.restore();
+    }
+    assert.equal(await db.PermissionRule.count({ where: { scope: jid } }), 0, "no rule comes back for a forgotten group");
+    assert.deepEqual(await permAudit(), [], "and no command.permission.set row");
+  });
+
+  test("the other order: a save that completed first, then GRP-6 deletes the rule and reports permissionRules: 1", async () => {
+    const { http } = await boot();
+    const jid = await addGroup(newGroup(), { chat: { leftAt: new Date(t.clock.now()) }, group: { welcome: true } });
+
+    const saved = await putRule(http, jid, "kick", "extra", [P1]);
+    assert.equal(saved.status, 200, saved.text);
+    assert.equal(await db.PermissionRule.count({ where: { scope: jid } }), 1);
+
+    const forgotten = await forget(http, jid);
+    assert.equal(forgotten.status, 200, forgotten.text);
+    assert.equal(forgotten.json.deleted.permissionRules, 1);
+    assert.equal(await db.PermissionRule.count({ where: { scope: jid } }), 0);
+    assert.deepEqual((await permAudit()).map((row) => row.action), ["command.permission.set"], "the save stays audited; the forget is group.delete");
+  });
+
+  test("GRP-6 takes the \"permissions\" lock inside its own \"groups:settings-delete\" lock, and releases them in reverse order", async () => {
+    const { http } = await boot();
+    const jid = await addGroup(newGroup(), { chat: { leftAt: new Date(t.clock.now()) }, group: { welcome: true } });
+    const mutex = require("../lib/utils/mutex");
+    const original = mutex.withLock;
+    const events = [];
+    mutex.withLock = (key, fn) => {
+      if (key !== "permissions" && key !== "groups:settings-delete") return original(key, fn);
+      events.push(`take ${key}`);
+      return original(key, async () => {
+        try {
+          return await fn();
+        } finally {
+          events.push(`free ${key}`);
+        }
+      });
+    };
+    try {
+      assert.equal((await forget(http, jid)).status, 200);
+    } finally {
+      mutex.withLock = original;
+    }
+    assert.deepEqual(events, ["take groups:settings-delete", "take permissions", "free permissions", "free groups:settings-delete"]);
+  });
+});
+
 describe("SC-003: a rule on a command that cannot be delegated opens nothing, even when it comes back from a backup", () => {
   const PASS = "a long enough passphrase";
   let home;

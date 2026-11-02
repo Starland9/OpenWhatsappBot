@@ -492,6 +492,26 @@ describe("the pick step: key guard, disabled chat, own number, unreadable payloa
     assert.equal(kit.sock.sent.length, 1);
   });
 
+  test("a key that expires during a slow recipient check is cancelled with key_expired at the claim, never sent", async () => {
+    let slow = false;
+    await boot({
+      sockOptions: {
+        onWhatsApp: (jid) => {
+          if (slow) kit.clock.set(kit.now() + 2 * MIN); // the lookup outlasts the key
+          return [{ jid, exists: true }];
+        },
+      },
+    });
+    const dated = await kit.key({ expiresAt: new Date(kit.now() + MIN) });
+    const sent = await kit.send({ apiKeyId: dated.id, to: "237690000004", fields: { text: "late" } });
+    slow = true;
+    await kit.messaging.tick(kit.now()); // the pass starts while the key is valid; the claim comes after it expired
+    const row = await kit.row(sent.message.publicId);
+    assert.deepEqual([row.status, row.errorCode], ["cancelled", "key_expired"]);
+    assert.equal(kit.sock.sent.length, 0);
+    assert.equal(kit.gate.lastSendAt(), null, "nothing was reserved");
+  });
+
   test("the key is read from the table at every send: a revoke between two ticks applies to the very next message", async () => {
     await boot();
     await kit.send({ fields: { text: "one" } });

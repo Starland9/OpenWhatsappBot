@@ -26,28 +26,29 @@ module.exports = {
     const usedMem = totalMem - os.freemem();
 
     const status = [
-      `╭━━━『 *${getLang("plugins.alive.title")}* 』━━━`,
-      "│",
-      `│ *${getLang("plugins.alive.version")}:* ${config.VERSION}`,
-      `│ *${getLang("plugins.alive.uptime")}:* ${getLang("plugins.alive.uptime_value", hours, minutes, seconds)}`,
-      `│ *${getLang("plugins.alive.memory")}:* ${getLang(
+      `╔═══『 ☠ *${getLang("plugins.alive.title")}* 』═══`,
+      "║",
+      `║ *${getLang("plugins.alive.version")}:* ${config.VERSION}`,
+      `║ *${getLang("plugins.alive.uptime")}:* ${getLang("plugins.alive.uptime_value", hours, minutes, seconds)}`,
+      `║ *${getLang("plugins.alive.memory")}:* ${getLang(
         "plugins.alive.memory_value",
         (memoryUsage.heapUsed / MB).toFixed(2),
         (memoryUsage.heapTotal / MB).toFixed(2),
       )}`,
-      `│ *${getLang("plugins.alive.system")}:* ${getLang(
+      `║ *${getLang("plugins.alive.system")}:* ${getLang(
         "plugins.alive.system_value",
         (usedMem / GB).toFixed(2),
         (totalMem / GB).toFixed(2),
       )}`,
-      `│ *${getLang("plugins.alive.platform")}:* ${os.platform()}`,
-      `│ *${getLang("plugins.alive.node")}:* ${process.version}`,
-      "│",
-      "╰━━━━━━━━━━━━━━━━━━━",
+      `║ *${getLang("plugins.alive.platform")}:* ${os.platform()}`,
+      `║ *${getLang("plugins.alive.node")}:* ${process.version}`,
+      "║",
+      "╚═══════════════════════",
       "",
       getLang("plugins.alive.running"),
     ].join("\n");
 
+    await message.react("☠");
     await message.reply(status);
   },
 };

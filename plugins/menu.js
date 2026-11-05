@@ -10,28 +10,29 @@ const { getVisibleCommands, typeLabel } = require("./help");
 
 // Display order and icon of every command type in use; unknown types come last
 const TYPE_ICONS = {
-  general: "🎯",
-  ai: "🤖",
-  downloader: "📥",
-  downloads: "📥",
-  media: "🎨",
-  music: "🎵",
-  search: "🔍",
-  info: "📰",
-  fun: "😄",
-  games: "🎮",
-  economy: "💰",
-  stats: "📊",
-  utility: "🛠️",
-  productivity: "⏰",
-  group: "👥",
-  admin: "🛡️",
-  whatsapp: "💬",
-  owner: "👑",
-  misc: "📦",
+  general: "◈",
+  ai: "⌬",
+  downloader: "⤓",
+  downloads: "⤓",
+  media: "◫",
+  music: "♪",
+  search: "⌕",
+  info: "☰",
+  fun: "☺",
+  games: "⚄",
+  economy: "¤",
+  stats: "▤",
+  utility: "⚒",
+  productivity: "⏱",
+  group: "⛓",
+  admin: "⛨",
+  whatsapp: "✆",
+  owner: "♛",
+  dark: "☠",
+  misc: "▧",
 };
 const TYPE_ORDER = Object.keys(TYPE_ICONS);
-const DEFAULT_ICON = "📦";
+const DEFAULT_ICON = "▧";
 
 // WhatsApp text messages are fine up to much more, but a menu must stay readable
 const MAX_MENU_CHARS = 4000;
@@ -67,11 +68,11 @@ function fitList(labels, maxChars) {
 
 function buildHeader(count) {
   return (
-    `╭━━『 ⚡ *${getLang("plugins.menu.title")}* 』━━\n` +
-    `│ ${getLang("plugins.menu.version")}: ${config.VERSION}\n` +
-    `│ ${getLang("plugins.menu.prefix")}: ${config.PREFIX}\n` +
-    `│ ${getLang("plugins.menu.commands")}: ${count}\n` +
-    `╰━━━━━━━━━━━━━━━━━━━\n\n`
+    `╔═══『 ☠ *${getLang("plugins.menu.title")}* 』═══\n` +
+    `║ ${getLang("plugins.menu.version")}: ${config.VERSION}\n` +
+    `║ ${getLang("plugins.menu.prefix")}: ${config.PREFIX}\n` +
+    `║ ${getLang("plugins.menu.commands")}: ${count}\n` +
+    `╚═══════════════════════\n\n`
   );
 }
 
@@ -102,8 +103,8 @@ function buildMenu(commands) {
       .map((type) => {
         const labels = grouped.get(type).map((c) => commandLabel(c, withAliases));
         return (
-          `${TYPE_ICONS[type] || DEFAULT_ICON} *${typeLabel(type)}*\n` +
-          fitList(labels, perCategoryMax)
+          `┌─ ${TYPE_ICONS[type] || DEFAULT_ICON} *${typeLabel(type)}*\n` +
+          `│ ${fitList(labels, perCategoryMax)}`
         );
       })
       .join("\n\n") +

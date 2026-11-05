@@ -104,19 +104,19 @@ function formatCommandInfo(cmd) {
   const aliases = (cmd.aliases || []).slice(1).map((a) => `${prefix}${a}`);
 
   const lines = [
-    `╭━━━『 *${getLang("plugins.help.title")}* 』━━━`,
-    "│",
-    `│ *${getLang("plugins.help.label_command")}:* ${prefix}${cmd.name}`,
+    `╔═══『 ☠ *${getLang("plugins.help.title")}* 』═══`,
+    "║",
+    `║ *${getLang("plugins.help.label_command")}:* ${prefix}${cmd.name}`,
   ];
   if (aliases.length) {
-    lines.push(`│ *${getLang("plugins.help.label_aliases")}:* ${aliases.join(", ")}`);
+    lines.push(`║ *${getLang("plugins.help.label_aliases")}:* ${aliases.join(", ")}`);
   }
   lines.push(
-    `│ *${getLang("plugins.help.label_description")}:* ${cmd.desc || getLang("plugins.help.no_description")}`,
-    `│ *${getLang("plugins.help.label_category")}:* ${typeLabel(cmd.type)}`,
-    `│ *${getLang("plugins.help.label_access")}:* ${describeAccess(cmd)}`,
-    "│",
-    "╰━━━━━━━━━━━━━━━━━━━",
+    `║ *${getLang("plugins.help.label_description")}:* ${cmd.desc || getLang("plugins.help.no_description")}`,
+    `║ *${getLang("plugins.help.label_category")}:* ${typeLabel(cmd.type)}`,
+    `║ *${getLang("plugins.help.label_access")}:* ${describeAccess(cmd)}`,
+    "║",
+    "╚═══════════════════════",
   );
 
   let text = lines.join("\n");

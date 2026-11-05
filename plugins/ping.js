@@ -1,4 +1,5 @@
 const { getLang } = require("../lib/utils/language");
+const glyphs = require("../lib/utils/glyphs");
 
 /**
  * Ping command - Check bot latency
@@ -14,7 +15,7 @@ module.exports = {
     const start = Date.now();
     const sent = await message.reply(getLang("plugins.ping.ping_sent"));
     const latency = Date.now() - start;
-    const pong = getLang("plugins.ping.pong", latency);
+    const pong = getLang("plugins.ping.pong", latency, glyphs.bar(Math.max(0, 1 - latency / 1000), 10));
 
     // Edit the "Pinging..." message; if WhatsApp refuses the edit, send the result instead
     try {

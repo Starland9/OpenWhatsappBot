@@ -2,7 +2,7 @@
   "plugins": {
     "alive": {
       "desc": "Check bot status and system information",
-      "title": "BOT STATUS",
+      "title": "SYSTEM STATUS",
       "version": "Version",
       "uptime": "Uptime",
       "uptime_value": "{0}h {1}m {2}s",
@@ -12,7 +12,7 @@
       "system_value": "{0} GB / {1} GB",
       "platform": "Platform",
       "node": "Node",
-      "running": "✅ *Bot is alive and running!*"
+      "running": "☠ *The bot is awake and watching.*"
     },
     "antidelete": {
       "desc": "Configure anti-delete message recovery",
@@ -60,7 +60,7 @@
     "ping": {
       "desc": "Check bot response time",
       "ping_sent": "Pinging...",
-      "pong": "🏓 Pong!\n*Latency:* {0}ms"
+      "pong": "☠ Pong.\n*Latency:* {0} ms\n{1}"
     },
     "gemini": {
       "desc": "AI chat using Google Gemini with image support",
@@ -972,7 +972,7 @@
       "desc": "Show the details of a command (aliases, access, usage)",
       "guide": "ℹ️ *Help*\n\nType {0}menu to see all the commands, or {0}help <command> to see the details of one command.\n\n*Example:* {0}help ping",
       "not_found": "❌ Command *{0}* not found.\n\n_Type {1}menu to see all the commands._",
-      "title": "COMMAND HELP",
+      "title": "COMMAND FILE",
       "label_command": "Command",
       "label_aliases": "Aliases",
       "label_description": "Description",
@@ -1028,7 +1028,8 @@
       "cat_admin": "ADMIN",
       "cat_whatsapp": "WHATSAPP",
       "cat_owner": "OWNER",
-      "cat_misc": "MISC"
+      "cat_misc": "MISC",
+      "cat_dark": "DARK OPS"
     },
     "pdfmaker": {
       "desc": "Create a PDF from a text or from a quoted image",
@@ -1144,6 +1145,158 @@
       "search_header": "🔍 *YouTube results*",
       "search_item": "{0}. *{1}*\n   👤 {2}\n   ⏱️ {3}\n   🔗 {4}",
       "search_footer": "_To download: {0}ytdl <link>_"
+    },
+    "hack": {
+      "desc": "Fake intrusion on a target, played live",
+      "title": "INTRUSION",
+      "banner": "▸ TARGET ACQUIRED: {0}",
+      "step": "{0} {1}% — {2} ({3} ms)",
+      "step_1": "resolving host",
+      "step_2": "probing ports",
+      "step_3": "bypassing firewall",
+      "step_4": "escalating privileges",
+      "step_5": "dumping credentials",
+      "step_6": "covering tracks",
+      "step_7": "planting backdoor",
+      "port": "▸ pivot port: {0}",
+      "hash": "▸ session hash: {0}",
+      "granted": "☠ *ACCESS GRANTED*"
+    },
+    "matrix": {
+      "desc": "Character rain, cathode screen style",
+      "title": "WAKE UP",
+      "footer": "_{0} lines. Follow the white rabbit._"
+    },
+    "sigil": {
+      "desc": "Draw an occult seal",
+      "title": "SEAL",
+      "caption": "bound to _{0}_"
+    },
+    "curse": {
+      "desc": "Curse the quoted person (or yourself)",
+      "you": "you",
+      "line": "☠ {0} — may {1}.",
+      "seal": "seal: {0}"
+    },
+    "zalgo": {
+      "desc": "Corrupt a text (zalgo)",
+      "usage": "Usage: `.zalgo [1-3] <text>` — the number sets the intensity."
+    },
+    "glitch": {
+      "desc": "Glitch a text with noise characters",
+      "usage": "Usage: `.glitch [0.1-1] <text>` — the number sets the corruption ratio."
+    },
+    "banner": {
+      "desc": "Big block letters banner",
+      "usage": "Usage: `.banner <text>` (24 characters at most)."
+    },
+    "art": {
+      "desc": "ASCII drawings of the theme",
+      "list": "☠ *Drawings*\n{0}\n\nUse `.art <name>`.",
+      "unknown": "Unknown drawing. Available: {0}.",
+      "name_skull": "skull",
+      "name_ghost": "ghost",
+      "name_eye": "eye",
+      "name_warning": "warning"
+    },
+    "scan": {
+      "desc": "DNS lookup and port probe on a host",
+      "usage": "Usage: `.scan <host> [ports]` — example: `.scan example.com 22,443`.",
+      "title": "RECON",
+      "target": "▸ target: {0}",
+      "dns": "▸ addresses: {0}",
+      "dns_none": "none (unresolved)",
+      "open": "  ▸ {0}/tcp  OPEN",
+      "closed": "  · {0}/tcp  closed",
+      "summary": "▸ {0} open out of {1} probed"
+    },
+    "dossier": {
+      "desc": "Occult identity file of a person",
+      "title": "FILE",
+      "id": "▸ subject: {0}",
+      "clearance": "▸ clearance: {0}",
+      "role": "▸ role: {0}",
+      "status": "▸ status: {0}",
+      "threat": "▸ threat: {0}",
+      "since": "▸ on file since: {0}",
+      "fingerprint": "▸ fingerprint: {0}"
+    },
+    "term": {
+      "desc": "Simulated system terminal",
+      "list": "☠ *Commands*\n{0}\n\nUse `.term <command>`.",
+      "unknown": "Unknown command. Available: {0}.",
+      "prompt": "root@owb:~$ {0}",
+      "whoami_user": "root",
+      "whoami_groups": "groups: wheel, shadow, netraw",
+      "ls_line": "drwx------  {0}  .vault   drwxr-xr-x  {0}  .keys   -rw-------  {0}  shadow.db",
+      "ps_line": "  {0} ?  S  {1}:{1}  {2}",
+      "netstat_line": "tcp  0  0  0.0.0.0:{0}  0.0.0.0:*  {1}",
+      "uname_line": "Linux owb 6.6.0-dark #1 SMP PREEMPT x86_64 GNU/Linux",
+      "uptime_line": "up {0} days, {1} hours, 1 user, load average: 0.13, 0.07, 0.02",
+      "cat_line": "cat: {0}: permission denied",
+      "cat_usage": "cat: missing operand",
+      "sudo_line": "[sudo] password for root: ********  — accepted"
+    },
+    "syslog": {
+      "desc": "Fake system journal",
+      "line": "{0} {1} {2}: {3}"
+    },
+    "pass": {
+      "desc": "Generate a password with its entropy",
+      "title": "KEYGEN",
+      "value": "▸ `{0}`",
+      "entropy": "▸ entropy: {0} bits",
+      "strength": "▸ strength: {0}"
+    },
+    "audit": {
+      "desc": "Fake security verdict on a target",
+      "title": "AUDIT",
+      "target": "▸ target: {0}",
+      "check": "  {0} {1} {2}",
+      "check_tls": "tls",
+      "check_headers": "headers",
+      "check_dns": "dns",
+      "check_ports": "ports",
+      "check_auth": "auth",
+      "check_backup": "backup",
+      "score": "▸ score: {0}/100",
+      "verdict": "▸ verdict: {0}",
+      "verdict_hardened": "hardened",
+      "verdict_fair": "acceptable",
+      "verdict_weak": "weak",
+      "verdict_critical": "critical"
+    },
+    "takeover": {
+      "desc": "Take control of the group: lock it, revoke the link, purge admins (the bot must be admin)",
+      "usage": "Usage: `{0}takeover [status|invite|purge|release]`.",
+      "title": "TAKEOVER",
+      "status_title": "LOCK STATE",
+      "purge_title": "PURGE",
+      "release_title": "RELEASE",
+      "close": "members muted",
+      "lock": "settings locked",
+      "addmode": "adds restricted to admins",
+      "approval": "join approval on",
+      "invite": "invite link revoked",
+      "open": "members can talk",
+      "unlock": "settings unlocked",
+      "step_ok": "✔ {0}",
+      "step_failed": "✘ {0}",
+      "new_invite": "▸ new link: {0}",
+      "invite_failed": "✘ the invite link could not be revoked.",
+      "purged": "☠ demoted: {0}",
+      "purge_failed": "✘ failed: {0}",
+      "purge_refused": "▸ {0} kept (bot, owner or creator)",
+      "purge_none": "▸ no other administrator.",
+      "no_metadata": "✘ the group settings are unavailable.",
+      "state_write": "▸ members muted: {0}",
+      "state_settings": "▸ settings locked: {0}",
+      "state_add": "▸ adds restricted: {0}",
+      "state_approval": "▸ join approval: {0}",
+      "state_admins": "▸ administrators: {0}",
+      "state_on": "yes",
+      "state_off": "no",
+      "by": "▸ triggered by {0}"
     }
   },
   "extra": {

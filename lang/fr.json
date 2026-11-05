@@ -2,7 +2,7 @@
   "plugins": {
     "alive": {
       "desc": "Vérifier l'état du bot et les informations système",
-      "title": "ÉTAT DU BOT",
+      "title": "ÉTAT DU SYSTÈME",
       "version": "Version",
       "uptime": "Disponibilité",
       "uptime_value": "{0} h {1} min {2} s",
@@ -12,7 +12,7 @@
       "system_value": "{0} Go / {1} Go",
       "platform": "Plateforme",
       "node": "Node",
-      "running": "✅ *Le bot est en ligne et fonctionne !*"
+      "running": "☠ *Le bot est éveillé et il veille.*"
     },
     "antidelete": {
       "desc": "Configurer la récupération des messages supprimés",
@@ -60,7 +60,7 @@
     "ping": {
       "desc": "Vérifier le temps de réponse du bot",
       "ping_sent": "Ping en cours...",
-      "pong": "🏓 Pong!\n*Latence:* {0}ms"
+      "pong": "☠ Pong.\n*Latence :* {0} ms\n{1}"
     },
     "gemini": {
       "desc": "Chat IA utilisant Google Gemini avec support d'images",
@@ -972,7 +972,7 @@
       "desc": "Afficher le détail d'une commande (alias, accès, utilisation)",
       "guide": "ℹ️ *Aide*\n\nTape {0}menu pour voir toutes les commandes, ou {0}help <commande> pour le détail d'une commande.\n\n*Exemple :* {0}help ping",
       "not_found": "❌ Commande *{0}* introuvable.\n\n_Tape {1}menu pour voir toutes les commandes._",
-      "title": "AIDE DE LA COMMANDE",
+      "title": "FICHE DE COMMANDE",
       "label_command": "Commande",
       "label_aliases": "Alias",
       "label_description": "Description",
@@ -1028,7 +1028,8 @@
       "cat_admin": "ADMINISTRATION",
       "cat_whatsapp": "WHATSAPP",
       "cat_owner": "PROPRIÉTAIRE",
-      "cat_misc": "DIVERS"
+      "cat_misc": "DIVERS",
+      "cat_dark": "OPS SOMBRES"
     },
     "pdfmaker": {
       "desc": "Créer un PDF à partir d'un texte ou d'une image citée",
@@ -1144,6 +1145,158 @@
       "search_header": "🔍 *Résultats YouTube*",
       "search_item": "{0}. *{1}*\n   👤 {2}\n   ⏱️ {3}\n   🔗 {4}",
       "search_footer": "_Pour télécharger : {0}ytdl <lien>_"
+    },
+    "hack": {
+      "desc": "Fausse intrusion sur une cible, jouée en direct",
+      "title": "INTRUSION",
+      "banner": "▸ CIBLE VERROUILLÉE : {0}",
+      "step": "{0} {1} % — {2} ({3} ms)",
+      "step_1": "résolution de l'hôte",
+      "step_2": "balayage des ports",
+      "step_3": "contournement du pare-feu",
+      "step_4": "élévation de privilèges",
+      "step_5": "extraction des identifiants",
+      "step_6": "effacement des traces",
+      "step_7": "installation de la porte dérobée",
+      "port": "▸ port de pivot : {0}",
+      "hash": "▸ empreinte de session : {0}",
+      "granted": "☠ *ACCÈS ACCORDÉ*"
+    },
+    "matrix": {
+      "desc": "Pluie de caractères, façon écran cathodique",
+      "title": "RÉVEILLE-TOI",
+      "footer": "_{0} lignes. Suis le lapin blanc._"
+    },
+    "sigil": {
+      "desc": "Tracer un sceau occulte",
+      "title": "SCEAU",
+      "caption": "lié à _{0}_"
+    },
+    "curse": {
+      "desc": "Maudire la personne citée (ou soi-même)",
+      "you": "toi",
+      "line": "☠ {0} — que {1}.",
+      "seal": "sceau : {0}"
+    },
+    "zalgo": {
+      "desc": "Corrompre un texte (zalgo)",
+      "usage": "Utilisation : `.zalgo [1-3] <texte>` — le nombre règle l'intensité."
+    },
+    "glitch": {
+      "desc": "Glitcher un texte avec des caractères de bruit",
+      "usage": "Utilisation : `.glitch [0.1-1] <texte>` — le nombre règle la corruption."
+    },
+    "banner": {
+      "desc": "Bannière en grosses lettres de blocs",
+      "usage": "Utilisation : `.banner <texte>` (24 caractères au plus)."
+    },
+    "art": {
+      "desc": "Dessins ASCII du thème",
+      "list": "☠ *Dessins*\n{0}\n\nUtilise `.art <nom>`.",
+      "unknown": "Dessin inconnu. Disponibles : {0}.",
+      "name_skull": "crâne",
+      "name_ghost": "spectre",
+      "name_eye": "œil",
+      "name_warning": "danger"
+    },
+    "scan": {
+      "desc": "Résolution DNS et sondage de ports sur un hôte",
+      "usage": "Utilisation : `.scan <hôte> [ports]` — exemple : `.scan example.com 22,443`.",
+      "title": "RECON",
+      "target": "▸ cible : {0}",
+      "dns": "▸ adresses : {0}",
+      "dns_none": "aucune (non résolue)",
+      "open": "  ▸ {0}/tcp  OUVERT",
+      "closed": "  · {0}/tcp  fermé",
+      "summary": "▸ {0} ouverts sur {1} sondés"
+    },
+    "dossier": {
+      "desc": "Dossier occulte d'une personne",
+      "title": "DOSSIER",
+      "id": "▸ sujet : {0}",
+      "clearance": "▸ habilitation : {0}",
+      "role": "▸ rôle : {0}",
+      "status": "▸ statut : {0}",
+      "threat": "▸ menace : {0}",
+      "since": "▸ fiché depuis : {0}",
+      "fingerprint": "▸ empreinte : {0}"
+    },
+    "term": {
+      "desc": "Terminal système simulé",
+      "list": "☠ *Commandes*\n{0}\n\nUtilise `.term <commande>`.",
+      "unknown": "Commande inconnue. Disponibles : {0}.",
+      "prompt": "root@owb:~$ {0}",
+      "whoami_user": "root",
+      "whoami_groups": "groupes : wheel, shadow, netraw",
+      "ls_line": "drwx------  {0}  .vault   drwxr-xr-x  {0}  .keys   -rw-------  {0}  shadow.db",
+      "ps_line": "  {0} ?  S  {1}:{1}  {2}",
+      "netstat_line": "tcp  0  0  0.0.0.0:{0}  0.0.0.0:*  {1}",
+      "uname_line": "Linux owb 6.6.0-dark #1 SMP PREEMPT x86_64 GNU/Linux",
+      "uptime_line": "up {0} jours, {1} heures, 1 utilisateur, load average: 0.13, 0.07, 0.02",
+      "cat_line": "cat: {0}: permission refusée",
+      "cat_usage": "cat: opérande manquant",
+      "sudo_line": "[sudo] mot de passe pour root : ********  — accepté"
+    },
+    "syslog": {
+      "desc": "Journal système simulé",
+      "line": "{0} {1} {2} : {3}"
+    },
+    "pass": {
+      "desc": "Générer un mot de passe avec son entropie",
+      "title": "GÉNÉRATEUR",
+      "value": "▸ `{0}`",
+      "entropy": "▸ entropie : {0} bits",
+      "strength": "▸ robustesse : {0}"
+    },
+    "audit": {
+      "desc": "Faux verdict de sécurité sur une cible",
+      "title": "AUDIT",
+      "target": "▸ cible : {0}",
+      "check": "  {0} {1} {2}",
+      "check_tls": "tls",
+      "check_headers": "en-têtes",
+      "check_dns": "dns",
+      "check_ports": "ports",
+      "check_auth": "auth",
+      "check_backup": "sauvegardes",
+      "score": "▸ score : {0}/100",
+      "verdict": "▸ verdict : {0}",
+      "verdict_hardened": "blindé",
+      "verdict_fair": "acceptable",
+      "verdict_weak": "faible",
+      "verdict_critical": "critique"
+    },
+    "takeover": {
+      "desc": "Prendre le contrôle du groupe : verrouiller, révoquer le lien, purger les admins (le bot doit être admin)",
+      "usage": "Utilisation : `{0}takeover [status|invite|purge|release]`.",
+      "title": "PRISE DE CONTRÔLE",
+      "status_title": "ÉTAT DU VERROU",
+      "purge_title": "PURGE",
+      "release_title": "LIBÉRATION",
+      "close": "membres muets",
+      "lock": "réglages verrouillés",
+      "addmode": "ajouts réservés aux admins",
+      "approval": "approbation des arrivées",
+      "invite": "lien d'invitation révoqué",
+      "open": "les membres peuvent parler",
+      "unlock": "réglages déverrouillés",
+      "step_ok": "✔ {0}",
+      "step_failed": "✘ {0}",
+      "new_invite": "▸ nouveau lien : {0}",
+      "invite_failed": "✘ le lien d'invitation n'a pas pu être révoqué.",
+      "purged": "☠ rétrogradés : {0}",
+      "purge_failed": "✘ échecs : {0}",
+      "purge_refused": "▸ {0} épargnés (bot, propriétaire ou créateur)",
+      "purge_none": "▸ aucun autre administrateur.",
+      "no_metadata": "✘ les réglages du groupe sont indisponibles.",
+      "state_write": "▸ membres muets : {0}",
+      "state_settings": "▸ réglages verrouillés : {0}",
+      "state_add": "▸ ajouts restreints : {0}",
+      "state_approval": "▸ approbation des arrivées : {0}",
+      "state_admins": "▸ administrateurs : {0}",
+      "state_on": "oui",
+      "state_off": "non",
+      "by": "▸ déclenché par {0}"
     }
   },
   "extra": {

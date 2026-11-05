@@ -1,6 +1,6 @@
 {
   "en": {
-    "plugins.alive.title": "BOT STATUS",
+    "plugins.alive.title": "SYSTEM STATUS",
     "plugins.alive.version": "Version",
     "plugins.alive.uptime": "Uptime",
     "plugins.alive.uptime_value": "{0}h {1}m {2}s",
@@ -10,10 +10,10 @@
     "plugins.alive.system_value": "{0} GB / {1} GB",
     "plugins.alive.platform": "Platform",
     "plugins.alive.node": "Node",
-    "plugins.alive.running": "✅ *Bot is alive and running!*"
+    "plugins.alive.running": "☠ *The bot is awake and watching.*"
   },
   "fr": {
-    "plugins.alive.title": "ÉTAT DU BOT",
+    "plugins.alive.title": "ÉTAT DU SYSTÈME",
     "plugins.alive.version": "Version",
     "plugins.alive.uptime": "Disponibilité",
     "plugins.alive.uptime_value": "{0} h {1} min {2} s",
@@ -23,6 +23,6 @@
     "plugins.alive.system_value": "{0} Go / {1} Go",
     "plugins.alive.platform": "Plateforme",
     "plugins.alive.node": "Node",
-    "plugins.alive.running": "✅ *Le bot est en ligne et fonctionne !*"
+    "plugins.alive.running": "☠ *Le bot est éveillé et il veille.*"
   }
 }

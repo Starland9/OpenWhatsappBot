@@ -24,7 +24,8 @@
     "plugins.menu.cat_admin": "ADMIN",
     "plugins.menu.cat_whatsapp": "WHATSAPP",
     "plugins.menu.cat_owner": "OWNER",
-    "plugins.menu.cat_misc": "MISC"
+    "plugins.menu.cat_misc": "MISC",
+    "plugins.menu.cat_dark": "DARK OPS"
   },
   "fr": {
     "plugins.menu.desc": "Afficher toutes les commandes disponibles par catégorie",
@@ -51,6 +52,7 @@
     "plugins.menu.cat_admin": "ADMINISTRATION",
     "plugins.menu.cat_whatsapp": "WHATSAPP",
     "plugins.menu.cat_owner": "PROPRIÉTAIRE",
-    "plugins.menu.cat_misc": "DIVERS"
+    "plugins.menu.cat_misc": "DIVERS",
+    "plugins.menu.cat_dark": "OPS SOMBRES"
   }
 }

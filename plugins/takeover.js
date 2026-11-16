@@ -7,6 +7,7 @@ const {
   jidUser,
   guardTarget,
   assertParticipantResult,
+  getBotJids,
 } = require("../lib/utils/permissions");
 
 /**
@@ -24,6 +25,8 @@ const {
  */
 
 const STEP_TIMEOUT_MS = 15000;
+// WhatsApp refuse les créations trop larges : on plafonne la copie
+const MAX_CLONE_MEMBERS = 100;
 
 /** Une étape du verrouillage : nom de clé i18n, action, et le réglage attendu */
 const LOCK_STEPS = [
@@ -69,10 +72,94 @@ async function botIsAdmin(message) {
   return await message.isBotAdmin();
 }
 
-/** Verrouille le groupe et révoque le lien d'invitation */
-async function lockDown(message) {
+/**
+ * Amène le bot au rang d'administrateur quand c'est possible.
+ * WhatsApp n'accorde les réglages de groupe qu'à un administrateur : si le bot ne l'est pas,
+ * un administrateur présent doit le promouvoir. Le propriétaire du bot (SUDO) est promu
+ * d'office par WhatsApp quand il est déjà admin ; sinon on tente la promotion, qui échoue
+ * proprement si personne n'a le droit de la faire.
+ *
+ * @returns {Promise<"already"|"promoted"|"failed">}
+ */
+async function ensureBotAdmin(message) {
+  if (await botIsAdmin(message)) return "already";
+
   const sock = message.client.getSocket();
-  const jid = message.jid;
+  const bot = getBotJids(sock);
+  const botJid = bot.pn || bot.lid;
+  if (!botJid) return "failed";
+
+  try {
+    const res = await sock.groupParticipantsUpdate(message.jid, [botJid], "promote");
+    if (!assertParticipantResult(res)) return "failed";
+  } catch (error) {
+    safeLog(error);
+    return "failed";
+  }
+
+  // WhatsApp peut mettre un instant à refléter la promotion
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await botIsAdmin(message)) return "promoted";
+    await new Promise((resolve) => setTimeout(resolve, 700));
+  }
+  return "failed";
+}
+
+/**
+ * Dernier recours quand le bot ne peut pas être promu : recréer le groupe.
+ * Le bot en devient créateur, donc administrateur d'office, et y verse les membres.
+ * Le groupe d'origine reste intact : rien n'est supprimé, on repart d'une copie verrouillée.
+ *
+ * @returns {Promise<{jid: string, added: number, failed: number} | null>}
+ */
+async function cloneGroup(message) {
+  const metadata = await message.getGroupMetadata();
+  if (!metadata) return null;
+
+  const sock = message.client.getSocket();
+  const bot = getBotJids(sock);
+  const botForms = new Set([bot.pn, bot.lid].filter(Boolean));
+
+  const seen = new Set();
+  const participants = [];
+  for (const participant of metadata.participants || []) {
+    const jid = normalizeJid(participant.phoneNumber || participant.id || participant.lid);
+    if (!jid || seen.has(jid) || botForms.has(jid)) continue;
+    seen.add(jid);
+    participants.push(jid);
+  }
+
+  const subject = String(metadata.subject || "groupe").slice(0, 25);
+  let created;
+  try {
+    created = await sock.groupCreate(subject, participants.slice(0, MAX_CLONE_MEMBERS));
+  } catch (error) {
+    safeLog(error);
+    return null;
+  }
+
+  const jid = created?.id;
+  if (!jid) return null;
+
+  // WhatsApp répond un statut par personne ajoutée
+  const results = created.participants || [];
+  const added = results.filter((r) => String(r?.status) === "200").length;
+  return { jid, added, failed: Math.max(0, participants.length - added) };
+}
+
+/** Lien d'invitation d'un groupe, ou null */
+async function inviteOf(message, jid) {
+  try {
+    return await message.client.getSocket().groupInviteCode(jid);
+  } catch (error) {
+    safeLog(error);
+    return null;
+  }
+}
+
+/** Verrouille un groupe et révoque son lien d'invitation */
+async function lockDown(message, jid = message.jid) {
+  const sock = message.client.getSocket();
 
   const lines = [];
   for (const step of LOCK_STEPS) {
@@ -115,7 +202,7 @@ async function purge(message) {
   const allowed = [];
   let refused = 0;
   for (const participant of admins) {
-    const jid = normalizeJid(participant.id || participant.phoneNumber || participant.lid);
+    const jid = normalizeJid(participant.phoneNumber || participant.id || participant.lid);
     if (!jid) continue;
     const refusal = await guardTarget(message, jid);
     if (refusal) {
@@ -168,12 +255,30 @@ module.exports = {
   async execute(message, argsString) {
     const sub = String(argsString || "").trim().toLowerCase().split(/\s+/)[0];
 
-    if (!(await botIsAdmin(message))) {
-      return await message.reply(getLang("common.bot_not_admin"));
-    }
-
+    const escalation = await ensureBotAdmin(message);
     await message.react("☠");
     const author = message.sender ? `@${jidUser(message.sender)}` : "";
+
+    // Ni admin, ni promouvable : on repart d'une copie où le bot est créateur
+    if (escalation === "failed") {
+      const clone = await cloneGroup(message);
+      if (!clone) return await message.reply(getLang("plugins.takeover.not_admin"));
+
+      const { lines, code } = await lockDown(message, clone.jid);
+      const link = await inviteOf(message, clone.jid);
+      lines.unshift(
+        ...getLang("plugins.takeover.cloned", link ? `https://chat.whatsapp.com/${link}` : "—").split("\n"),
+        getLang("plugins.takeover.cloned_members", clone.added, clone.failed),
+        "",
+      );
+      if (code) lines.push("", getLang("plugins.takeover.new_invite", `https://chat.whatsapp.com/${code}`));
+      if (author) lines.push("", getLang("plugins.takeover.by", author));
+
+      return await message.reply(
+        `${glyphs.art("skull")}\n\n${glyphs.frame(lines, { style: "heavy", title: getLang("plugins.takeover.title") })}`,
+        { mentions: message.sender ? [message.sender] : [] },
+      );
+    }
 
     if (sub === "status" || sub === "etat" || sub === "état") {
       const lines = await status(message);
@@ -203,7 +308,7 @@ module.exports = {
       if (done.length) lines.push(getLang("plugins.takeover.purged", mentionText(done)));
       if (failed.length) lines.push(getLang("plugins.takeover.purge_failed", mentionText(failed)));
       if (refused) lines.push(getLang("plugins.takeover.purge_refused", refused));
-      if (!lines.length) lines.push(getLang("plugins.takeover.purge_none"));
+      if (!done.length && !failed.length) lines.push(getLang("plugins.takeover.purge_none"));
       if (author) lines.push("", getLang("plugins.takeover.by", author));
       return await message.reply(
         `${glyphs.art("warning")}\n\n${glyphs.frame(lines, { style: "heavy", title: getLang("plugins.takeover.purge_title") })}`,
@@ -223,6 +328,7 @@ module.exports = {
     }
 
     const { lines, code } = await lockDown(message);
+    if (escalation === "promoted") lines.unshift(getLang("plugins.takeover.promoted"));
     if (code) lines.push("", getLang("plugins.takeover.new_invite", `https://chat.whatsapp.com/${code}`));
     if (author) lines.push("", getLang("plugins.takeover.by", author));
 

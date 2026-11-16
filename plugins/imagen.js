@@ -42,7 +42,8 @@ const isImagenModel = (model) => /^imagen-/i.test(model);
  */
 async function generate(prompt) {
   const model = config.IMAGE_MODEL || DEFAULT_MODEL;
-  const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
+  // v1beta: the API of @google/genai 2.x (3.x defaults to v1, where some models are missing)
+  const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY, apiVersion: "v1beta" });
   const httpOptions = { timeout: REQUEST_TIMEOUT_MS };
 
   if (isImagenModel(model)) {

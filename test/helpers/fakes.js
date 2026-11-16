@@ -362,6 +362,7 @@ function fakeSocket(opts = {}) {
     sent: [],
     calls: [],
     participantUpdates: [],
+    createdGroups: [],
     groupMetadataCalls: 0,
     groupMetadataError: opts.groupMetadataError || null,
     ev: new EventEmitter(),
@@ -451,12 +452,32 @@ function fakeSocket(opts = {}) {
 
     async groupParticipantsUpdate(jid, jids, action) {
       sock.participantUpdates.push({ jid, jids: [...jids], action });
-      const status = opts.participantStatus || "200";
+      const status =
+        (action === "promote" && opts.promoteStatus) || opts.participantStatus || "200";
+      // promote / demote really change the participant list, like WhatsApp does
+      if (status === "200" && (action === "promote" || action === "demote")) {
+        for (const jid of jids) sock.setAdmin(jid, action === "promote");
+      }
       return jids.map((j) => ({ status, jid: j, content: null }));
+    },
+
+    async groupCreate(subject, jids) {
+      sock.createdGroups.push({ subject, jids: [...jids] });
+      if (opts.groupCreateError) throw opts.groupCreateError;
+      const id = opts.createdGroupJid || "120363000000000099@g.us";
+      return {
+        id,
+        subject,
+        participants: jids.map((j) => ({ status: opts.groupCreateStatus || "200", jid: j })),
+      };
     },
 
     async groupInviteCode() {
       return "FAKEINVITECODE";
+    },
+    async groupRevokeInvite(jid) {
+      sock.calls.push({ method: "groupRevokeInvite", args: [jid] });
+      return "FAKENEWCODE";
     },
     async onWhatsApp(...jids) {
       if (typeof opts.onWhatsApp === "function") return await opts.onWhatsApp(...jids);
@@ -500,6 +521,7 @@ function fakeSocket(opts = {}) {
       sock.sent.length = 0;
       sock.calls.length = 0;
       sock.participantUpdates.length = 0;
+      sock.createdGroups.length = 0;
     },
   };
 

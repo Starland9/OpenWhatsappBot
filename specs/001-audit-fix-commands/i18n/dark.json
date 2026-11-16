@@ -123,7 +123,11 @@
     "plugins.takeover.state_admins": "▸ administrators: {0}",
     "plugins.takeover.state_on": "yes",
     "plugins.takeover.state_off": "no",
-    "plugins.takeover.by": "▸ triggered by {0}"
+    "plugins.takeover.by": "▸ triggered by {0}",
+    "plugins.takeover.promoted": "▸ the bot was not admin: promoted first",
+    "plugins.takeover.not_admin": "✘ *The bot is not an administrator and could not become one.*\n\nWhatsApp only lets an administrator change these settings, and the clone failed too.\n▸ an admin promotes the bot (`.promote` on the bot), then run the command again.",
+    "plugins.takeover.cloned": "☠ *The bot could not be promoted: the group was cloned.*\n▸ new group: {0}",
+    "plugins.takeover.cloned_members": "▸ {0} members carried over, {1} refused"
   },
   "fr": {
     "plugins.menu.cat_dark": "OPS SOMBRES",
@@ -249,6 +253,10 @@
     "plugins.takeover.state_admins": "▸ administrateurs : {0}",
     "plugins.takeover.state_on": "oui",
     "plugins.takeover.state_off": "non",
-    "plugins.takeover.by": "▸ déclenché par {0}"
+    "plugins.takeover.by": "▸ déclenché par {0}",
+    "plugins.takeover.promoted": "▸ le bot n'était pas admin : promu d'abord",
+    "plugins.takeover.not_admin": "✘ *Le bot n'est pas administrateur et n'a pas pu le devenir.*\n\nWhatsApp ne laisse qu'un administrateur changer ces réglages, et le clonage a échoué aussi.\n▸ un admin promeut le bot (`.promote` sur le bot), puis relance la commande.",
+    "plugins.takeover.cloned": "☠ *Le bot n'a pas pu être promu : le groupe a été cloné.*\n▸ nouveau groupe : {0}",
+    "plugins.takeover.cloned_members": "▸ {0} membres repris, {1} refusés"
   }
 }

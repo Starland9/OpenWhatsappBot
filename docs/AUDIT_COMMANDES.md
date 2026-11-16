@@ -142,8 +142,32 @@ La plupart des défauts des commandes venaient de quelques manques dans le cœur
 | `.help` | | Tous | aucun | Corrigée | Argument non normalisé, motif brut affiché → `.help <commande>` accepte préfixe et majuscules et affiche nom, alias, description, catégorie, accès et usage ; `.help` seul donne le guide. **(003)** Une commande fermée à la personne par une règle du panel répond comme une commande inconnue (« introuvable ») ; `.help eval` demandé par un membre affiche toujours la fiche (seules les commandes fermées sont masquées) et la ligne « accès » d'une commande déléguée dit toujours « propriétaire ». |
 | `.menu` | | Tous | aucun | Corrigée | Montrait aux autres les commandes du propriétaire, un seul alias, texte français en dur → traduit, alias affichés, icônes par catégorie, commandes du propriétaire cachées aux autres, moins de 4000 caractères. **(003)** Les commandes fermées à la personne par une règle du panel (mode « ces personnes seulement ») sont absentes du menu et des compteurs de catégorie ; une commande du propriétaire déléguée à la personne dans ce groupe y figure. Sans règle, le menu est identique. |
 | `.ping` | | Tous | aucun | OK | Rien à corriger ; message traduit, repli quand WhatsApp refuse la modification du message. |
+pen
+### Ops sombres (thème)
+
+Commandes d'ambiance « dark hacker ». Aucune n'appelle de service externe, sauf `.scan` (DNS et ports, sans clé). Toutes sont ouvertes à tout le monde.
+
+| Commande | Alias | Accès | Services externes | Statut | Défauts constatés → corrections |
+| --- | --- | --- | --- | --- | --- |
+| `.takeover` | `control`, `lockdown`, `assaut` | Tous (le bot doit être admin) | aucun | Nouvelle | Prend le contrôle d'un groupe : muet, réglages verrouillés, ajouts réservés aux admins, approbation des arrivées, lien révoqué. Si le bot n'est pas admin il se promeut d'abord ; si la promotion est refusée il clone le groupe (il en devient créateur) et verrouille la copie. Sous-commandes `status`, `invite`, `purge`, `release`. Chaque étape est indépendante et son échec est signalé. |
+| `.hack` | `intrusion`, `pentest` | Tous | aucun | Nouvelle | Fausse intrusion jouée en direct, rendu stable pour une cible donnée. |
+| `.scan` | `nmap`, `recon` | Tous | DNS + TCP (aucune clé) | Nouvelle | Résolution DNS et sondage de ports (1,2 s par port, 12 ports au plus). |
+| `.audit` | `pentest2`, `secaudit` | Tous | aucun | Nouvelle | Faux verdict de sécurité, stable pour une cible. |
+| `.dossier` | `dox`, `profil` | Tous | aucun | Nouvelle | Carte d'identité occulte dérivée du JID (stable). |
+| `.term` | `shell`, `console` | Tous | aucun | Nouvelle | Terminal simulé (`whoami`, `ls`, `ps`, `netstat`, `uname`, `uptime`, `cat`, `sudo`). |
+| `.syslog` | `journal`, `logs` | Tous | aucun | Nouvelle | Faux journal système. |
+| `.pass` | `password`, `motdepasse` | Tous | aucun | Nouvelle | Mot de passe aléatoire avec entropie et robustesse. |
+| `.matrix` | `rain` | Tous | aucun | Nouvelle | Pluie de caractères. |
+| `.sigil` | `sceau`, `rune` | Tous | aucun | Nouvelle | Sceau occulte, stable pour un texte. |
+| `.curse` | `malediction` | Tous | aucun | Nouvelle | Malédiction sur la personne citée. |
+| `.zalgo` | `corrupt` | Tous | aucun | Nouvelle | Texte corrompu, intensité 1 à 3. |
+| `.glitch` | `corrupt2` | Tous | aucun | Nouvelle | Texte bruité, corruption réglable. |
+| `.banner` | `ascii` | Tous | aucun | Nouvelle | Bannière en blocs (24 caractères au plus). |
+| `.art` | `dessin` | Tous | aucun | Nouvelle | Dessins ASCII (`skull`, `ghost`, `eye`, `warning`). |
 
 ### Groupe
+
+> `.takeover` (thème « ops sombres ») est documentée plus haut, dans la section « Ops sombres ».
 
 | Commande | Alias | Accès | Services externes | Statut | Défauts constatés → corrections |
 | --- | --- | --- | --- | --- | --- |

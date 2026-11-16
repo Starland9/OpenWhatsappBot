@@ -96,7 +96,7 @@ test("sensitive commands are declared owner-only / admin-only (FR-004, FR-005)",
   // disabling the bot, reading deleted / ephemeral messages. FR-005: group administration.
   const OWNER_FILES = [
     "eval.js", "update.js", "exportcontacts.js", "banchat.js", "unbanchat.js", "getantidel.js", "antidel.js",
-    "getvv.js", "viewonce.js", "vv.js", "save.js", "statussave.js", "stickercmd.js", "delcmd.js",
+    "getvv.js", "viewonce.js", "autovv.js", "vv.js", "save.js", "statussave.js", "stickercmd.js", "delcmd.js",
   ];
   const ADMIN_FILES = ["kick.js", "promote.js", "demote.js", "tag.js", "warnuser.js", "setwelcome.js", "goodbye.js", "addfilter.js", "delfilter.js"];
   const byFile = new Map(commands.map((c) => [c.file, c]));

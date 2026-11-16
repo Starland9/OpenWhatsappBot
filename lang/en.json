@@ -357,16 +357,16 @@
     },
     "viewonce": {
       "desc": "Reveal a view-once message (reply to it). Owner only.",
-      "setvv_desc": "Configure view-once forwarding",
-      "getvv_desc": "Check view-once settings",
-      "usage": "*View-once management:*\n\n{0}vv - reply to a view-once message to reveal it\n{0}setvv g - auto-forward view-once messages to the same group/chat\n{0}setvv p - auto-forward to your private chat\n{0}setvv <jid or number> - auto-forward to a specific chat\n{0}setvv null - disable auto-forward\n{0}getvv - show the current settings",
-      "disabled": "❌ View-once forwarding disabled.",
+      "setvv_desc": "Choose where .vv sends the revealed media",
+      "getvv_desc": "Show where .vv sends the revealed media",
+      "usage": "*View-once messages:*\n\n{0}vv - reply to a view-once message to reveal it\n{0}setvv p - .vv sends to your private chat\n{0}setvv <jid or number> - .vv sends to a specific chat\n{0}setvv g or null - .vv sends to the chat where you use it (default)\n{0}getvv - show where .vv sends\n{0}autovv - forward every view-once message automatically",
+      "disabled": "✅ .vv sends to the chat where you use it again.",
       "mode_private": "Your private chat",
-      "mode_group": "Same group/chat",
+      "mode_group": "The chat where .vv is used",
       "mode_jid": "Custom JID: {0}",
       "mode_disabled": "Disabled",
-      "updated": "✅ View-once forwarding updated to: *{0}*",
-      "not_set": "View-once forwarding is not configured.\n\nUse {0}setvv to configure it.",
+      "updated": "✅ .vv now sends to: *{0}*",
+      "not_set": ".vv sends to the chat where you use it (default).\n\nUse {0}setvv to choose another destination.",
       "status": "*View-Once Settings:*\n\n*Status:* {0}\n*Destination:* {1}",
       "status_enabled": "✅ Enabled",
       "status_disabled": "❌ Disabled",
@@ -1301,6 +1301,16 @@
       "not_admin": "✘ *The bot is not an administrator and could not become one.*\n\nWhatsApp only lets an administrator change these settings, and the clone failed too.\n▸ an admin promotes the bot (`.promote` on the bot), then run the command again.",
       "cloned": "☠ *The bot could not be promoted: the group was cloned.*\n▸ new group: {0}",
       "cloned_members": "▸ {0} members carried over, {1} refused"
+    },
+    "autovv": {
+      "desc": "Auto-forward the view-once messages the bot receives. Owner only.",
+      "usage": "*Automatic view-once forwarding (autovv):*\n\n{0}autovv p - to your private chat\n{0}autovv <jid or number> - to a specific chat\n{0}autovv off - disable\n\nAlso in the admin panel: Settings > Behaviour.",
+      "status": "*autovv:* {0}",
+      "updated": "✅ autovv: *{0}*",
+      "target_off": "off",
+      "target_private": "your private chat",
+      "target_jid": "chat {0}",
+      "needs_android": "⚠️ The bot is declared as a web device, and WhatsApp only sends view-once media to Android devices: nothing will be forwarded. In the admin panel, set Settings > Advanced > Device type declared to WhatsApp to android, then pair again (Pairing page)."
     }
   },
   "extra": {

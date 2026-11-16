@@ -3,8 +3,8 @@
  * Feature 003 (specs/003-command-permissions, contracts/runtime.md section 3 and 2.1): which commands the
  * panel may open to other people.
  *
- *  - the guard: the loaded entries with `delegable === false` are exactly the 14 owner-only commands of the
- *    contract table, each with its lockReason (one of five codes); `vv` and `save` are delegable;
+ *  - the guard: the loaded entries with `delegable === false` are exactly the 15 owner-only commands of the
+ *    contract table plus autovv (added later), each with its lockReason (one of five codes); `vv` and `save` are delegable;
  *  - every plugin whose `command` is fromMe / ownerOnly declares `delegable` as a boolean itself, so the
  *    next owner-only command forces a conscious choice (U6);
  *  - the normalization of `registerCommand` (table of 2.1) on probe plugins.
@@ -41,6 +41,7 @@ const NON_DELEGABLE = {
   "unbanchat.js": ["unban", "lockout"],
   "viewonce.js": ["setvv", "config"],
   "getvv.js": ["getvv", "config"],
+  "autovv.js": ["autovv", "config"],
   "antidel.js": ["antidelete", "config"],
   "getantidel.js": ["getantidelete", "config"],
   "autorespond.js": ["ar", "config"],
@@ -59,7 +60,7 @@ const isOwnerCommand = (entry) => entry.fromMe || entry.ownerOnly;
 // The guard (real plugins)
 // ---------------------------------------------------------------------------
 
-test("guard: the entries with delegable === false are exactly the 14 owner-only commands of the contract", () => {
+test("guard: the entries with delegable === false are exactly the 15 owner-only commands of the contract (+ autovv)", () => {
   const found = commands
     .filter((entry) => entry.delegable === false)
     .map((entry) => `${entry.file}:${entry.name}`)
@@ -67,7 +68,7 @@ test("guard: the entries with delegable === false are exactly the 14 owner-only 
   const expected = Object.entries(NON_DELEGABLE)
     .map(([file, [name]]) => `${file}:${name}`)
     .sort();
-  assert.equal(expected.length, 14);
+  assert.equal(expected.length, 15);
   assert.deepEqual(found, expected, "a command was made (non-)delegable: edit NON_DELEGABLE on purpose");
 });
 
@@ -115,7 +116,7 @@ test("guard: a delegable entry never has a lockReason", () => {
 
 test("guard: every fromMe / ownerOnly plugin declares plugin.command.delegable as a boolean itself (U6)", () => {
   const owner = commands.filter(isOwnerCommand);
-  assert.equal(owner.length, 16, "16 owner-only commands (14 never delegable + vv + save)");
+  assert.equal(owner.length, 17, "17 owner-only commands (15 never delegable + vv + save)");
   const problems = [];
   for (const entry of owner) {
     // the module, not the entry: the entry would hide a missing declaration behind the registry default

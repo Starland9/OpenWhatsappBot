@@ -4,7 +4,7 @@
  * Settings catalog + store (specs/002-admin-panel T026-T030, T034; contracts/settings-catalog.md,
  * contracts/runtime.md section 1).
  *
- *  - catalog invariants (113 entries, 79 editable, 34 read-only, 22 secrets, 6 "restart", U19 defaults);
+ *  - catalog invariants (115 entries, 81 editable, 34 read-only, 22 secrets, 6 "restart", U19 defaults);
  *  - tier precedence: runtime > override > environment > default, '' as a deliberate override;
  *  - the validation table of settings-catalog.md section 6 and all-or-nothing batches;
  *  - versions: stale write, lost insert race, version continuity after a reset;
@@ -117,9 +117,9 @@ const fieldOf = async (promise, key) => {
 describe("catalog invariants", () => {
   const entries = catalog.entries;
 
-  test("113 entries: 79 editable, 34 read-only (13 startup, 21 inactive), 22 secrets, 6 restart", () => {
-    assert.equal(entries.length, 113);
-    assert.equal(entries.filter((e) => !e.readonly).length, 79);
+  test("115 entries: 81 editable, 34 read-only (13 startup, 21 inactive), 22 secrets, 6 restart", () => {
+    assert.equal(entries.length, 115);
+    assert.equal(entries.filter((e) => !e.readonly).length, 81);
     assert.equal(entries.filter((e) => e.readonly).length, 34);
     assert.equal(entries.filter((e) => e.theme === "boot").length, 13);
     assert.equal(entries.filter((e) => e.theme === "inactive").length, 21);
@@ -137,14 +137,14 @@ describe("catalog invariants", () => {
     const count = (theme) => entries.filter((e) => e.theme === theme).length;
     assert.deepEqual(
       { general: count("general"), behavior: count("behavior"), apiKeys: count("api-keys"), responder: count("responder"), moderation: count("moderation"), limits: count("limits"), advanced: count("advanced"), alerts: count("alerts") },
-      { general: 6, behavior: 11, apiKeys: 16, responder: 9, moderation: 5, limits: 13, advanced: 10, alerts: 9 },
+      { general: 6, behavior: 13, apiKeys: 16, responder: 9, moderation: 5, limits: 13, advanced: 10, alerts: 9 },
     );
   });
 
   test("keys are unique and well formed; themes are known", () => {
     const keys = entries.map((e) => e.key);
     assert.equal(new Set(keys).size, keys.length);
-    assert.equal(catalog.byKey.size, 113);
+    assert.equal(catalog.byKey.size, 115);
     for (const e of entries) {
       assert.match(e.key, /^[A-Z][A-Z0-9_]{1,63}$/);
       assert.ok(catalog.themes.includes(e.theme), e.key);
@@ -1501,9 +1501,9 @@ describe("messaging API settings (feature 004)", () => {
   });
 
   test("a reply window never outlives the history it needs: API_REPLY_WINDOW_DAYS <= API_RETENTION_DAYS (cross validator)", () => {
-    assert.equal(catalog.crossValidators.length, 2);
+    assert.equal(catalog.crossValidators.length, 3);
     const validator = catalog.crossValidators.find((fn) => fn.name === "replyWindowWithinRetention");
-    assert.ok(validator, "named replyWindowWithinRetention, beside responderDelays");
+    assert.ok(validator, "named replyWindowWithinRetention, beside responderDelays and autovvTarget");
     const projected = (retention, window) => (key) => (key === "API_RETENTION_DAYS" ? retention : key === "API_REPLY_WINDOW_DAYS" ? window : undefined);
     const both = new Set(["API_RETENTION_DAYS", "API_REPLY_WINDOW_DAYS"]);
     assert.equal(validator(projected(30, 7), both), null);
@@ -1568,6 +1568,7 @@ describe("SC-003: the process-wide store behind config.js", () => {
     OPENAI_MODEL: "gpt-x",
     BACKEND_URL: "https://backend.example.com",
     WARN_MESSAGE: "warned &mention &warn &remaining",
+    AUTOVV_JID: "237690000001@s.whatsapp.net",
     WARN_KICK_MESSAGE: "bye &mention",
     ANTILINK_MSG: "link &mention",
     ANTIBOT_MSG: "bot &mention",

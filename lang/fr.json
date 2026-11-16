@@ -357,16 +357,16 @@
     },
     "viewonce": {
       "desc": "Révéler un message à vue unique (en y répondant). Propriétaire uniquement.",
-      "setvv_desc": "Configurer le transfert des messages à vue unique",
-      "getvv_desc": "Vérifier les paramètres de vue unique",
-      "usage": "*Gestion des messages à vue unique :*\n\n{0}vv - répondre à un message à vue unique pour le révéler\n{0}setvv g - transférer automatiquement vers le même groupe/chat\n{0}setvv p - transférer automatiquement vers votre chat privé\n{0}setvv <jid ou numéro> - transférer automatiquement vers un chat précis\n{0}setvv null - désactiver le transfert automatique\n{0}getvv - afficher les réglages actuels",
-      "disabled": "❌ Transfert de vue unique désactivé.",
+      "setvv_desc": "Choisir où .vv envoie les médias révélés",
+      "getvv_desc": "Afficher où .vv envoie les médias révélés",
+      "usage": "*Messages à vue unique :*\n\n{0}vv - répondre à un message à vue unique pour le révéler\n{0}setvv p - .vv envoie dans votre discussion privée\n{0}setvv <jid ou numéro> - .vv envoie dans une discussion précise\n{0}setvv g ou null - .vv envoie dans la discussion où vous l'utilisez (par défaut)\n{0}getvv - afficher où .vv envoie\n{0}autovv - transférer automatiquement toutes les vues uniques",
+      "disabled": "✅ .vv envoie de nouveau dans la discussion où vous l'utilisez.",
       "mode_private": "Votre chat privé",
-      "mode_group": "Même groupe/chat",
+      "mode_group": "La discussion où .vv est utilisé",
       "mode_jid": "JID personnalisé: {0}",
       "mode_disabled": "Désactivé",
-      "updated": "✅ Transfert de vue unique mis à jour vers: *{0}*",
-      "not_set": "Le transfert des messages à vue unique n'est pas configuré.\n\nUtilisez {0}setvv pour le configurer.",
+      "updated": "✅ .vv enverra désormais vers : *{0}*",
+      "not_set": ".vv envoie dans la discussion où vous l'utilisez (par défaut).\n\nUtilisez {0}setvv pour choisir une autre destination.",
       "status": "*Paramètres Vue Unique:*\n\n*Statut:* {0}\n*Destination:* {1}",
       "status_enabled": "✅ Activé",
       "status_disabled": "❌ Désactivé",
@@ -1301,6 +1301,16 @@
       "not_admin": "✘ *Le bot n'est pas administrateur et n'a pas pu le devenir.*\n\nWhatsApp ne laisse qu'un administrateur changer ces réglages, et le clonage a échoué aussi.\n▸ un admin promeut le bot (`.promote` sur le bot), puis relance la commande.",
       "cloned": "☠ *Le bot n'a pas pu être promu : le groupe a été cloné.*\n▸ nouveau groupe : {0}",
       "cloned_members": "▸ {0} membres repris, {1} refusés"
+    },
+    "autovv": {
+      "desc": "Transférer automatiquement les vues uniques reçues par le bot. Propriétaire uniquement.",
+      "usage": "*Transfert automatique des vues uniques (autovv) :*\n\n{0}autovv p - vers votre discussion privée\n{0}autovv <jid ou numéro> - vers une discussion précise\n{0}autovv off - désactiver\n\nAussi dans le panel d'administration : Réglages > Comportement.",
+      "status": "*autovv :* {0}",
+      "updated": "✅ autovv : *{0}*",
+      "target_off": "désactivé",
+      "target_private": "votre discussion privée",
+      "target_jid": "la discussion {0}",
+      "needs_android": "⚠️ Le bot est déclaré appareil web, et WhatsApp n'envoie les vues uniques qu'aux appareils Android : rien ne sera transféré. Dans le panel d'administration, passez Réglages > Avancé > Type d'appareil déclaré à WhatsApp sur android, puis refaites l'appairage (page Appairage)."
     }
   },
   "extra": {

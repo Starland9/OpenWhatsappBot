@@ -165,7 +165,7 @@ Defaults are the **code** defaults (U19): for the five keys flagged `default-dif
 | `STICKER_PACKNAME` | string | 0 to 64 characters | `Made with` | no | immediate | `sticker.js:184` |
 | `STICKER_AUTHOR` | string | 0 to 64 characters | `Bot` | no | immediate | `sticker.js:185`; flag `default-differs` (example: `Levanter Bot`) |
 
-### 5.2 `behavior` (11)
+### 5.2 `behavior` (13)
 
 | Key | Type | Validation | Default | Secret | Effect | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -178,8 +178,10 @@ Defaults are the **code** defaults (U19): for the five keys flagged `default-dif
 | `ENABLE_MESSAGE_REACTIONS` | bool | | false | no | immediate | `Message.js:367`; flag `default-differs` (example: true) |
 | `ANTIDELETE_MODE` | enum | `off`, `p`, `g`, `sudo`, `jid` | `off` | no | immediate | `env: null`, `source: model`, `adapter: antiDelete` |
 | `ANTIDELETE_JID` | string | R-chatjid; required iff mode is `jid` | empty | no | immediate | `env: null`, `source: model`, `adapter: antiDelete` |
-| `VIEWONCE_MODE` | enum | `off`, `p`, `g`, `jid` | `off` | no | immediate | `env: null`, `source: model`, `adapter: viewOnce` |
+| `VIEWONCE_MODE` | enum | `off`, `p`, `g`, `jid` | `off` | no | immediate | `env: null`, `source: model`, `adapter: viewOnce`. Since 2026-11-16 only the destination of `.vv` (automatic forwarding is `AUTOVV_MODE`) |
 | `VIEWONCE_JID` | string | R-chatjid; required iff mode is `jid` | empty | no | immediate | `env: null`, `source: model`, `adapter: viewOnce` |
+| `AUTOVV_MODE` | enum | `off`, `p`, `jid` | `off` | no | immediate | Added after 004. `env: null`; autovv, the forwarding of every view-once the bot receives (`viewOnceHandler.js`, also `.autovv`): `p` the first owner, `jid` `AUTOVV_JID`; needs `BAILEYS_DEVICE=android` to receive anything |
+| `AUTOVV_JID` | string | R-chatjid; required iff mode is `jid` (cross validator `autovvTarget`, only the keys of the batch are blamed) | empty | no | immediate | Added after 004. `env: null`; the panel sends it with `AUTOVV_MODE` (`JID_MODE` of `settings-logic.mjs`) |
 
 ### 5.3 `api-keys` (16)
 

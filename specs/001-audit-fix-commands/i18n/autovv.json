@@ -1,0 +1,22 @@
+{
+  "en": {
+    "plugins.autovv.desc": "Auto-forward the view-once messages the bot receives. Owner only.",
+    "plugins.autovv.usage": "*Automatic view-once forwarding (autovv):*\n\n{0}autovv p - to your private chat\n{0}autovv <jid or number> - to a specific chat\n{0}autovv off - disable\n\nAlso in the admin panel: Settings > Behaviour.",
+    "plugins.autovv.status": "*autovv:* {0}",
+    "plugins.autovv.updated": "✅ autovv: *{0}*",
+    "plugins.autovv.target_off": "off",
+    "plugins.autovv.target_private": "your private chat",
+    "plugins.autovv.target_jid": "chat {0}",
+    "plugins.autovv.needs_android": "⚠️ The bot is declared as a web device, and WhatsApp only sends view-once media to Android devices: nothing will be forwarded. In the admin panel, set Settings > Advanced > Device type declared to WhatsApp to android, then pair again (Pairing page)."
+  },
+  "fr": {
+    "plugins.autovv.desc": "Transférer automatiquement les vues uniques reçues par le bot. Propriétaire uniquement.",
+    "plugins.autovv.usage": "*Transfert automatique des vues uniques (autovv) :*\n\n{0}autovv p - vers votre discussion privée\n{0}autovv <jid ou numéro> - vers une discussion précise\n{0}autovv off - désactiver\n\nAussi dans le panel d'administration : Réglages > Comportement.",
+    "plugins.autovv.status": "*autovv :* {0}",
+    "plugins.autovv.updated": "✅ autovv : *{0}*",
+    "plugins.autovv.target_off": "désactivé",
+    "plugins.autovv.target_private": "votre discussion privée",
+    "plugins.autovv.target_jid": "la discussion {0}",
+    "plugins.autovv.needs_android": "⚠️ Le bot est déclaré appareil web, et WhatsApp n'envoie les vues uniques qu'aux appareils Android : rien ne sera transféré. Dans le panel d'administration, passez Réglages > Avancé > Type d'appareil déclaré à WhatsApp sur android, puis refaites l'appairage (page Appairage)."
+  }
+}

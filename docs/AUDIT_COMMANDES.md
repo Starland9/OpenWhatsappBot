@@ -6,6 +6,8 @@ Rapport destiné au propriétaire du bot. Date de l'audit : **2026-10-27**. Bran
 
 **Mise à jour (fonctionnalité 003, branche `003-command-permissions`)** : le panel d'administration permet de déléguer une commande à des personnes précises (partout ou dans un groupe) ou de la réserver à une liste de personnes. Les lignes `.bmenu`, `.menu`, `.help`, `.save` et `.vv` et la section 4 « Accès » sont marquées « (003) » ; la checklist de la section 7 a de nouveaux points dans « Accès et correspondance exacte » et « Messages supprimés et « vue unique » ». Le guide complet de validation est [`specs/003-command-permissions/quickstart.md`](../specs/003-command-permissions/quickstart.md).
 
+**Mise à jour du 2026-11-16 (vues uniques)** : WhatsApp n'envoie les médias à vue unique qu'aux appareils Android ; le bot, déclaré « web », n'en recevait que des messages vides. Le réglage `BAILEYS_DEVICE` (panel, Réglages > Avancé ; `android` est expérimental et demande de refaire l'appairage) le déclare appareil Android. Le nouveau `.autovv` (et ses réglages du panel) transfère automatiquement chaque vue unique reçue ; `.setvv` ne règle plus que la destination de `.vv`. Lignes marquées « (2026-11-16) ».
+
 Documents liés : [spécification](../specs/001-audit-fix-commands/spec.md), [constats bruts avec fichier:ligne](../specs/001-audit-fix-commands/audit-findings.md), [rapport des dépendances](../specs/001-audit-fix-commands/deps-report.md), [spécification du panel d'administration](../specs/002-admin-panel/spec.md), [guide de validation du panel](../specs/002-admin-panel/quickstart.md).
 
 ## Sommaire
@@ -33,13 +35,14 @@ Les 81 fichiers de `plugins/` ont été audités (la fonctionnalité 002 en a aj
 
 Chaque commande a été évaluée sur les mêmes critères : réponse sans argument, réponse sur appel valide, réponse quand le service externe échoue, application des restrictions d'accès, absence de détail technique dans les messages, traduction. Les services externes ont été testés en réel le 2026-10-27 quand c'était possible (sans clé, ou avec la clé déjà configurée pour Gemini).
 
-### Statuts des 78 commandes
+### Statuts des 79 commandes
 
 | Statut | Nombre | Sens |
 | --- | --- | --- |
 | OK | 1 | Fonctionnait déjà ; seule la traduction a été ajoutée. |
 | Corrigée | 68 | Des défauts ont été trouvés et corrigés. |
 | Désactivée | 1 | Le service externe est mort et n'a pas d'équivalent gratuit ; la commande reste au menu et répond « service indisponible ». |
+| Nouvelle | 1 | Ajoutée après l'audit : `.autovv` (2026-11-16). |
 | À surveiller | 8 | Corrigée, mais l'appel réel n'a pas pu être vérifié (clé absente, paiement requis) ou dépend d'un service instable. Voir la colonne « Défauts » et la section 6. |
 
 Modules sans commande : `trackmessages` Corrigée, `buttons` Corrigée, `pollplus` Désactivée, `knownchats` et `groupguard` Nouveaux (002), `apireplies` Nouveau (004) (voir la fin de la section 2).
@@ -249,8 +252,9 @@ Commandes d'ambiance « dark hacker ». Aucune n'appelle de service externe, sau
 | --- | --- | --- | --- | --- | --- |
 | `.antidelete` | `antidel` | Propriétaire | aucun | Corrigée | Ne transférait jamais rien : l'événement de suppression était mal lu → lecture correcte, cache vidé à chaque changement, numéros et LID acceptés, plafond de taille. |
 | `.getantidelete` | `getantidel` | Propriétaire | aucun | Corrigée | La commande de lecture était correcte ; le défaut venait du gestionnaire (voir `.antidelete`) → alias `getantidel`, numéros et LID acceptés, usage avec le préfixe. |
-| `.getvv` | | Propriétaire | aucun | Corrigée | Défaut mineur (l'état était toujours affiché comme activé), usage incorrect → corrigé, plus de fuite d'erreur. |
-| `.setvv` | | Propriétaire | aucun | Corrigée | Cache non vidé après un changement, formats de « vue unique » manqués → cache vidé, accepte `g`, `p`, `null`, un JID ou un numéro, détecte tous les formats de « vue unique » et l'audio. |
+| `.autovv` | | Propriétaire, jamais délégable | aucun | Nouvelle | **(2026-11-16)** Transfert automatique de chaque « vue unique » reçue par le bot, depuis toutes les discussions (sauf les discussions désactivées) : `p` ou `on` vers la discussion privée du premier propriétaire, un JID ou un numéro vers cette discussion, `off` pour arrêter ; sans argument, affiche l'état et l'usage. Mêmes réglages que le panel (Réglages > Comportement : `AUTOVV_MODE`, `AUTOVV_JID`). **WhatsApp n'envoie les vues uniques qu'aux appareils Android** : il faut `BAILEYS_DEVICE=android` (Réglages > Avancé) puis refaire l'appairage ; tant que le bot est déclaré « web », la commande le rappelle et rien n'est transféré. |
+| `.getvv` | | Propriétaire | aucun | Corrigée | Défaut mineur (l'état était toujours affiché comme activé), usage incorrect → corrigé, plus de fuite d'erreur. **(2026-11-16)** Affiche la destination de `.vv`. |
+| `.setvv` | | Propriétaire | aucun | Corrigée | Cache non vidé après un changement, formats de « vue unique » manqués → cache vidé, accepte `g`, `p`, `null`, un JID ou un numéro, détecte tous les formats de « vue unique » et l'audio. **(2026-11-16)** Ne règle plus que la destination de `.vv` (`p`, un JID ou un numéro ; `g` ou `null` : la discussion où `.vv` est utilisé) ; le transfert automatique des vues uniques reçues passe à `.autovv`. |
 
 ### Modules sans commande
 
@@ -311,7 +315,7 @@ Voir `config.env.example` pour les valeurs par défaut.
 
 - **Désormais réservées au propriétaire** : `.vv` (avant : tout le monde), `.exec` / `.eval` (en privé uniquement), `.update`, `.exportcontacts`, `.statussave`, `.ban`, `.unban`.
 - **(003) Délégation depuis le panel** : le propriétaire peut ouvrir une commande à des personnes précises, partout ou dans un seul groupe (page Commandes, onglet « Permissions » d'un groupe). Mode « normal + ces personnes » : la commande garde son niveau habituel et ces personnes peuvent aussi l'utiliser ; mode « ces personnes seulement » : seuls ces personnes et le propriétaire l'utilisent, **tous les autres sont ignorés en silence** (ni réponse, ni réaction, ni mention dans `.menu` et `.help`), même si la commande est aussi désactivée dans le panel. Une personne déléguée passe la réserve « propriétaire » et la réserve « admins » ; les réserves « groupe » et « privé » restent appliquées. Une commande désactivée répond toujours « désactivée » au propriétaire et aux personnes listées. Les règles se règlent uniquement depuis le panel (aucune commande WhatsApp) et survivent au redémarrage et aux sauvegardes.
-- **(003) Jamais délégables (14)** : `.exec` / `.eval`, `.update`, `.exportcontacts`, `.ban`, `.unban`, `.setvv`, `.getvv`, `.antidelete`, `.getantidelete`, `.ar`, `.statussave`, `.setcmd`, `.delcmd`, `.getcmd`. Le panel les grise avec la raison (code, mise à jour, données, verrouillage, réglages) ; une règle qui existerait malgré tout (sauvegarde restaurée, ligne ajoutée à la main) est ignorée par le bot, qui répond « propriétaire seulement » comme avant. Seules `.vv` et `.save` parmi les commandes du propriétaire sont délégables ; les commandes réservées aux admins le sont aussi (le panel avertit).
+- **(003) Jamais délégables (15)** : `.exec` / `.eval`, `.update`, `.exportcontacts`, `.ban`, `.unban`, `.setvv`, `.getvv`, `.autovv` (2026-11-16), `.antidelete`, `.getantidelete`, `.ar`, `.statussave`, `.setcmd`, `.delcmd`, `.getcmd`. Le panel les grise avec la raison (code, mise à jour, données, verrouillage, réglages) ; une règle qui existerait malgré tout (sauvegarde restaurée, ligne ajoutée à la main) est ignorée par le bot, qui répond « propriétaire seulement » comme avant. Seules `.vv` et `.save` parmi les commandes du propriétaire sont délégables ; les commandes réservées aux admins le sont aussi (le panel avertit).
 - **Réservées aux admins du groupe** : `.kick`, `.promote`, `.demote`, `.tagall`, `.warn`, `.welcome`, `.goodbye`, `.filter`, `.delfilter`. Si le bot n'est pas admin, il l'explique.
 - **Uniquement en groupe** : `.balance`, `.daily`, `.give`, `.top`, `.stats`, `.groupinfo`, `.tictactoe`, `.idea`, `.quote`, `.role`, `.poll` et les mises de `.dice`.
 - Un nom ou alias inconnu ne déclenche plus rien : `.kiss`, `.class`, `.boss`, `.export`, `.expire`, `.giftcard`, `.faq`, `.iq`, `.display` sont ignorés.
@@ -480,7 +484,8 @@ Dépendances système : `ffmpeg` (inchangé) et **`yt-dlp`** (nouveau, voir sect
 ### Messages supprimés et « vue unique »
 
 - [ ] `.antidel g` (ou `.antidel p`), envoyer un message depuis B puis le supprimer : le message supprimé est renvoyé dans le groupe (ou au propriétaire avec `p`). `.antidel null` désactive.
-- [ ] `.setvv p`, B envoie une photo en « vue unique » : le propriétaire la reçoit en privé. `.vv` en réponse à une « vue unique » : le média est envoyé au propriétaire seulement.
+- [ ] (2026-11-16) Réglages > Avancé > Type d'appareil = `android`, puis Appairage > fermer la session et refaire l'appairage. `.autovv p`, B envoie une photo en « vue unique » : le propriétaire la reçoit en privé. `.autovv off` : plus rien. En type `web`, `.autovv p` rappelle qu'il faut le mode Android.
+- [ ] `.setvv p`, puis `.vv` en réponse à une « vue unique » : le média est envoyé au propriétaire seulement (`.setvv` ne transfère plus rien tout seul).
 - [ ] (003) Panel : ouvrir `.vv` à B dans le groupe de test. B répond avec `.vv` à une « vue unique » : le média arrive dans la discussion privée de B avec le bot, **rien n'apparaît dans le groupe**, même avec `.setvv g` ou `.setvv p` ; le propriétaire ne reçoit rien. Refaire avec un membre adressé uniquement par LID (numéro masqué) : le média arrive dans sa discussion, ou noter « non exécuté ».
 - [ ] (003) B envoie `.vv` sans citer de message : le texte d'usage arrive en privé, rien dans le groupe. Un média au-delà de `MAX_UPLOAD` : l'avis « trop volumineux » arrive en privé. Si B n'a jamais écrit au bot et que WhatsApp refuse le message privé, B ne reçoit rien et aucune erreur n'apparaît dans le groupe.
 - [ ] (003) `.vv` délégué dans une discussion privée avec le bot (règle « partout » pour B) : le média revient dans cette même discussion ; depuis un membre C non listé ou depuis B dans un groupe sans règle : refus « propriétaire seulement ». Le propriétaire garde son comportement (`.vv` selon `.setvv`).

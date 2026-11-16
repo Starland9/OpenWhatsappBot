@@ -6,7 +6,7 @@
  *  - errors.<code> for every envelope code and fields.<code> for every field code of admin-http-api.md 1.9,
  *    banners.<id> for the 11 banner ids of 3.3, settings.theme.<id> for the 10 themes, status.<id> for the
  *    client states, nav.<area> and <area>.title for the 14 areas;
- *  - settings.<KEY>.label and .desc for the 113 entries of the settings catalog (settings-catalog.md 8, item 4; the
+ *  - settings.<KEY>.label and .desc for the 115 entries of the settings catalog (settings-catalog.md 8, item 4; the
  *    eleven of feature 004 come from specs/004-messaging-api/i18n/panel-api-server.json);
  *  - every literal t("...") key used under lib/admin/public/js/** exists in both catalogs (the fragments are merged:
  *    nothing counts as "pending" any more);
@@ -223,10 +223,10 @@ test("fields.not_found exists in both catalogs (the field code of a quote or an 
   assert.ok(catalogs.en["errors.media_too_large"].includes("{maxBytes}") && catalogs.fr["errors.media_too_large"].includes("{maxBytes}"));
 });
 
-test("settings.<KEY>.label and settings.<KEY>.desc exist in both catalogs for all 113 settings catalog entries, and for nothing else", () => {
+test("settings.<KEY>.label and settings.<KEY>.desc exist in both catalogs for all 115 settings catalog entries, and for nothing else", () => {
   const settingsCatalog = require("../lib/utils/settingsCatalog");
   const keys = settingsCatalog.entries.map((entry) => entry.key);
-  assert.equal(keys.length, 113, "settings-catalog.md: 101 entries + the eleven of feature 004 (data-model.md 8.1) + BAILEYS_DEVICE");
+  assert.equal(keys.length, 115, "settings-catalog.md: 101 entries + the eleven of feature 004 (data-model.md 8.1) + BAILEYS_DEVICE, AUTOVV_MODE, AUTOVV_JID");
   assert.equal(new Set(keys).size, keys.length, "setting keys are unique");
   const problems = [];
   for (const lang of LANGS) {

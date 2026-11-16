@@ -1,14 +1,24 @@
 {
   "en": {
     "plugins.viewonce.desc": "Reveal a view-once message (reply to it). Owner only.",
-    "plugins.viewonce.usage": "*View-once management:*\n\n{0}vv - reply to a view-once message to reveal it\n{0}setvv g - auto-forward view-once messages to the same group/chat\n{0}setvv p - auto-forward to your private chat\n{0}setvv <jid or number> - auto-forward to a specific chat\n{0}setvv null - disable auto-forward\n{0}getvv - show the current settings",
-    "plugins.viewonce.not_set": "View-once forwarding is not configured.\n\nUse {0}setvv to configure it.",
-    "plugins.viewonce.forward_caption": "📸 *View-once message*\n*From:* @{0}"
+    "plugins.viewonce.usage": "*View-once messages:*\n\n{0}vv - reply to a view-once message to reveal it\n{0}setvv p - .vv sends to your private chat\n{0}setvv <jid or number> - .vv sends to a specific chat\n{0}setvv g or null - .vv sends to the chat where you use it (default)\n{0}getvv - show where .vv sends\n{0}autovv - forward every view-once message automatically",
+    "plugins.viewonce.not_set": ".vv sends to the chat where you use it (default).\n\nUse {0}setvv to choose another destination.",
+    "plugins.viewonce.forward_caption": "📸 *View-once message*\n*From:* @{0}",
+    "plugins.viewonce.setvv_desc": "Choose where .vv sends the revealed media",
+    "plugins.viewonce.getvv_desc": "Show where .vv sends the revealed media",
+    "plugins.viewonce.disabled": "✅ .vv sends to the chat where you use it again.",
+    "plugins.viewonce.updated": "✅ .vv now sends to: *{0}*",
+    "plugins.viewonce.mode_group": "The chat where .vv is used"
   },
   "fr": {
     "plugins.viewonce.desc": "Révéler un message à vue unique (en y répondant). Propriétaire uniquement.",
-    "plugins.viewonce.usage": "*Gestion des messages à vue unique :*\n\n{0}vv - répondre à un message à vue unique pour le révéler\n{0}setvv g - transférer automatiquement vers le même groupe/chat\n{0}setvv p - transférer automatiquement vers votre chat privé\n{0}setvv <jid ou numéro> - transférer automatiquement vers un chat précis\n{0}setvv null - désactiver le transfert automatique\n{0}getvv - afficher les réglages actuels",
-    "plugins.viewonce.not_set": "Le transfert des messages à vue unique n'est pas configuré.\n\nUtilisez {0}setvv pour le configurer.",
-    "plugins.viewonce.forward_caption": "📸 *Message à vue unique*\n*De :* @{0}"
+    "plugins.viewonce.usage": "*Messages à vue unique :*\n\n{0}vv - répondre à un message à vue unique pour le révéler\n{0}setvv p - .vv envoie dans votre discussion privée\n{0}setvv <jid ou numéro> - .vv envoie dans une discussion précise\n{0}setvv g ou null - .vv envoie dans la discussion où vous l'utilisez (par défaut)\n{0}getvv - afficher où .vv envoie\n{0}autovv - transférer automatiquement toutes les vues uniques",
+    "plugins.viewonce.not_set": ".vv envoie dans la discussion où vous l'utilisez (par défaut).\n\nUtilisez {0}setvv pour choisir une autre destination.",
+    "plugins.viewonce.forward_caption": "📸 *Message à vue unique*\n*De :* @{0}",
+    "plugins.viewonce.setvv_desc": "Choisir où .vv envoie les médias révélés",
+    "plugins.viewonce.getvv_desc": "Afficher où .vv envoie les médias révélés",
+    "plugins.viewonce.disabled": "✅ .vv envoie de nouveau dans la discussion où vous l'utilisez.",
+    "plugins.viewonce.updated": "✅ .vv enverra désormais vers : *{0}*",
+    "plugins.viewonce.mode_group": "La discussion où .vv est utilisé"
   }
 }

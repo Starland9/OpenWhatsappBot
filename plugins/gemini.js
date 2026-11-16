@@ -89,7 +89,8 @@ module.exports = {
     try {
       await message.react("⏳");
 
-      const genAI = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
+      // v1beta: the API of @google/genai 2.x (3.x defaults to v1, where some models are missing)
+      const genAI = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY, apiVersion: "v1beta" });
 
       // Quoted text first (context), then the user's question
       const promptText =

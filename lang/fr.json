@@ -1296,7 +1296,11 @@
       "state_admins": "▸ administrateurs : {0}",
       "state_on": "oui",
       "state_off": "non",
-      "by": "▸ déclenché par {0}"
+      "by": "▸ déclenché par {0}",
+      "promoted": "▸ le bot n'était pas admin : promu d'abord",
+      "not_admin": "✘ *Le bot n'est pas administrateur et n'a pas pu le devenir.*\n\nWhatsApp ne laisse qu'un administrateur changer ces réglages, et le clonage a échoué aussi.\n▸ un admin promeut le bot (`.promote` sur le bot), puis relance la commande.",
+      "cloned": "☠ *Le bot n'a pas pu être promu : le groupe a été cloné.*\n▸ nouveau groupe : {0}",
+      "cloned_members": "▸ {0} membres repris, {1} refusés"
     }
   },
   "extra": {

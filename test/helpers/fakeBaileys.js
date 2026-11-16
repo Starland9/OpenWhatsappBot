@@ -38,6 +38,7 @@ function loadClientWithFakeBaileys(options = {}) {
 
   const makeSocket = (sockOpts) => {
     const sock = fakes.fakeSocket();
+    sock.sockOpts = sockOpts; // what client.js passed to makeWASocket (browser, logger, ...)
     const state = sockOpts && sockOpts.auth;
     if (state) sock.authState = state;
     sock.end = async (error) => {

@@ -4,7 +4,7 @@
  * Settings catalog + store (specs/002-admin-panel T026-T030, T034; contracts/settings-catalog.md,
  * contracts/runtime.md section 1).
  *
- *  - catalog invariants (112 entries, 78 editable, 34 read-only, 22 secrets, 5 "restart", U19 defaults);
+ *  - catalog invariants (113 entries, 79 editable, 34 read-only, 22 secrets, 6 "restart", U19 defaults);
  *  - tier precedence: runtime > override > environment > default, '' as a deliberate override;
  *  - the validation table of settings-catalog.md section 6 and all-or-nothing batches;
  *  - versions: stale write, lost insert race, version continuity after a reset;
@@ -117,16 +117,16 @@ const fieldOf = async (promise, key) => {
 describe("catalog invariants", () => {
   const entries = catalog.entries;
 
-  test("112 entries: 78 editable, 34 read-only (13 startup, 21 inactive), 22 secrets, 5 restart", () => {
-    assert.equal(entries.length, 112);
-    assert.equal(entries.filter((e) => !e.readonly).length, 78);
+  test("113 entries: 79 editable, 34 read-only (13 startup, 21 inactive), 22 secrets, 6 restart", () => {
+    assert.equal(entries.length, 113);
+    assert.equal(entries.filter((e) => !e.readonly).length, 79);
     assert.equal(entries.filter((e) => e.readonly).length, 34);
     assert.equal(entries.filter((e) => e.theme === "boot").length, 13);
     assert.equal(entries.filter((e) => e.theme === "inactive").length, 21);
     assert.equal(entries.filter((e) => e.secret).length, 22);
     assert.deepEqual(
       entries.filter((e) => e.effect === "restart").map((e) => e.key).sort(),
-      ["ALWAYS_ONLINE", "BAILEYS_LOG_LVL", "CACHE_CLEANUP_INTERVAL", "CONVERSATION_UPDATE_INTERVAL", "MEMORY_CLEANUP_INTERVAL"],
+      ["ALWAYS_ONLINE", "BAILEYS_DEVICE", "BAILEYS_LOG_LVL", "CACHE_CLEANUP_INTERVAL", "CONVERSATION_UPDATE_INTERVAL", "MEMORY_CLEANUP_INTERVAL"],
     );
   });
 
@@ -137,14 +137,14 @@ describe("catalog invariants", () => {
     const count = (theme) => entries.filter((e) => e.theme === theme).length;
     assert.deepEqual(
       { general: count("general"), behavior: count("behavior"), apiKeys: count("api-keys"), responder: count("responder"), moderation: count("moderation"), limits: count("limits"), advanced: count("advanced"), alerts: count("alerts") },
-      { general: 6, behavior: 11, apiKeys: 16, responder: 9, moderation: 5, limits: 13, advanced: 9, alerts: 9 },
+      { general: 6, behavior: 11, apiKeys: 16, responder: 9, moderation: 5, limits: 13, advanced: 10, alerts: 9 },
     );
   });
 
   test("keys are unique and well formed; themes are known", () => {
     const keys = entries.map((e) => e.key);
     assert.equal(new Set(keys).size, keys.length);
-    assert.equal(catalog.byKey.size, 112);
+    assert.equal(catalog.byKey.size, 113);
     for (const e of entries) {
       assert.match(e.key, /^[A-Z][A-Z0-9_]{1,63}$/);
       assert.ok(catalog.themes.includes(e.theme), e.key);
@@ -821,12 +821,12 @@ describe("versions and conflicts", () => {
 // ---------------------------------------------------------------------------
 
 describe("pendingRestart", () => {
-  const RESTART = ["ALWAYS_ONLINE", "BAILEYS_LOG_LVL", "CACHE_CLEANUP_INTERVAL", "CONVERSATION_UPDATE_INTERVAL", "MEMORY_CLEANUP_INTERVAL"];
+  const RESTART = ["ALWAYS_ONLINE", "BAILEYS_DEVICE", "BAILEYS_LOG_LVL", "CACHE_CLEANUP_INTERVAL", "CONVERSATION_UPDATE_INTERVAL", "MEMORY_CLEANUP_INTERVAL"];
 
-  test("the 5 restart keys are pending until markInForce(); the new value is readable at once", async () => {
+  test("the 6 restart keys are pending until markInForce(); the new value is readable at once", async () => {
     const { store } = await loaded();
     assert.deepEqual(store.pendingRestart(), []);
-    await store.set({ ALWAYS_ONLINE: true, BAILEYS_LOG_LVL: "warn", CACHE_CLEANUP_INTERVAL: 20000, CONVERSATION_UPDATE_INTERVAL: 1000, MEMORY_CLEANUP_INTERVAL: 120000, PREFIX: "!" });
+    await store.set({ ALWAYS_ONLINE: true, BAILEYS_DEVICE: "android", BAILEYS_LOG_LVL: "warn", CACHE_CLEANUP_INTERVAL: 20000, CONVERSATION_UPDATE_INTERVAL: 1000, MEMORY_CLEANUP_INTERVAL: 120000, PREFIX: "!" });
     assert.deepEqual(store.pendingRestart().sort(), RESTART);
     assert.equal(store.get("ALWAYS_ONLINE"), true);
     assert.equal(store.describe("ALWAYS_ONLINE").pendingRestart, true);
@@ -1635,7 +1635,7 @@ describe("SC-003: the process-wide store behind config.js", () => {
 
   test("the entries with effect restart: readable at once, listed in pendingRestart", async () => {
     const restart = catalog.entries.filter((e) => e.effect === "restart");
-    assert.equal(restart.length, 5);
+    assert.equal(restart.length, 6);
     settingsStore.markInForce();
     for (const item of restart) {
       const value = sampleFor(item);

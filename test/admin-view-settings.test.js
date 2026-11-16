@@ -10,7 +10,7 @@
  *  - client-side pre-validation from `rules`, compared with the server's own verdict;
  *  - reading the API errors; merging an answer; rebasing the form on a fresher list;
  *  - the panel-settings.json fragment (002) and the settings texts of panel-api-server.json (004): a label and a
- *    description for all 112 entries, in both languages;
+ *    description for all 113 entries, in both languages;
  *  - a payload built by the view logic is accepted by the real SET-2 route.
  */
 
@@ -71,7 +71,7 @@ describe("grouping by theme", () => {
     const groups = logic.groupSettings(settings);
     assert.deepEqual(groups.map((g) => g.theme), [...logic.THEME_ORDER, "inactive"]);
     assert.deepEqual(groups.filter((g) => g.folded).map((g) => g.theme), ["inactive"]);
-    assert.equal(groups.reduce((n, g) => n + g.items.length, 0), 112, "every entry appears exactly once (SC-002)");
+    assert.equal(groups.reduce((n, g) => n + g.items.length, 0), 113, "every entry appears exactly once (SC-002)");
     const inactive = groups.find((g) => g.theme === "inactive");
     assert.equal(inactive.items.length, 21);
     assert.ok(inactive.items.every((s) => s.inactive));
@@ -93,7 +93,7 @@ describe("grouping by theme", () => {
     assert.equal(logic.isEditable(find("PANEL_PORT")), false);
     assert.equal(logic.isEditable(find("GROQ_API_KEY")), false);
     assert.equal(logic.isEditable(find("YTDLP_PATH")), false);
-    assert.equal(settings.filter(logic.isEditable).length, 78);
+    assert.equal(settings.filter(logic.isEditable).length, 79);
   });
 
   test("originKind: default, file/environment, panel, and 'saved by the bot' for an adapter-backed value", () => {
@@ -371,7 +371,7 @@ describe("display helpers", () => {
 });
 
 describe("panel-settings.json (T114)", () => {
-  // 002 holds the texts of its 101 entries; the eleven of feature 004 (messaging API) are in its own fragment
+  // 002 holds the texts of its 101 entries and of BAILEYS_DEVICE (added later); the eleven of feature 004 (messaging API) are in its own fragment
   const read = (feature, file) => JSON.parse(fs.readFileSync(path.join(ROOT, "specs", feature, "i18n", file), "utf8"));
   const settingsOnly = (texts) => Object.fromEntries(Object.entries(texts).filter(([key]) => key.startsWith("settings.")));
   const first = read("002-admin-panel", "panel-settings.json");
@@ -382,7 +382,7 @@ describe("panel-settings.json (T114)", () => {
   };
   const base = (lang) => JSON.parse(fs.readFileSync(path.join(ROOT, "lib", "admin", "public", "i18n", `${lang}.json`), "utf8"));
 
-  test("a label and a description for all 112 catalog entries, in English and in French", () => {
+  test("a label and a description for all 113 catalog entries, in English and in French", () => {
     for (const lang of ["en", "fr"]) {
       for (const entry of catalog.entries) {
         for (const part of ["label", "desc"]) {
@@ -391,7 +391,7 @@ describe("panel-settings.json (T114)", () => {
         }
       }
     }
-    assert.equal(catalog.entries.length, 112);
+    assert.equal(catalog.entries.length, 113);
   });
 
   test("the same keys in both languages, the same {placeholders}", () => {

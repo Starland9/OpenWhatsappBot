@@ -1882,6 +1882,8 @@
   "settings.AUTO_STATUS_VIEW.label": "Voir les statuts automatiquement",
   "settings.BACKEND_URL.desc": "Service facultatif pour les téléchargements de réseaux sociaux, essayé seulement après yt-dlp. Vide : désactivé.",
   "settings.BACKEND_URL.label": "Adresse du service de téléchargement",
+  "settings.BAILEYS_DEVICE.desc": "Le type d'appareil que le bot déclare à WhatsApp. android (expérimental) permet au bot de recevoir les médias à vue unique, que WhatsApp n'envoie qu'aux appareils Android : autovv et .vv après ouverture en ont besoin. Appliqué au prochain redémarrage ; refaites ensuite l'appairage (page Appairage) pour que WhatsApp enregistre le nouveau type.",
+  "settings.BAILEYS_DEVICE.label": "Type d'appareil déclaré à WhatsApp",
   "settings.BAILEYS_LOG_LVL.desc": "Niveau de journalisation de la bibliothèque de connexion WhatsApp. Appliqué au prochain redémarrage.",
   "settings.BAILEYS_LOG_LVL.label": "Niveau de journal de la bibliothèque WhatsApp",
   "settings.BOT_LANG.desc": "Langue des messages envoyés par le bot et des descriptions de commandes. La langue de ce panel se choisit dans votre compte.",

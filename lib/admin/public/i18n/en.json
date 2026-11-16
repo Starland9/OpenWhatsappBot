@@ -1882,6 +1882,8 @@
   "settings.AUTO_STATUS_VIEW.label": "View statuses automatically",
   "settings.BACKEND_URL.desc": "Optional backend for social-media downloads, tried only after yt-dlp. Empty: disabled.",
   "settings.BACKEND_URL.label": "Download backend URL",
+  "settings.BAILEYS_DEVICE.desc": "The device type the bot declares to WhatsApp. android (experimental) lets the bot receive view-once media, which WhatsApp only sends to Android devices: autovv and .vv after opening need it. Applied at the next restart; re-pair the bot afterwards (Pairing page) so WhatsApp registers the new type.",
+  "settings.BAILEYS_DEVICE.label": "Device type declared to WhatsApp",
   "settings.BAILEYS_LOG_LVL.desc": "Log level of the WhatsApp connection library. Applied at the next restart.",
   "settings.BAILEYS_LOG_LVL.label": "WhatsApp library log level",
   "settings.BOT_LANG.desc": "Language of the messages the bot sends and of the command descriptions. The language of this panel is chosen in your account.",

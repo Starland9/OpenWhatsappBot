@@ -238,12 +238,13 @@ Defaults are the **code** defaults (U19): for the five keys flagged `default-dif
 | `MESSAGE_CONCURRENCY_LIMIT` | int | 1 to 50 | 5 | no | immediate | flag `not-in-example`; read per batch in `pipeline.js:231` |
 | `BROADCAST_DELAY_MS` | int | 2000 to 600000 ms | 5000 | no | immediate | `env: null`; default spacing of **new** broadcasts (FR-048: never under 2 s); existing broadcasts keep their own `spacingMs` |
 
-### 5.7 `advanced` (9)
+### 5.7 `advanced` (10)
 
 | Key | Type | Validation | Default | Secret | Effect | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | `LOG_LEVEL` | enum | `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent` | `info` | no | immediate | `onChange: setLogLevel` (needs the shared logger of research B8, which replaces the 19 `pino(` sites) |
 | `BAILEYS_LOG_LVL` | enum | same values | `silent` | no | restart | `client.js:98` reads `process.env` (Work: use `config`); read when the socket is created |
+| `BAILEYS_DEVICE` | enum | `web`, `android` | `web` | no | restart | Added after 004. The device type declared to WhatsApp (`browser` of the socket, read when it is created): `android` is the experimental Android mode of Baileys 7 (UserAgent `ANDROID`, DeviceProps `ANDROID_PHONE`), the only one WhatsApp sends view-once media to; re-pair after a change |
 | `CACHE_CLEANUP_INTERVAL` | int | 10000 to 86400000 ms | 600000 | no | restart | flag `not-in-example`; `antiDeleteHandler.js:57` needs `reconfigure()` |
 | `CACHE_MAX_AGE` | int | 60000 to 86400000 ms | 3600000 | no | immediate | flag `not-in-example`; `antiDeleteHandler.js:58` becomes a live getter |
 | `CONVERSATION_UPDATE_INTERVAL` | int | 500 to 60000 ms | 2000 | no | restart | flag `not-in-example`; `conversationManager.js:26` |

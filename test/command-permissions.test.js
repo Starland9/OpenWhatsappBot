@@ -597,7 +597,7 @@ test("SC-003: for each non-delegable real command, rules never open it and never
     };
   }
   const locked = setup.commands.filter((entry) => entry.delegable === false);
-  assert.equal(locked.length, 14, "the 14 never-delegable commands");
+  assert.equal(locked.length, 15, "the 15 never-delegable commands (the 14 of 003 + autovv)");
 
   const findAll = mock.method(db.PermissionRule, "findAll");
   const refusal = getLang("common.owner_only");

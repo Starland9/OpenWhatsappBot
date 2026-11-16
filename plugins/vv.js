@@ -88,8 +88,21 @@ module.exports = {
     if (!quotedMsg || !viewOnceHandler.isViewOnce(quotedMsg)) return;
 
     // Unwrapped content (viewOnceMessage, V2, V2Extension, ephemeral...)
-    const content = extractMessageContent(quotedMsg);
-    const messageType = getContentType(content);
+    let content = extractMessageContent(quotedMsg);
+    let messageType = getContentType(content);
+
+    // A view-once opened on the phone is quoted without its link: use the copy the bot received, if it got
+    // one (Android mode, BAILEYS_DEVICE) in this very chat
+    let source;
+    const quotedMedia = content && messageType ? content[messageType] : null;
+    if (quotedMedia && !quotedMedia.directPath && !quotedMedia.url) {
+      source = viewOnceHandler.recall([message.jid, message.key?.remoteJidAlt], message.quoted.id) || undefined;
+      if (source) {
+        content = source;
+        messageType = getContentType(source);
+      }
+    }
+
     const kind = KINDS[messageType];
     if (!kind) return;
     const mediaMessage = content[messageType];
@@ -97,7 +110,7 @@ module.exports = {
     let media;
     try {
       // Size cap (MAX_UPLOAD) is checked before the download
-      media = await message.getQuotedMedia();
+      media = await message.getQuotedMedia(source ? { source } : undefined);
     } catch (error) {
       if (error?.code === "MEDIA_TOO_LARGE") {
         // The owner gets the registry's reply in the chat; a delegated requester gets it in his DM
